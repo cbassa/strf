@@ -17,199 +17,9 @@ struct spectrogram {
 double nfd2mjd(char *date);
 double date2mjd(int year,int month,double day);
 void dec2sex(double x,char *s,int f,int len);
-
-struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin)
-{
-  int i,j,k,l,flag=0,status,msub;
-  char filename[128],header[256],nfd[32];
-  FILE *file;
-  struct spectrogram s;
-  float *z;
-  int nch,j0,j1;
-  double freq,samp_rate;
-  float length;
-  int nchan;
-
-  // Open first file to get number of channels
-  sprintf(filename,"%s_%06d.bin",prefix,isub);
-	
-  // Open file
-  file=fopen(filename,"r");
-  if (file==NULL) {
-    printf("%s does not exist\n",filename);
-    return s;
-  }
-
-  // Read header
-  status=fread(header,sizeof(char),256,file);
-  status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
-
-  // Close file
-  fclose(file);
-
-  // Compute plotting channel
-  if (f0>0.0 && df0>0.0) {
-    s.nchan=(int) (df0/s.samp_rate*(float) nch);
-    
-    j0=(int) ((f0-0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
-    j1=(int) ((f0+0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
-    
-    if (j0<0 || j1>nch) 
-      fprintf(stderr,"Requested frequency range out of limits\n");
-  } else {
-    s.nchan=nch;
-    j0=0;
-    j1=s.nchan;
-  }
-
-  // Number of subints
-  s.nsub=nsub/nbin;
-
-  // Allocate
-  s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
-  z=(float *) malloc(sizeof(float)*nch);
-  s.mjd=(double *) malloc(sizeof(double)*s.nsub);
-  s.length=(float *) malloc(sizeof(float)*s.nsub);
-
-  // Initialize
-  for (j=0;j<s.nchan*s.nsub;j++)
-    s.z[j]=0.0;
-  for (j=0;j<s.nsub;j++)
-    s.mjd[j]=0.0;
-
-  // Loop over files
-  for (k=0,i=0,l=0;l<nsub;k++) {
-    // Generate filename
-    sprintf(filename,"%s_%06d.bin",prefix,k+isub);
-
-    // Open file
-    file=fopen(filename,"r");
-    if (file==NULL) {
-      printf("%s does not exist\n",filename);
-	  break;
-    }
-    printf("opened %s\n",filename);
-
-    // Loop over contents of file
-    for (;l<nsub;l++) {
-      // Read header
-      status=fread(header,sizeof(char),256,file);
-      if (status==0)
-	break;
-      status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
-      s.mjd[i]+=nfd2mjd(nfd)+0.5*length/86400.0;
-      s.length[i]+=length;
-
-      // Read buffer
-      status=fread(z,sizeof(float),nch,file);
-      if (status==0)
-	break;
-      
-      // Copy
-      for (j=0;j<s.nchan;j++) 
-	s.z[i+s.nsub*j]+=z[j+j0];
-
-      // Increment
-      if (l%nbin==nbin-1) {
-	// Scale
-	s.mjd[i]/=(float) nbin;
-	for (j=0;j<s.nchan;j++) 
-	  s.z[i+s.nsub*j]/=(float) nbin;
-
-	i++;
-      }
-    }
-
-    // Close file
-    fclose(file);
-  }
-
-  // Swap frequency range
-  if (f0>0.0 && df0>0.0) {
-    s.freq=f0;
-    s.samp_rate=df0;
-  }
-
-  // Free 
-  free(z);
-
-  return s;
-}
-
-void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
-{
-  int i,imin,imax;
-  double mjdt,mjdmin,mjdmax;
-  float dt,t,tmin,tmax;
-  int lsec,ssec,sec;
-  char stime[16];
-
-  // Find extrema
-  for (i=0;i<n;i++) {
-    if (i==0) {
-      mjdmin=mjd[i];
-      mjdmax=mjd[i];
-    } else {
-      if (mjd[i]>mjdmax) mjdmax=mjd[i];
-    }
-  }
-  dt=(float) 86400*(mjdmax-mjdmin);
-
-  // Choose tickmarks
-  if (dt>43000) {
-    lsec=10800;
-    ssec=3600;
-  } else if (dt>21600) {
-    lsec=10800;
-    ssec=3600;
-  } else if (dt>7200) {
-    lsec=1800;
-    ssec=300;
-  } else if (dt>3600) {
-    lsec=600;
-    ssec=120;
-  } else if (dt>900) {
-    lsec=300;
-    ssec=60;
-  } else {
-    lsec=60;
-    ssec=10;
-  }
-
-  // Extrema
-  tmin=86400.0*(mjdmin-floor(mjdmin));
-  tmax=tmin+dt;
-  tmin=lsec*floor(tmin/lsec);
-  tmax=lsec*ceil(tmax/lsec);
-
-  // Large tickmarks
-  for (t=tmin;t<=tmax;t+=lsec) {
-    mjdt=floor(mjdmin)+t/86400.0;
-    if (mjdt>=mjdmin && mjdt<mjdmax) {
-      for (i=0;i<n-1;i++)
-	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
-	  break;
-      sec=(int) floor(fmod(t,86400.0));
-      dec2sex(((float) sec+0.1)/3600.0,stime,0,2);
-      stime[6]='\0';
-      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.5,0.5,0.3,0.0,stime);
-    }
-  }
-
-  // Small tickmarks
-  for (t=tmin;t<=tmax;t+=ssec) {
-    mjdt=floor(mjdmin)+t/86400.0;
-    if (mjdt>=mjdmin && mjdt<mjdmax) {
-      for (i=0;i<n-1;i++)
-	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
-	  break;
-      sec=(int) floor(t);
-      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.25,0.25,1.0,1.0,"");
-    }
-  }
-
-  return;
-}
+struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin);
+void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
+void usage(void);
 
 int main(int argc,char *argv[])
 {
@@ -228,7 +38,7 @@ int main(int argc,char *argv[])
   float width=500;
   float x,y,x0,y0;
   char c;
-  char prefix[128],xlabel[64],ylabel[64];
+  char path[128],xlabel[64],ylabel[64];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -237,44 +47,53 @@ int main(int argc,char *argv[])
   double f0=0.0,df0=0.0;
 
   // Read arguments
-  while ((arg=getopt(argc,argv,"i:f:w:s:l:b:z:"))!=-1) {
-    switch (arg) {
-      
-    case 'i':
-      strcpy(prefix,optarg);
-      break;
+  if (argc>1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:h"))!=-1) {
+      switch (arg) {
+	
+      case 'p':
+	strcpy(path,optarg);
+	break;
+	
+      case 's':
+	isub=atoi(optarg);
+	break;
+	
+      case 'l':
+	nsub=atoi(optarg);
+	break;
+	
+      case 'b':
+	nbin=atoi(optarg);
+	break;
+	
+      case 'f':
+	f0=(double) atof(optarg);
+	break;
+	
+      case 'w':
+	df0=(double) atof(optarg);
+	break;
+	
+      case 'z':
+	zmax=atof(optarg);
+	break;
 
-    case 's':
-      isub=atoi(optarg);
-      break;
+      case 'h':
+	usage();
 
-    case 'l':
-      nsub=atoi(optarg);
-      break;
-
-    case 'b':
-      nbin=atoi(optarg);
-      break;
-
-    case 'f':
-      f0=(double) atof(optarg);
-      break;
-      
-    case 'w':
-      df0=(double) atof(optarg);
-      break;
-
-    case 'z':
-      zmax=atof(optarg);
-      break;
-
-    default:
-      return 0;
+      default:
+	usage();
+	return 0;
+      }
     }
+  } else {
+    usage();
+    return 0;
   }
 
   // Read data
-  s=read_spectrogram(prefix,isub,nsub,f0,df0,nbin);
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
 
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
@@ -636,6 +455,214 @@ void dec2sex(double x,char *s,int f,int len)
   if (len==5) sprintf(s,"%c%02i%c%02i%c%05.2f%c",sign,(int) deg,form[f][0],(int) min,form[f][1],sec,form[f][2]);
   if (len==4) sprintf(s,"%c%02i%c%02i%c%04.1f%c",sign,(int) deg,form[f][0],(int) min,form[f][1],sec,form[f][2]);
   if (len==2) sprintf(s,"%c%02i%c%02i%c%02i%c",sign,(int) deg,form[f][0],(int) min,form[f][1],(int) floor(sec),form[f][2]);
+
+  return;
+}
+
+struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin)
+{
+  int i,j,k,l,flag=0,status,msub;
+  char filename[128],header[256],nfd[32];
+  FILE *file;
+  struct spectrogram s;
+  float *z;
+  int nch,j0,j1;
+  double freq,samp_rate;
+  float length;
+  int nchan;
+
+  // Open first file to get number of channels
+  sprintf(filename,"%s_%06d.bin",prefix,isub);
+	
+  // Open file
+  file=fopen(filename,"r");
+  if (file==NULL) {
+    printf("%s does not exist\n",filename);
+    return s;
+  }
+
+  // Read header
+  status=fread(header,sizeof(char),256,file);
+  status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
+
+  // Close file
+  fclose(file);
+
+  // Compute plotting channel
+  if (f0>0.0 && df0>0.0) {
+    s.nchan=(int) (df0/s.samp_rate*(float) nch);
+    
+    j0=(int) ((f0-0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
+    j1=(int) ((f0+0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
+    
+    if (j0<0 || j1>nch) 
+      fprintf(stderr,"Requested frequency range out of limits\n");
+  } else {
+    s.nchan=nch;
+    j0=0;
+    j1=s.nchan;
+  }
+
+  // Number of subints
+  s.nsub=nsub/nbin;
+
+  // Allocate
+  s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
+  z=(float *) malloc(sizeof(float)*nch);
+  s.mjd=(double *) malloc(sizeof(double)*s.nsub);
+  s.length=(float *) malloc(sizeof(float)*s.nsub);
+
+  // Initialize
+  for (j=0;j<s.nchan*s.nsub;j++)
+    s.z[j]=0.0;
+  for (j=0;j<s.nsub;j++)
+    s.mjd[j]=0.0;
+
+  // Loop over files
+  for (k=0,i=0,l=0;l<nsub;k++) {
+    // Generate filename
+    sprintf(filename,"%s_%06d.bin",prefix,k+isub);
+
+    // Open file
+    file=fopen(filename,"r");
+    if (file==NULL) {
+      printf("%s does not exist\n",filename);
+	  break;
+    }
+    printf("opened %s\n",filename);
+
+    // Loop over contents of file
+    for (;l<nsub;l++) {
+      // Read header
+      status=fread(header,sizeof(char),256,file);
+      if (status==0)
+	break;
+      status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
+      s.mjd[i]+=nfd2mjd(nfd)+0.5*length/86400.0;
+      s.length[i]+=length;
+
+      // Read buffer
+      status=fread(z,sizeof(float),nch,file);
+      if (status==0)
+	break;
+      
+      // Copy
+      for (j=0;j<s.nchan;j++) 
+	s.z[i+s.nsub*j]+=z[j+j0];
+
+      // Increment
+      if (l%nbin==nbin-1) {
+	// Scale
+	s.mjd[i]/=(float) nbin;
+	for (j=0;j<s.nchan;j++) 
+	  s.z[i+s.nsub*j]/=(float) nbin;
+
+	i++;
+      }
+    }
+
+    // Close file
+    fclose(file);
+  }
+
+  // Swap frequency range
+  if (f0>0.0 && df0>0.0) {
+    s.freq=f0;
+    s.samp_rate=df0;
+  }
+
+  // Free 
+  free(z);
+
+  return s;
+}
+
+void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
+{
+  int i,imin,imax;
+  double mjdt,mjdmin,mjdmax;
+  float dt,t,tmin,tmax;
+  int lsec,ssec,sec;
+  char stime[16];
+
+  // Find extrema
+  for (i=0;i<n;i++) {
+    if (i==0) {
+      mjdmin=mjd[i];
+      mjdmax=mjd[i];
+    } else {
+      if (mjd[i]>mjdmax) mjdmax=mjd[i];
+    }
+  }
+  dt=(float) 86400*(mjdmax-mjdmin);
+
+  // Choose tickmarks
+  if (dt>43000) {
+    lsec=10800;
+    ssec=3600;
+  } else if (dt>21600) {
+    lsec=10800;
+    ssec=3600;
+  } else if (dt>7200) {
+    lsec=1800;
+    ssec=300;
+  } else if (dt>3600) {
+    lsec=600;
+    ssec=120;
+  } else if (dt>900) {
+    lsec=300;
+    ssec=60;
+  } else {
+    lsec=60;
+    ssec=10;
+  }
+
+  // Extrema
+  tmin=86400.0*(mjdmin-floor(mjdmin));
+  tmax=tmin+dt;
+  tmin=lsec*floor(tmin/lsec);
+  tmax=lsec*ceil(tmax/lsec);
+
+  // Large tickmarks
+  for (t=tmin;t<=tmax;t+=lsec) {
+    mjdt=floor(mjdmin)+t/86400.0;
+    if (mjdt>=mjdmin && mjdt<mjdmax) {
+      for (i=0;i<n-1;i++)
+	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
+	  break;
+      sec=(int) floor(fmod(t,86400.0));
+      dec2sex(((float) sec+0.1)/3600.0,stime,0,2);
+      stime[6]='\0';
+      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.5,0.5,0.3,0.0,stime);
+    }
+  }
+
+  // Small tickmarks
+  for (t=tmin;t<=tmax;t+=ssec) {
+    mjdt=floor(mjdmin)+t/86400.0;
+    if (mjdt>=mjdmin && mjdt<mjdmax) {
+      for (i=0;i<n-1;i++)
+	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
+	  break;
+      sec=(int) floor(t);
+      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.25,0.25,1.0,1.0,"");
+    }
+  }
+
+  return;
+}
+
+void usage(void)
+{
+  printf("rfplot: plot RF observations\n\n");
+  printf("-p <path>    Input path to file /a/b/c_??????.bin\n");
+  printf("-s <start>   Number of starting subintegration [0]\n");
+  printf("-l <length>  Number of subintegrations to plot [3600]\n");
+  printf("-b <nbin>    Number of subintegrations to bin [1]\n");
+  printf("-z <zmax>    Image scaling upper limit [8.0]\n");
+  printf("-f <freq>    Frequency to zoom into (Hz)\n");
+  printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
+  printf("-h           This help\n");
 
   return;
 }
