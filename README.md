@@ -1,4 +1,4 @@
 strf
 ====
 
-RF SAT Tracking
+RF Satellite Tracking
