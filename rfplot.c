@@ -4,20 +4,12 @@
 #include <math.h>
 #include <cpgplot.h>
 #include <getopt.h>
+#include "rftime.h"
+#include "rfio.h"
 
 #define LIM 128
-struct spectrogram {
-  int nsub,nchan;
-  double *mjd;
-  double freq,samp_rate;
-  float *length;
-  float *z;
-  char nfd0[32];
-};
-double nfd2mjd(char *date);
-double date2mjd(int year,int month,double day);
+
 void dec2sex(double x,char *s,int f,int len);
-struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 
@@ -395,43 +387,6 @@ int main(int argc,char *argv[])
   return 0;
 }
 
-// nfd2mjd
-double nfd2mjd(char *date)
-{
-  int year,month,day,hour,min;
-  double mjd,dday;
-  float sec;
-
-  sscanf(date,"%04d-%02d-%02dT%02d:%02d:%f",&year,&month,&day,&hour,&min,&sec);
-  dday=day+hour/24.0+min/1440.0+sec/86400.0;
-  mjd=date2mjd(year,month,dday);
-
-  return mjd;
-}
-
-// Compute Julian Day from Date
-double date2mjd(int year,int month,double day)
-{
-  int a,b;
-  double jd;
-
-  if (month<3) {
-    year--;
-    month+=12;
-  }
-
-  a=floor(year/100.);
-  b=2.-a+floor(a/4.);
-
-  if (year<1582) b=0;
-  if (year==1582 && month<10) b=0;
-  if (year==1852 && month==10 && day<=4) b=0;
-
-  jd=floor(365.25*(year+4716))+floor(30.6001*(month+1))+day+b-1524.5;
-
-  return jd-2400000.5;
-}
-
 // Convert Decimal into Sexagesimal
 void dec2sex(double x,char *s,int f,int len)
 {
@@ -459,124 +414,6 @@ void dec2sex(double x,char *s,int f,int len)
   return;
 }
 
-struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin)
-{
-  int i,j,k,l,flag=0,status,msub;
-  char filename[128],header[256],nfd[32];
-  FILE *file;
-  struct spectrogram s;
-  float *z;
-  int nch,j0,j1;
-  double freq,samp_rate;
-  float length;
-  int nchan;
-
-  // Open first file to get number of channels
-  sprintf(filename,"%s_%06d.bin",prefix,isub);
-	
-  // Open file
-  file=fopen(filename,"r");
-  if (file==NULL) {
-    printf("%s does not exist\n",filename);
-    return s;
-  }
-
-  // Read header
-  status=fread(header,sizeof(char),256,file);
-  status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
-
-  // Close file
-  fclose(file);
-
-  // Compute plotting channel
-  if (f0>0.0 && df0>0.0) {
-    s.nchan=(int) (df0/s.samp_rate*(float) nch);
-    
-    j0=(int) ((f0-0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
-    j1=(int) ((f0+0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
-    
-    if (j0<0 || j1>nch) 
-      fprintf(stderr,"Requested frequency range out of limits\n");
-  } else {
-    s.nchan=nch;
-    j0=0;
-    j1=s.nchan;
-  }
-
-  // Number of subints
-  s.nsub=nsub/nbin;
-
-  // Allocate
-  s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
-  z=(float *) malloc(sizeof(float)*nch);
-  s.mjd=(double *) malloc(sizeof(double)*s.nsub);
-  s.length=(float *) malloc(sizeof(float)*s.nsub);
-
-  // Initialize
-  for (j=0;j<s.nchan*s.nsub;j++)
-    s.z[j]=0.0;
-  for (j=0;j<s.nsub;j++)
-    s.mjd[j]=0.0;
-
-  // Loop over files
-  for (k=0,i=0,l=0;l<nsub;k++) {
-    // Generate filename
-    sprintf(filename,"%s_%06d.bin",prefix,k+isub);
-
-    // Open file
-    file=fopen(filename,"r");
-    if (file==NULL) {
-      printf("%s does not exist\n",filename);
-	  break;
-    }
-    printf("opened %s\n",filename);
-
-    // Loop over contents of file
-    for (;l<nsub;l++) {
-      // Read header
-      status=fread(header,sizeof(char),256,file);
-      if (status==0)
-	break;
-      status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
-      s.mjd[i]+=nfd2mjd(nfd)+0.5*length/86400.0;
-      s.length[i]+=length;
-
-      // Read buffer
-      status=fread(z,sizeof(float),nch,file);
-      if (status==0)
-	break;
-      
-      // Copy
-      for (j=0;j<s.nchan;j++) 
-	s.z[i+s.nsub*j]+=z[j+j0];
-
-      // Increment
-      if (l%nbin==nbin-1) {
-	// Scale
-	s.mjd[i]/=(float) nbin;
-	for (j=0;j<s.nchan;j++) 
-	  s.z[i+s.nsub*j]/=(float) nbin;
-
-	i++;
-      }
-    }
-
-    // Close file
-    fclose(file);
-  }
-
-  // Swap frequency range
-  if (f0>0.0 && df0>0.0) {
-    s.freq=f0;
-    s.samp_rate=df0;
-  }
-
-  // Free 
-  free(z);
-
-  return s;
-}
-
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 {
   int i,imin,imax;
@@ -587,6 +424,7 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 
   // Find extrema
   for (i=0;i<n;i++) {
+    printf("%d %lf\n",i,mjd[i]);
     if (i==0) {
       mjdmin=mjd[i];
       mjdmax=mjd[i];
@@ -595,7 +433,7 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
     }
   }
   dt=(float) 86400*(mjdmax-mjdmin);
-
+  printf("%lf %lf\n",mjdmin-mjdmax);
   // Choose tickmarks
   if (dt>43000) {
     lsec=10800;
