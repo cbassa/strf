@@ -13,8 +13,8 @@ all:
 rfedit: rfedit.o rfio.o rftime.o
 	$(CC) -o rfedit rfedit.o rfio.o rftime.o -lm
 
-rfplot: rfplot.o rftime.o rfio.o
-	gfortran -o rfplot rfplot.o rftime.o rfio.o $(LFLAGS)
+rfplot: rfplot.o rftime.o rfio.o rfoverlay.o sgdp4.o satutl.o deep.o ferror.o
+	gfortran -o rfplot rfplot.o rftime.o rfio.o rfoverlay.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
 
 rffft: rffft.o
 	$(CC) -o rffft rffft.o -lm -lfftw3f

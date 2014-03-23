@@ -6,12 +6,14 @@
 #include <getopt.h>
 #include "rftime.h"
 #include "rfio.h"
+#include "rfoverlay.h"
 
 #define LIM 128
 
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
+
 
 int main(int argc,char *argv[])
 {
@@ -37,6 +39,7 @@ int main(int argc,char *argv[])
   FILE *file;
   int arg=0,nsub=3600,nbin=1;
   double f0=0.0,df0=0.0;
+  int foverlay=1;
 
   // Read arguments
   if (argc>1) {
@@ -125,6 +128,11 @@ int main(int argc,char *argv[])
       fmax*=1e-6;
 
       cpgswin(xmin,xmax,fmin,fmax);
+      if (foverlay==1) {
+	cpgsci(3);
+	overlay(s.mjd,s.nsub,4171);
+	cpgsci(1);
+      }
 
       // Human readable frequency axis
       fcen=0.5*(fmax+fmin);
@@ -277,6 +285,15 @@ int main(int argc,char *argv[])
       continue;
     }
 
+    // Toggle overlay
+    if (c=='p') {
+      if (foverlay==0)
+	foverlay=1;
+      else if (foverlay==1)
+	foverlay=0;
+      redraw=1;
+    }
+
     // Width
     if (isdigit(c)) {
       width=1000.0/(c-'0');
@@ -424,7 +441,6 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 
   // Find extrema
   for (i=0;i<n;i++) {
-    printf("%d %lf\n",i,mjd[i]);
     if (i==0) {
       mjdmin=mjd[i];
       mjdmax=mjd[i];
@@ -433,7 +449,7 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
     }
   }
   dt=(float) 86400*(mjdmax-mjdmin);
-  printf("%lf %lf\n",mjdmin-mjdmax);
+
   // Choose tickmarks
   if (dt>43000) {
     lsec=10800;
