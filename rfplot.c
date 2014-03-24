@@ -6,7 +6,7 @@
 #include <getopt.h>
 #include "rftime.h"
 #include "rfio.h"
-#include "rfoverlay.h"
+#include "rftrace.h"
 
 #define LIM 128
 
@@ -14,6 +14,43 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 
+void plot_traces(struct trace *t,int nsat)
+{
+  int i,j,flag,textflag;
+  char text[8];
+
+  // Loop over objects
+  for (i=0;i<nsat;i++) {
+    sprintf(text," %d",t[i].satno);
+
+    // Plot label at start of trace
+    if (t[i].za[0]<=90.0)
+	cpgtext(0.0,(float) t[i].freq[0],text);
+
+    // Loop over trace
+    for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
+      // Plot label for rising sources
+      if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
+	cpgtext((float) j,(float) t[i].freq[j],text);
+
+      // Plot line
+      if (flag==0) {
+	cpgmove((float) j,(float) t[i].freq[j]);
+	flag=1;
+      } else {
+	cpgdraw((float) j,(float) t[i].freq[j]);
+      }
+
+      // Below horizon
+      if (t[i].za[j]>90.0)
+	flag=0;
+      else
+	flag=1;
+    }	  
+  }
+
+  return;
+}
 
 int main(int argc,char *argv[])
 {
@@ -40,6 +77,8 @@ int main(int argc,char *argv[])
   int arg=0,nsub=3600,nbin=1;
   double f0=0.0,df0=0.0;
   int foverlay=1;
+  struct trace *t;
+  int nsat;
 
   // Read arguments
   if (argc>1) {
@@ -91,6 +130,12 @@ int main(int argc,char *argv[])
   s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
 
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+  fmin=(s.freq-0.5*s.samp_rate)*1e-6;
+  fmax=(s.freq+0.5*s.samp_rate)*1e-6;
+
+  // Compute traces
+  t=compute_trace(s.mjd,s.nsub,4171,fmin,fmax,&nsat);
+  printf("Traces for %d objects\n",nsat);
 
   cpgopen("/xs");
   cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
@@ -130,7 +175,7 @@ int main(int argc,char *argv[])
       cpgswin(xmin,xmax,fmin,fmax);
       if (foverlay==1) {
 	cpgsci(3);
-	overlay(s.mjd,s.nsub,4171);
+	plot_traces(t,nsat);
 	cpgsci(1);
       }
 
