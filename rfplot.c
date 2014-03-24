@@ -690,6 +690,12 @@ struct trace locate_trace(struct spectrogram s,struct select sel)
       j0=(int) floor(y-sel.w);
       j1=(int) floor(y+sel.w);
 
+      // Keep in range
+      if (j0<0)
+	j0=0;
+      if (j1>=s.nchan)
+	j1=s.nchan;
+
       // Find maximum and significance
       zm=0.0;
       jmax=0;

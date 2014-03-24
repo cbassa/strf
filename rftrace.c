@@ -288,7 +288,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
       break;
     sscanf(line,"%d %lf",&satno,&freq0);
 
-    if (freq0>=fmin && freq0<=fmax)
+    if (freq0>=0.95*fmin && freq0<=1.05*fmax)
       i++;
   }
   fclose(infile);
@@ -318,7 +318,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
     if (fgetline(infile,line,LIM)<=0)
       break;
     sscanf(line,"%d %lf",&satno,&freq0);
-    if (freq0<fmin || freq0>fmax)
+    if (freq0<0.95*fmin || freq0>1.05*fmax)
       continue;
 
     // Allocate
