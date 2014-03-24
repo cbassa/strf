@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 #include "sgdp4h.h"
 #include "satutl.h"
+#include "rftrace.h"
 
 #define LIM 80
 #define D2R M_PI/180.0
@@ -20,12 +22,6 @@ struct site {
   double lng,lat;
   float alt;
   char observer[64];
-};
-struct trace {
-  int satno,n;
-  double *mjd;
-  double *freq;
-  float *za;
 };
 
 // Return x modulo y [0,y)
@@ -149,19 +145,141 @@ struct site get_site(int site_id)
   return s;
 }
 
-// Compute trace
-struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,int *nsat)
+// Identify trace
+void identify_trace(struct trace t,int satno)
 {
-  int i,j,imode,flag,satno,tflag;
+  int i,imode,flag=0;
+  struct point *p;
+  struct site s;
+  double *v;
+  orbit_t orb;
+  xyz_t satpos,satvel;
+  FILE *file;
+  double dx,dy,dz,dvx,dvy,dvz,r,za;
+  double sum1,sum2,beta,freq0,rms,mjd0;
+  char nfd[32],nfdmin[32],text[16];
+  int satnomin;
+  double rmsmin,freqmin;
+  
+  // Reloop stderr
+  freopen("/tmp/stderr.txt","w",stderr);
+
+  // Get site
+  s=get_site(t.site);
+
+  // Allocate
+  p=(struct point *) malloc(sizeof(struct point)*t.n);
+  v=(double *) malloc(sizeof(double)*t.n);
+
+  // Get observer position
+  for (i=0;i<t.n;i++) 
+    obspos_xyz(t.mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
+
+  printf("Fitting trace:\n");
+
+  // Loop over TLEs
+  file=fopen("/home/bassa/code/c/satellite/sattools/tle/bulk.tle","r");
+  while (read_twoline(file,satno,&orb)==0) {
+    // Initialize
+    imode=init_sgdp4(&orb);
+    if (imode==SGDP4_ERROR)
+      printf("Error\n");
+
+    // Loop over points
+    for (i=0,sum1=0.0,sum2=0.0;i<t.n;i++) {
+      // Get satellite position
+      satpos_xyz(t.mjd[i]+2400000.5,&satpos,&satvel);
+
+      dx=satpos.x-p[i].obspos.x;  
+      dy=satpos.y-p[i].obspos.y;
+      dz=satpos.z-p[i].obspos.z;
+      dvx=satvel.x-p[i].obsvel.x;
+      dvy=satvel.y-p[i].obsvel.y;
+      dvz=satvel.z-p[i].obsvel.z;
+      r=sqrt(dx*dx+dy*dy+dz*dz);
+      v[i]=(dvx*dx+dvy*dy+dvz*dz)/r;
+      za=acos((p[i].obspos.x*dx+p[i].obspos.y*dy+p[i].obspos.z*dz)/(r*XKMPER))*R2D;
+      beta=(1.0-v[i]/C);
+      sum1+=beta*t.freq[i];
+      sum2+=beta*beta;
+    }
+    freq0=sum1/sum2;
+
+    // Compute residuals
+    for (i=0,rms=0.0;i<t.n;i++) 
+      rms+=pow(t.freq[i]-(1.0-v[i]/C)*freq0,2);
+    rms=sqrt(rms/(double) t.n);
+
+    // Find TCA
+    for (i=0,mjd0=0.0;i<t.n-1;i++) 
+      if (v[i]*v[i-1]<0.0)
+	mjd0=t.mjd[i];
+    
+    if (mjd0>0.0)
+      mjd2nfd(mjd0,nfd);
+    else
+      strcpy(nfd,"0000-00-00T00:00:00");
+    
+    if (rms<1000) {
+      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",orb.satno,nfd,1e-6*freq0,1e-3*rms);
+      if (flag==0 || rms<rmsmin) {
+	satnomin=orb.satno;
+	strcpy(nfdmin,nfd);
+	freqmin=freq0;
+	rmsmin=rms;
+	flag=1;
+      }
+    }
+  }
+  fclose(file);
+  fclose(stderr);
+
+  if (flag==1) {
+    printf("\nBest fitting object:\n");
+    printf("%05d: %s  %8.3f MHz %8.3f kHz\n",satnomin,nfdmin,1e-6*freqmin,1e-3*rmsmin);
+    printf("Store frequency? [y/n]\n");
+    scanf("%s",text);
+    if (text[0]=='y') {
+      file=fopen("frequencies.txt","a");
+      fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
+      fclose(file);
+      file=fopen("log.txt","a");
+      fprintf(file,"%05d %8.3f %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
+      fclose(file);
+      printf("Frequency stored\n\n");
+    }
+  } else {
+    printf("\nTrace not identified..\n");
+  }
+
+  // Free
+  free(p);
+  free(v);
+
+  return;
+}
+
+// Compute trace
+struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,int *nsat)
+{
+  int i,j,imode,flag,satno,tflag,m;
   struct point *p;
   struct site s;
   FILE *file,*infile;
   orbit_t orb;
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,za;
-  double freq,freq0;
+  double freq0;
   char line[LIM],text[8];
   struct trace *t;
+  float fmin,fmax;
+
+  // Frequency limits
+  fmin=freq-0.5*bw;
+  fmax=freq+0.5*bw;
+
+  // Reloop stderr
+  freopen("/tmp/stderr.txt","w",stderr);
 
   // Find number of satellites in frequency range
   infile=fopen("frequencies.txt","r");
@@ -176,6 +294,12 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,
   fclose(infile);
   *nsat=i;
 
+  // Valid MJDs
+  for (i=0;i<n;i++)
+    if (mjd[i]==0.0)
+      break;
+  m=i;
+
   // Allocate traces
   t=(struct trace *) malloc(sizeof(struct trace)* *nsat);
 
@@ -183,10 +307,10 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,
   s=get_site(site_id);
 
   // Allocate
-  p=(struct point *) malloc(sizeof(struct point)*n);
+  p=(struct point *) malloc(sizeof(struct point)*m);
 
   // Get observer position
-  for (i=0;i<n;i++) 
+  for (i=0;i<m;i++) 
     obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
 
   infile=fopen("frequencies.txt","r");
@@ -199,10 +323,11 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,
 
     // Allocate
     t[j].satno=satno;
-    t[j].n=n;
-    t[j].mjd=(double *) malloc(sizeof(double)*n);
-    t[j].freq=(double *) malloc(sizeof(double)*n);
-    t[j].za=(float *) malloc(sizeof(float)*n);
+    t[j].site=site_id;
+    t[j].n=m;
+    t[j].mjd=(double *) malloc(sizeof(double)*m);
+    t[j].freq=(double *) malloc(sizeof(double)*m);
+    t[j].za=(float *) malloc(sizeof(float)*m);
 
     sprintf(text," %d",satno);
     // Loop over TLEs
@@ -214,7 +339,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,
 	printf("Error\n");
       
       // Loop over points
-      for (i=0,flag=0,tflag=0;i<n;i++) {
+      for (i=0,flag=0,tflag=0;i<m;i++) {
 	// Get satellite position
 	satpos_xyz(mjd[i]+2400000.5,&satpos,&satvel);
 	
@@ -241,6 +366,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float fmin,float fmax,
     j++;
   }
   fclose(infile);
+  fclose(stderr);
 
   // Free
   free(p);

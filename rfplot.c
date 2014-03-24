@@ -9,48 +9,18 @@
 #include "rftrace.h"
 
 #define LIM 128
+#define NMAX 64
+
+struct select {
+  int flag,n;
+  float x[NMAX],y[NMAX],w;
+};
 
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-
-void plot_traces(struct trace *t,int nsat)
-{
-  int i,j,flag,textflag;
-  char text[8];
-
-  // Loop over objects
-  for (i=0;i<nsat;i++) {
-    sprintf(text," %d",t[i].satno);
-
-    // Plot label at start of trace
-    if (t[i].za[0]<=90.0)
-	cpgtext(0.0,(float) t[i].freq[0],text);
-
-    // Loop over trace
-    for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
-      // Plot label for rising sources
-      if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
-	cpgtext((float) j,(float) t[i].freq[j],text);
-
-      // Plot line
-      if (flag==0) {
-	cpgmove((float) j,(float) t[i].freq[j]);
-	flag=1;
-      } else {
-	cpgdraw((float) j,(float) t[i].freq[j]);
-      }
-
-      // Below horizon
-      if (t[i].za[j]>90.0)
-	flag=0;
-      else
-	flag=1;
-    }	  
-  }
-
-  return;
-}
+void plot_traces(struct trace *t,int nsat);
+struct trace locate_trace(struct spectrogram s,struct select sel);
 
 int main(int argc,char *argv[])
 {
@@ -61,12 +31,12 @@ int main(int argc,char *argv[])
   float cool_g[]={0.0,0.0,0.0,1.0,1.0,1.0,0.6,0.0,1.0};
   float cool_b[]={0.0,0.3,0.8,1.0,0.3,0.0,0.0,0.0,1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=8.0;
-  int i,j,k,flag=0;
+  int i,j,k,flag=0,isel=0;
   int redraw=1,mode=0,posn=0,click=0;
   float dt,zzmax,s1,s2;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
-  float width=500;
+  float width=1500;
   float x,y,x0,y0;
   char c;
   char path[128],xlabel[64],ylabel[64];
@@ -77,8 +47,9 @@ int main(int argc,char *argv[])
   int arg=0,nsub=3600,nbin=1;
   double f0=0.0,df0=0.0;
   int foverlay=1;
-  struct trace *t;
-  int nsat;
+  struct trace *t,tf;
+  int nsat,satno;
+  struct select sel;
 
   // Read arguments
   if (argc>1) {
@@ -130,11 +101,9 @@ int main(int argc,char *argv[])
   s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
 
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
-  fmin=(s.freq-0.5*s.samp_rate)*1e-6;
-  fmax=(s.freq+0.5*s.samp_rate)*1e-6;
 
   // Compute traces
-  t=compute_trace(s.mjd,s.nsub,4171,fmin,fmax,&nsat);
+  t=compute_trace(s.mjd,s.nsub,4171,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
   printf("Traces for %d objects\n",nsat);
 
   cpgopen("/xs");
@@ -147,7 +116,15 @@ int main(int argc,char *argv[])
   ymin=0.0;
   ymax=(float) s.nchan;
   zmin=0.0;
+
+  // Set trace
+  tf.n=0;
   
+  // Set selection
+  isel=0;
+  sel.n=0;
+  sel.w=50.0;
+
   // Forever loop
   for (;;) {
     if (redraw==1) {
@@ -193,6 +170,30 @@ int main(int argc,char *argv[])
 
       cpgswin(xmin,xmax,ymin,ymax);
 
+      // Plot selection
+      if (sel.n>0) {
+	cpgsci(7);
+	// Plot points
+	for (i=0;i<sel.n;i++) 
+	  cpgpt1(sel.x[i],sel.y[i],17);
+	// Plot upper bound
+	for (i=0;i<sel.n;i++) {
+	  if (i==0)
+	    cpgmove(sel.x[i],sel.y[i]+sel.w);
+	  else
+	    cpgdraw(sel.x[i],sel.y[i]+sel.w);
+	}
+	// Plot lower bound
+	for (i=0;i<sel.n;i++) {
+	  if (i==0)
+	    cpgmove(sel.x[i],sel.y[i]-sel.w);
+	  else
+	    cpgdraw(sel.x[i],sel.y[i]-sel.w);
+	}
+
+	cpgsci(1);
+      }
+
       redraw=0;
     }
 
@@ -202,6 +203,46 @@ int main(int argc,char *argv[])
     // Quit
     if (c=='q')
       break;
+
+    // Select start
+    if (c=='s') {
+      sel.x[isel]=x;
+      sel.y[isel]=y;
+      isel++;
+      sel.n=isel;
+      redraw=1;
+      continue;
+    }
+
+    // Fit
+    if (c=='f') {
+      tf=locate_trace(s,sel);
+      tf.site=4171;
+      continue;
+    }
+
+    // Identify
+    if (c=='i') {
+      identify_trace(tf,0);
+      redraw=1;
+      continue;
+    }
+
+    // Identify
+    if (c=='I') {
+      printf("Provide satno: ");
+      scanf("%d",&satno);
+      identify_trace(tf,satno);
+      redraw=1;
+      continue;
+    }
+
+    // Undo
+    if (c=='u') {
+      isel--;
+      sel.n=isel;
+      redraw=1;
+    }
 
     // Increase
     if (c=='v') {
@@ -331,7 +372,7 @@ int main(int argc,char *argv[])
     }
 
     // Toggle overlay
-    if (c=='p') {
+    if (c=='p' || c=='X') {
       if (foverlay==0)
 	foverlay=1;
       else if (foverlay==1)
@@ -372,12 +413,21 @@ int main(int argc,char *argv[])
       continue;
     }
 
+    // Recompute traces
+    if (c=='R') {
+      t=compute_trace(s.mjd,s.nsub,4171,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+      redraw=1;
+      continue;
+    }
+
     // Reset
     if (c=='r') {
       xmin=0.0;
       xmax=(float) s.nsub;
       ymin=0.0;
       ymax=(float) s.nchan;
+      isel=0;
+      sel.n=0;
       redraw=1;
       continue;
     }
@@ -394,10 +444,10 @@ int main(int argc,char *argv[])
       // Set area
       x=width*(ix+0.5);
       y=width*(iy+0.5);
-      xmin=x-width;
-      xmax=x+width;
-      ymin=y-width;
-      ymax=y+width;
+      xmin=x-0.75*width;
+      xmax=x+0.75*width;
+      ymin=y-0.75*width;
+      ymax=y+0.75*width;
 
       // Increment
       iy++;
@@ -443,8 +493,16 @@ int main(int argc,char *argv[])
   // Free
   free(s.z);
   free(s.mjd);
-
-
+  if (tf.n>0) {
+    free(tf.mjd);
+    free(tf.freq);
+    free(tf.za);
+  }
+  for (i=0;i<nsat;i++) {
+    free(t[i].mjd);
+    free(t[i].freq);
+    free(t[i].za);
+  }
 
   return 0;
 }
@@ -564,4 +622,110 @@ void usage(void)
   printf("-h           This help\n");
 
   return;
+}
+
+void plot_traces(struct trace *t,int nsat)
+{
+  int i,j,flag,textflag;
+  char text[8];
+
+  // Loop over objects
+  for (i=0;i<nsat;i++) {
+    sprintf(text," %d",t[i].satno);
+
+    // Plot label at start of trace
+    if (t[i].za[0]<=90.0)
+	cpgtext(0.0,(float) t[i].freq[0],text);
+
+    // Loop over trace
+    for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
+      // Plot label for rising sources
+      if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
+	cpgtext((float) j,(float) t[i].freq[j],text);
+
+      // Plot line
+      if (flag==0) {
+	cpgmove((float) j,(float) t[i].freq[j]);
+	flag=1;
+      } else {
+	cpgdraw((float) j,(float) t[i].freq[j]);
+      }
+
+      // Below horizon
+      if (t[i].za[j]>90.0)
+	flag=0;
+      else
+	flag=1;
+    }	  
+  }
+
+  return;
+}
+
+// Locate trace
+struct trace locate_trace(struct spectrogram s,struct select sel)
+{
+  int i,j,k,l,sn;
+  int i0,i1,j0,j1,jmax;
+  double f;
+  float x,y,s1,s2,z,za,zs,zm,sigma;
+  struct trace t;
+  FILE *file;
+
+  // Set up trace
+  t.satno=99999;
+  t.n=(int) ceil(sel.x[sel.n-1]-sel.x[0]);
+  t.mjd=(double *) malloc(sizeof(double)*t.n);
+  t.freq=(double *) malloc(sizeof(double)*t.n);
+  t.za=(float *) malloc(sizeof(float)*t.n);
+
+  // Open file
+  file=fopen("out.dat","w");
+
+  // Loop over selected regions
+  for (k=0,l=0;k<sel.n-1;k++) {
+    for (x=sel.x[k];x<=sel.x[k+1];x+=1.0) {
+      y=(x-sel.x[k])/(sel.x[k+1]-sel.x[k])*(sel.y[k+1]-sel.y[k])+sel.y[k];
+      i=(int) floor(x);
+      j0=(int) floor(y-sel.w);
+      j1=(int) floor(y+sel.w);
+
+      // Find maximum and significance
+      zm=0.0;
+      jmax=0;
+      s1=0.0;
+      s2=0.0;
+      sn=0;
+      for (j=j0;j<j1;j++) {
+	z=s.z[i+s.nsub*j];
+	s1+=z;
+	s2+=z*z;
+	sn++;
+	if (z>zm) {
+	  zm=z;
+	  jmax=j;
+	}
+      }
+      za=s1/(float) sn;
+      zs=sqrt(s2/(float) sn-za*za);
+      sigma=(zm-za)/zs;
+
+      // Store
+      if (sigma>5.0 && s.mjd[i]>1.0) {
+	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
+	fprintf(file,"%lf %lf %f 4171\n",s.mjd[i],f,sigma);
+	cpgpt1((float) i,(float) jmax,17);
+	t.mjd[l]=s.mjd[i];
+	t.freq[l]=f;
+	t.za[l]=0.0;
+	l++;
+      }
+    }
+  }
+  t.n=l;
+
+  // Close file
+  fclose(file);
+
+  return t;
 }
