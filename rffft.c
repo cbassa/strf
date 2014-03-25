@@ -7,6 +7,21 @@
 #include <time.h>
 #include <sys/time.h>
 
+void usage(void)
+{
+  printf("rffft: FFT RF observations\n\n");
+  printf("-i <file>       Input file (can be fifo)\n");
+  printf("-p <prefix>     Output prefix\n");
+  printf("-f <frequency>  Center frequency (Hz)\n");
+  printf("-s <samprate>   Sample rate (Hz)\n");
+  printf("-c <chansize>   Channel size [100Hz]\n");
+  printf("-t <tint>       Integration time [1s]\n");
+  printf("-n <nsub>       Number of integrations per file [60]\n");
+  printf("-h              This help\n");
+
+  return;
+}
+
 int main(int argc,char *argv[])
 {
   int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag;
@@ -21,40 +36,50 @@ int main(int argc,char *argv[])
   char tbuf[30],nfd[32],header[256]="";
 
   // Read arguments
-  while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:"))!=-1) {
-    switch(arg) {
+  if (argc>1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:h"))!=-1) {
+      switch(arg) {
+	
+      case 'i':
+	strcpy(infname,optarg);
+	break;
+	
+      case 'p':
+	strcpy(path,optarg);
+	break;
+	
+      case 'f':
+	freq=(double) atof(optarg);
+	break;
+	
+      case 's':
+	samp_rate=(double) atof(optarg);
+	break;
+	
+      case 'c':
+	fchan=atof(optarg);
+	break;
+	
+      case 'n':
+	nsub=atoi(optarg);
+	break;
+	
+      case 't':
+	tint=atof(optarg);
+	break;
+	
+      case 'h':
+	usage();
+	return 0;
 
-    case 'i':
-      strcpy(infname,optarg);
-      break;
-
-    case 'p':
-      strcpy(path,optarg);
-      break;
-
-    case 'f':
-      freq=(double) atof(optarg);
-      break;
-
-    case 's':
-      samp_rate=(double) atof(optarg);
-      break;
-      
-    case 'c':
-      fchan=atof(optarg);
-      break;
-
-    case 'n':
-      nsub=atoi(optarg);
-      break;
-
-    case 't':
-      tint=atof(optarg);
-      break;
-
-    default:
-      return 0;
+      default:
+	usage();
+	return 0;
+      }
     }
+  } else {
+    usage();
+    return 0;
   }
 
   // Number of channels
