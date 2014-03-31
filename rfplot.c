@@ -109,6 +109,7 @@ int main(int argc,char *argv[])
   cpgopen("/xs");
   cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
   cpgsch(0.8);
+  cpgask(0);
 
   // Default limits
   xmin=0.0;
@@ -128,7 +129,8 @@ int main(int argc,char *argv[])
   // Forever loop
   for (;;) {
     if (redraw==1) {
-      cpgeras();
+      //      cpgeras();
+      cpgpage();
       cpgsci(1);
 
       cpgsvp(0.1,0.95,0.1,0.95);
