@@ -14,8 +14,9 @@ int main(int argc,char *argv[])
   fftwf_plan fft;
   FILE *infile,*outfile;
   char infname[128],outfname[128],path[64]="/data/record",prefix[32]="";
-  float *buf,tint=1.0;
-  float *z,length,fchan=100.0;
+  float *fbuf;
+  int16_t *ibuf;
+  float *z,length,fchan=100.0,tint=1.0;
   double freq,samp_rate;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
@@ -76,7 +77,8 @@ int main(int argc,char *argv[])
   // Allocate
   c=fftwf_malloc(sizeof(fftwf_complex)*nchan);
   d=fftwf_malloc(sizeof(fftwf_complex)*nchan);
-  buf=(float *) malloc(sizeof(float)*2*nchan);
+  fbuf=(float *) malloc(sizeof(float)*2*nchan);
+  ibuf=(int16_t *) malloc(sizeof(int16_t)*2*nchan);
   z=(float *) malloc(sizeof(float)*nchan);
 
   // Plan
@@ -106,14 +108,15 @@ int main(int argc,char *argv[])
       
       // Integrate
       for (j=0;j<nint;j++) {
-	nbytes=fread(buf,sizeof(float),2*nchan,infile);
+	//	nbytes=fread(fbuf,sizeof(float),2*nchan,infile);
+	nbytes=fread(ibuf,sizeof(int16_t),2*nchan,infile);
 	if (nbytes==0)
 	  break;
 	
 	// Unpack
 	for (i=0;i<nchan;i++) {
-	  c[i][0]=buf[2*i];
-	  c[i][1]=buf[2*i+1];
+	  c[i][0]=(float) ibuf[2*i]/32768.0;
+	  c[i][1]=(float) ibuf[2*i+1]/32768.0;
 	}
 	
 	// Execute
@@ -171,7 +174,8 @@ int main(int argc,char *argv[])
   fftwf_destroy_plan(fft);
 
   // Deallocate
-  free(buf);
+  free(fbuf);
+  free(ibuf);
   fftwf_free(c);
   fftwf_free(d);
   free(z);
