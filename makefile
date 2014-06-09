@@ -17,7 +17,7 @@ rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
 
 rffft: rffft.o
-	$(CC) -o rffft rffft.o -lm -lfftw3f
+	$(CC) -o rffft rffft.o -lfftw3f -lm
 
 clean:
 	rm -f *.o
