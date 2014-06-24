@@ -20,7 +20,7 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat);
-struct trace locate_trace(struct spectrogram s,struct select sel);
+struct trace locate_trace(struct spectrogram s,struct select sel,int site_id);
 
 int main(int argc,char *argv[])
 {
@@ -50,10 +50,20 @@ int main(int argc,char *argv[])
   struct trace *t,tf;
   int nsat,satno;
   struct select sel;
+  char *env;
+  int site_id=0;
+
+  // Get site
+  env=getenv("ST_COSPAR");
+  if (env!=NULL) {
+    site_id=atoi(env);
+  } else {
+    printf("ST_COSPAR environment variable not found.\n");
+  }
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:h"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -87,6 +97,10 @@ int main(int argc,char *argv[])
       case 'h':
 	usage();
 	return 0;
+	
+      case 'c':
+	site_id=atoi(optarg);
+	break;
 
       default:
 	usage();
@@ -104,8 +118,8 @@ int main(int argc,char *argv[])
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
   // Compute traces
-  t=compute_trace(s.mjd,s.nsub,4171,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
-  printf("Traces for %d objects\n",nsat);
+  t=compute_trace(s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+  printf("Traces for %d objects for location %d\n",nsat,site_id);
 
   cpgopen("/xs");
   cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
@@ -219,8 +233,8 @@ int main(int argc,char *argv[])
 
     // Fit
     if (c=='f') {
-      tf=locate_trace(s,sel);
-      tf.site=4171;
+      tf=locate_trace(s,sel,site_id);
+      tf.site=site_id;
       continue;
     }
 
@@ -323,8 +337,8 @@ int main(int argc,char *argv[])
       j=(int) floor(y);
       f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
       if (s.mjd[i]>1.0) {
-	fprintf(file,"%lf %lf %f 4171\n",s.mjd[i],f,s.z[i+s.nsub*j]);
-	printf("%lf %lf %f 4171\n",s.mjd[i],f,s.z[i+s.nsub*j]);
+	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	printf("%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
       }
       fclose(file);
     }
@@ -357,7 +371,7 @@ int main(int argc,char *argv[])
 	}
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
 	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f 4171\n",s.mjd[i],f,zzmax);
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
 	cpgpt1((float) i,(float) jmax,17);
       }
       fclose(file);
@@ -418,7 +432,7 @@ int main(int argc,char *argv[])
 
     // Recompute traces
     if (c=='R') {
-      t=compute_trace(s.mjd,s.nsub,4171,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+      t=compute_trace(s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
       redraw=1;
       continue;
     }
@@ -666,7 +680,7 @@ void plot_traces(struct trace *t,int nsat)
 }
 
 // Locate trace
-struct trace locate_trace(struct spectrogram s,struct select sel)
+struct trace locate_trace(struct spectrogram s,struct select sel,int site_id)
 {
   int i,j,k,l,sn;
   int i0,i1,j0,j1,jmax;
@@ -722,7 +736,7 @@ struct trace locate_trace(struct spectrogram s,struct select sel)
       // Store
       if (sigma>5.0 && s.mjd[i]>1.0) {
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	fprintf(file,"%lf %lf %f 4171\n",s.mjd[i],f,sigma);
+	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
 	cpgpt1((float) i,(float) jmax,17);
 	t.mjd[l]=s.mjd[i];
 	t.freq[l]=f;
