@@ -17,6 +17,7 @@ void usage(void)
   printf("-c <chansize>   Channel size [100Hz]\n");
   printf("-t <tint>       Integration time [1s]\n");
   printf("-n <nsub>       Number of integrations per file [60]\n");
+  printf("-m <use>        Use every mth integration [1]\n");
   printf("-h              This help\n");
 
   return;
@@ -24,12 +25,11 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag;
+  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
   char infname[128],outfname[128],path[64]="/data/record",prefix[32]="";
-  float *fbuf;
   int16_t *ibuf;
   float *z,length,fchan=100.0,tint=1.0;
   double freq,samp_rate;
@@ -38,7 +38,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:h"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -63,6 +63,10 @@ int main(int argc,char *argv[])
 	
       case 'n':
 	nsub=atoi(optarg);
+	break;
+
+      case 'm':
+	nuse=atoi(optarg);
 	break;
 	
       case 't':
@@ -102,7 +106,6 @@ int main(int argc,char *argv[])
   // Allocate
   c=fftwf_malloc(sizeof(fftwf_complex)*nchan);
   d=fftwf_malloc(sizeof(fftwf_complex)*nchan);
-  fbuf=(float *) malloc(sizeof(float)*2*nchan);
   ibuf=(int16_t *) malloc(sizeof(int16_t)*2*nchan);
   z=(float *) malloc(sizeof(float)*nchan);
 
@@ -137,6 +140,10 @@ int main(int argc,char *argv[])
 	nbytes=fread(ibuf,sizeof(int16_t),2*nchan,infile);
 	if (nbytes==0)
 	  break;
+
+	// Skip buffer
+	if (j%nuse!=0)
+	  continue;
 	
 	// Unpack
 	for (i=0;i<nchan;i++) {
@@ -163,7 +170,7 @@ int main(int argc,char *argv[])
       
       // Scale
       for (i=0;i<nchan;i++) 
-	z[i]/=(float) nchan;
+	z[i]*=(float) nuse/(float) nchan;
       
       // Time stats
       length=(end.tv_sec-start.tv_sec)+(end.tv_usec-start.tv_usec)*1e-6;
@@ -199,7 +206,6 @@ int main(int argc,char *argv[])
   fftwf_destroy_plan(fft);
 
   // Deallocate
-  free(fbuf);
   free(ibuf);
   fftwf_free(c);
   fftwf_free(d);
