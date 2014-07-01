@@ -160,7 +160,12 @@ void identify_trace(struct trace t,int satno)
   char nfd[32],nfdmin[32],text[16];
   int satnomin;
   double rmsmin,freqmin;
-  
+  char *env,freqlist[LIM],tledir[LIM];
+
+  env=getenv("ST_DATADIR");
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
+  sprintf(tledir,"%s/tle/bulk.tle",env);
+
   // Reloop stderr
   freopen("/tmp/stderr.txt","w",stderr);
 
@@ -178,7 +183,11 @@ void identify_trace(struct trace t,int satno)
   printf("Fitting trace:\n");
 
   // Loop over TLEs
-  file=fopen("/home/bassa/code/c/satellite/sattools/tle/bulk.tle","r");
+  file=fopen(tledir,"r");
+  if (file==NULL) {
+    fprintf(stderr,"TLE file %s not found\n",tledir);
+    return;
+  }
   while (read_twoline(file,satno,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
@@ -240,7 +249,7 @@ void identify_trace(struct trace t,int satno)
     printf("Store frequency? [y/n]\n");
     scanf("%s",text);
     if (text[0]=='y') {
-      file=fopen("frequencies.txt","a");
+      file=fopen(freqlist,"a");
       fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
       fclose(file);
       file=fopen("log.txt","a");
@@ -273,6 +282,11 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
   char line[LIM],text[8];
   struct trace *t;
   float fmin,fmax;
+  char *env,freqlist[LIM],tledir[LIM];
+
+  env=getenv("ST_DATADIR");
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
+  sprintf(tledir,"%s/tle/bulk.tle",env);
 
   // Frequency limits
   fmin=freq-0.5*bw;
@@ -280,9 +294,9 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
 
   // Reloop stderr
   freopen("/tmp/stderr.txt","w",stderr);
-
+  
   // Find number of satellites in frequency range
-  infile=fopen("frequencies.txt","r");
+  infile=fopen(freqlist,"r");
   for (i=0;;) {
     if (fgetline(infile,line,LIM)<=0)
       break;
@@ -293,7 +307,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
   }
   fclose(infile);
   *nsat=i;
-  
+  printf("bla\n");  
   // Break out
   if (i==0)
     return t;
@@ -317,7 +331,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
   for (i=0;i<m;i++) 
     obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
 
-  infile=fopen("frequencies.txt","r");
+  infile=fopen(freqlist,"r");
   for (j=0;;) {
     if (fgetline(infile,line,LIM)<=0)
       break;
@@ -335,7 +349,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
 
     sprintf(text," %d",satno);
     // Loop over TLEs
-    file=fopen("/home/bassa/code/c/satellite/sattools/tle/bulk.tle","r");
+    file=fopen(tledir,"r");
     while (read_twoline(file,satno,&orb)==0) {
       // Initialize
       imode=init_sgdp4(&orb);
