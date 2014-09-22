@@ -99,7 +99,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
       if (l%nbin==nbin-1) {
 	// Scale
 	s.mjd[i]/=(float) nbin;
-
+	
 	for (j=0;j<s.nchan;j++) 
 	  s.z[i+s.nsub*j]/=(float) nbin;
 

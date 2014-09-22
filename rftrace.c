@@ -146,7 +146,7 @@ struct site get_site(int site_id)
 }
 
 // Identify trace
-void identify_trace(struct trace t,int satno)
+void identify_trace(char *tlefile,struct trace t,int satno)
 {
   int i,imode,flag=0;
   struct point *p;
@@ -160,11 +160,10 @@ void identify_trace(struct trace t,int satno)
   char nfd[32],nfdmin[32],text[16];
   int satnomin;
   double rmsmin,freqmin;
-  char *env,freqlist[LIM],tledir[LIM];
+  char *env,freqlist[LIM];
 
   env=getenv("ST_DATADIR");
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
-  sprintf(tledir,"%s/tle/bulk.tle",env);
 
   // Reloop stderr
   freopen("/tmp/stderr.txt","w",stderr);
@@ -183,9 +182,9 @@ void identify_trace(struct trace t,int satno)
   printf("Fitting trace:\n");
 
   // Loop over TLEs
-  file=fopen(tledir,"r");
+  file=fopen(tlefile,"r");
   if (file==NULL) {
-    fprintf(stderr,"TLE file %s not found\n",tledir);
+    fprintf(stderr,"TLE file %s not found\n",tlefile);
     return;
   }
   while (read_twoline(file,satno,&orb)==0) {
@@ -269,7 +268,7 @@ void identify_trace(struct trace t,int satno)
 }
 
 // Compute trace
-struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,int *nsat)
+struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat)
 {
   int i,j,imode,flag,satno,tflag,m;
   struct point *p;
@@ -282,11 +281,11 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
   char line[LIM],text[8];
   struct trace *t;
   float fmin,fmax;
-  char *env,freqlist[LIM],tledir[LIM];
+  char *env,freqlist[LIM];
 
   env=getenv("ST_DATADIR");
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
-  sprintf(tledir,"%s/tle/bulk.tle",env);
+
 
   // Frequency limits
   fmin=freq-0.5*bw;
@@ -307,7 +306,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
   }
   fclose(infile);
   *nsat=i;
-  printf("bla\n");  
+
   // Break out
   if (i==0)
     return t;
@@ -349,7 +348,7 @@ struct trace *compute_trace(double *mjd,int n,int site_id,float freq,float bw,in
 
     sprintf(text," %d",satno);
     // Loop over TLEs
-    file=fopen(tledir,"r");
+    file=fopen(tlefile,"r");
     while (read_twoline(file,satno,&orb)==0) {
       // Initialize
       imode=init_sgdp4(&orb);

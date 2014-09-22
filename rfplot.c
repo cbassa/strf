@@ -39,7 +39,7 @@ int main(int argc,char *argv[])
   float width=1500;
   float x,y,x0,y0;
   char c;
-  char path[128],xlabel[64],ylabel[64];
+  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -60,10 +60,12 @@ int main(int argc,char *argv[])
   } else {
     printf("ST_COSPAR environment variable not found.\n");
   }
+  env=getenv("ST_TLEDIR");
+  sprintf(tlefile,"%s/bulk.tle",env);  
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -97,8 +99,12 @@ int main(int argc,char *argv[])
       case 'h':
 	usage();
 	return 0;
-	
+
       case 'c':
+	strcpy(tlefile,optarg);
+	break;
+	
+      case 'C':
 	site_id=atoi(optarg);
 	break;
 
@@ -118,7 +124,7 @@ int main(int argc,char *argv[])
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
   // Compute traces
-  t=compute_trace(s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
   cpgopen("/xs");
@@ -240,7 +246,7 @@ int main(int argc,char *argv[])
 
     // Identify
     if (c=='i') {
-      identify_trace(tf,0);
+      identify_trace(tlefile,tf,0);
       redraw=1;
       continue;
     }
@@ -249,7 +255,7 @@ int main(int argc,char *argv[])
     if (c=='I') {
       printf("Provide satno: ");
       scanf("%d",&satno);
-      identify_trace(tf,satno);
+      identify_trace(tlefile,tf,satno);
       redraw=1;
       continue;
     }
@@ -377,6 +383,42 @@ int main(int argc,char *argv[])
       fclose(file);
     }
 
+    // Mark
+    if (c=='a') {
+      i0=(int) floor(xmin);
+      i1=(int) ceil(xmax);
+      j0=(int) floor(ymin);
+      j1=(int) ceil(ymax);
+      if (i0<0)
+	i0=0;
+      if (i1>=s.nsub)
+	i1=s.nsub-1;
+      if (j0<0)
+	j0=0;
+      if (j1>=s.nchan)
+	j1=s.nchan-1;
+
+      printf("Provide filename: ");
+      scanf("%s",filename);
+      
+      file=fopen(filename,"a");
+      // Loop over image
+      for (i=i0;i<i1;i++) {
+	zzmax=0.0;
+	jmax=0;
+	for (j=j0;j<j1;j++) {
+	  if (s.z[i+s.nsub*j]>zzmax) {
+	    zzmax=s.z[i+s.nsub*j];
+	    jmax=j;
+	  }
+	}
+	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
+	cpgpt1((float) i,(float) jmax,17);
+      }
+      fclose(file);
+    }
 
     // Center
     if (c=='c') {
@@ -432,7 +474,7 @@ int main(int argc,char *argv[])
 
     // Recompute traces
     if (c=='R') {
-      t=compute_trace(s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+      t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
       redraw=1;
       continue;
     }
@@ -636,6 +678,8 @@ void usage(void)
   printf("-z <zmax>    Image scaling upper limit [8.0]\n");
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
+  printf("-C <site>    Site ID\n");
+  printf("-c <catalog> TLE catalog\n");
   printf("-h           This help\n");
 
   return;
