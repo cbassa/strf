@@ -8,7 +8,7 @@ LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 CC = gcc
 
 all:
-	make rfedit rfplot rffft rfpng
+	make rfedit rfplot rffft rfpng rffind
 
 rfpng: rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	gfortran -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)

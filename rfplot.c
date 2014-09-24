@@ -22,6 +22,95 @@ void usage(void);
 void plot_traces(struct trace *t,int nsat);
 struct trace locate_trace(struct spectrogram s,struct select sel,int site_id);
 
+void filter(struct spectrogram s,int site_id)
+{
+  int i,j,k,l,jmax,zmax;
+  float s1,s2,avg,std,dz;
+  FILE *file;
+  double f;
+  int *mask;
+  float sigma=5;
+
+  mask=(int *) malloc(sizeof(int)*s.nchan);
+
+  // Open file
+  file=fopen("filter.dat","w");
+
+  // Loop over subints
+  for (i=0;i<s.nsub;i++) {
+    // Set mask
+    for (j=0;j<s.nchan;j++)
+      mask[j]=1;
+
+    // Iterate to remove outliers
+    for (k=0;k<10;k++) {
+
+      // Find average
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  s1+=s.z[i+s.nsub*j];
+	  s2+=1.0;
+	}
+      }
+      avg=s1/s2;
+      
+      // Find standard deviation
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  dz=s.z[i+s.nsub*j]-avg;
+	  s1+=dz*dz;
+	  s2+=1.0;
+	}
+      }
+      std=sqrt(s1/s2);
+
+      // Update mask
+      for (j=0,l=0;j<s.nchan;j++) {
+	if (fabs(s.z[i+s.nsub*j]-avg)>sigma*std) {
+	  mask[j]=0;
+	  l++;
+	}
+      }
+    }
+    // Reset mask
+    for (j=0;j<s.nchan;j++) {
+      if (s.z[i+s.nsub*j]-avg>sigma*std) 
+	mask[j]=1;
+      else
+	mask[j]=0;
+    }    
+
+    // Find maximum when points are adjacent
+    for (j=0;j<s.nchan-1;j++) {
+      if (mask[j]==1 && mask[j+1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j+1)])
+	  mask[j]=0;
+      }
+    }
+    for (j=s.nchan-2;j>=0;j--) {
+      if (mask[j]==1 && mask[j-1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j-1)])
+	  mask[j]=0;
+      }
+    }
+
+    // Mark points
+    for (j=0;j<s.nchan;j++) {
+      if (mask[j]==1) {
+	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	cpgpt1((float) i+0.5,(float) j+0.5,17);
+      }
+    }
+  }
+  fclose(file);
+
+  free(mask);
+
+  return;
+}
+
 int main(int argc,char *argv[])
 {
   struct spectrogram s;
@@ -48,7 +137,7 @@ int main(int argc,char *argv[])
   double f0=0.0,df0=0.0;
   int foverlay=1;
   struct trace *t,tf;
-  int nsat,satno;
+  int nsat,satno,status;
   struct select sel;
   char *env;
   int site_id=0;
@@ -120,8 +209,12 @@ int main(int argc,char *argv[])
 
   // Read data
   s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
-
+ 
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+
+  // Exit on empty data
+  if (s.nsub==0)
+    return 0;
 
   // Compute traces
   t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
@@ -237,6 +330,9 @@ int main(int argc,char *argv[])
       continue;
     }
 
+    if (c=='g')
+      filter(s,site_id);
+
     // Fit
     if (c=='f') {
       tf=locate_trace(s,sel,site_id);
@@ -254,7 +350,7 @@ int main(int argc,char *argv[])
     // Identify
     if (c=='I') {
       printf("Provide satno: ");
-      scanf("%d",&satno);
+      status=scanf("%d",&satno);
       identify_trace(tlefile,tf,satno);
       redraw=1;
       continue;
@@ -399,7 +495,7 @@ int main(int argc,char *argv[])
 	j1=s.nchan-1;
 
       printf("Provide filename: ");
-      scanf("%s",filename);
+      status=scanf("%s",filename);
       
       file=fopen(filename,"a");
       // Loop over image

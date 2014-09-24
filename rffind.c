@@ -2,128 +2,101 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <cpgplot.h>
 #include <getopt.h>
 #include "rftime.h"
 #include "rfio.h"
-#include <gsl/gsl_multifit.h>
 
 #define LIM 128
 #define NMAX 64
-
 
 void usage(void)
 {
 }
 
-float fit_polynomial(float *x,float *y,int n,int m,float *a)
+void filter(struct spectrogram s,int site_id,float sigma,char *filename)
 {
+  int i,j,k,l;
+  float s1,s2,avg,std,dz;
+  FILE *file;
+  double f;
+  int *mask;
 
-  int i,j;
-  double chisq;
-  gsl_matrix *X,*cov;
-  gsl_vector *yy,*w,*c;
+  mask=(int *) malloc(sizeof(int)*s.nchan);
 
+  // Open file
+  file=fopen(filename,"a");
 
-  X=gsl_matrix_alloc(n,m);
-  yy=gsl_vector_alloc(n);
-  w=gsl_vector_alloc(n);
+  // Loop over subints
+  for (i=0;i<s.nsub;i++) {
+    // Set mask
+    for (j=0;j<s.nchan;j++)
+      mask[j]=1;
 
-  c=gsl_vector_alloc(m);
-  cov=gsl_matrix_alloc(m,m);
+    // Iterate to remove outliers
+    for (k=0;k<10;k++) {
 
-  // Fill matrices
-  for(i=0;i<n;i++) {
-    for (j=0;j<m;j++)
-      gsl_matrix_set(X,i,j,pow(x[i],j));
-    
-    gsl_vector_set(yy,i,y[i]);
-    gsl_vector_set(w,i,1.0);
-  }
+      // Find average
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  s1+=s.z[i+s.nsub*j];
+	  s2+=1.0;
+	}
+      }
+      avg=s1/s2;
+      
+      // Find standard deviation
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  dz=s.z[i+s.nsub*j]-avg;
+	  s1+=dz*dz;
+	  s2+=1.0;
+	}
+      }
+      std=sqrt(s1/s2);
 
-  // Do fit
-  gsl_multifit_linear_workspace *work=gsl_multifit_linear_alloc(n,m);
-  gsl_multifit_wlinear(X,w,yy,c,cov,&chisq,work);
-  gsl_multifit_linear_free(work);
-
-  // Save parameters
-  for (i=0;i<m;i++)
-    a[i]=gsl_vector_get(c,(i));
-
-  gsl_matrix_free(X);
-  gsl_vector_free(yy);
-  gsl_vector_free(w);
-  gsl_vector_free(c);
-  gsl_matrix_free(cov);
-
-  return chisq;
-}
-
-void filter(float *x,float *y,int n,int m,float sigma,int *mask)
-{
-  int i,j,k,nn;
-  float *xx,*yy,*a,chi2,ym;
-  float rms;
-
-  // Allocate
-  a=(float *) malloc(sizeof(float)*m);
-  xx=(float *) malloc(sizeof(float)*n);
-  yy=(float *) malloc(sizeof(float)*n);
-
-  // Set intial mask
-  for (i=0;i<n;i++) {
-    if (y[i]<2)
-      mask[i]=1;
-    else
-      mask[i]=0;
-  }
-
-  // Iterations
-  for (k=0;k<10;k++) {
-    // Apply mask
-    for (i=0,j=0;i<n;i+=100) {
-      if (mask[i]!=1)
-	continue;
-      xx[j]=x[i];
-      yy[j]=y[i];
-      j++;
-    }
-    nn=j;
-    
-    // Fit polynomial
-    chi2=fit_polynomial(xx,yy,nn,m,a);
-    
-    // Scale
-    for (i=0,rms=0.0,nn=0;i<n;i++) {
-      for (j=0,ym=0.0;j<m;j++)
-	ym+=a[j]*pow(x[i],j);
-      yy[i]=y[i]/ym-1.0;
-      if (mask[i]==1) {
-	rms+=yy[i]*yy[i];
-	nn++;
+      // Update mask
+      for (j=0,l=0;j<s.nchan;j++) {
+	if (fabs(s.z[i+s.nsub*j]-avg)>sigma*std) {
+	  mask[j]=0;
+	  l++;
+	}
       }
     }
-    rms=sqrt(rms/(float) (nn-1));
+       // Reset mask
+    for (j=0;j<s.nchan;j++) {
+      if (s.z[i+s.nsub*j]-avg>sigma*std) 
+	mask[j]=1;
+      else
+	mask[j]=0;
+    }    
 
-    // Update mask
-    for (i=0;i<n;i++) {
-      if (fabs(yy[i])>sigma*rms)
-	mask[i]=0;
+    // Find maximum when points are adjacent
+    for (j=0;j<s.nchan-1;j++) {
+      if (mask[j]==1 && mask[j+1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j+1)])
+	  mask[j]=0;
+      }
     }
-  }
+    for (j=s.nchan-2;j>=0;j--) {
+      if (mask[j]==1 && mask[j-1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j-1)])
+	  mask[j]=0;
+      }
+    }
 
-  // Recompute final mask
-  for (i=0;i<n;i++) {
-    if (yy[i]>sigma*rms)
-      mask[i]=0;
-    else
-      mask[i]=1;
-  }
+    // Mark points
+    for (j=0;j<s.nchan;j++) {
+      if (mask[j]==1) {
+	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+      }
+    }
+  } 
 
-  // Free
-  free(a);
-  free(xx);
-  free(yy);
+  fclose(file);
+
+  free(mask);
 
   return;
 }
@@ -139,8 +112,6 @@ int main(int argc,char *argv[])
   float avg,std;
   int arg=0;
   float sigma=5.0;
-  float *x,*y;
-  int *mask;
   FILE *file;
   double f,f0,df0;
   char filename[128]="find.dat";
@@ -155,7 +126,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -178,6 +149,10 @@ int main(int argc,char *argv[])
 	f0=(double) atof(optarg);
 	break;
 	
+      case 'S':
+	sigma=atof(optarg);
+	break;
+
       case 'w':
 	df0=(double) atof(optarg);
 	break;
@@ -199,42 +174,18 @@ int main(int argc,char *argv[])
   // Read data
   s=read_spectrogram(path,isub,nsub,f0,df0,1);
 
-  x=(float *) malloc(sizeof(float)*s.nchan);
-  y=(float *) malloc(sizeof(float)*s.nchan);
-  mask=(int *) malloc(sizeof(int)*s.nchan);
+  // Exit on emtpy file
+  if (s.nsub==0)
+    return 0;
 
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
-  file=fopen(filename,"w");
-
-  // Loop over subints
-  for (i=0;i<s.nsub;i++) {
-    // Fill array
-    for (j=0;j<s.nchan;j++) {
-      x[j]=-0.5*s.samp_rate*1e-6+s.samp_rate*1e-6*(float) j/(float) (s.nchan-1);
-      y[j]=s.z[i+s.nsub*j];
-    }
-
-    // Filter data
-    filter(x,y,s.nchan,m,sigma,mask);
-
-    // Output
-    for (j=0;j<s.nchan;j++) {
-      if (mask[j]==0) {
-	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
-      }
-    }
-  }
-  fclose(file);
+  // Filter
+  filter(s,site_id,sigma,filename);
 
   // Free
   free(s.z);
   free(s.mjd);
-  free(x);
-  free(y);
-  free(mask);
 
   return 0;
 }

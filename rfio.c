@@ -6,7 +6,7 @@
 
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin)
 {
-  int i,j,k,l,flag=0,status,msub,ibin;
+  int i,j,k,l,flag=0,status,msub,ibin,nadd;
   char filename[128],header[256],nfd[32];
   FILE *file;
   struct spectrogram s;
@@ -23,6 +23,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   file=fopen(filename,"r");
   if (file==NULL) {
     printf("%s does not exist\n",filename);
+    s.nsub=0;
     return s;
   }
 
@@ -40,8 +41,12 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     j0=(int) ((f0-0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
     j1=(int) ((f0+0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
     
-    if (j0<0 || j1>nch) 
+    if (j0<0 || j1>nch) {
       fprintf(stderr,"Requested frequency range out of limits\n");
+      s.nsub=0;
+      s.nchan=0;
+      return s;
+    }
   } else {
     s.nchan=nch;
     j0=0;
@@ -64,7 +69,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     s.mjd[j]=0.0;
 
   // Loop over files
-  for (k=0,i=0,l=0,ibin=0;l<nsub;k++) {
+  for (k=0,i=0,l=0,ibin=0,nadd=0;l<nsub;k++) {
     // Generate filename
     sprintf(filename,"%s_%06d.bin",prefix,k+isub);
 
@@ -80,11 +85,13 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     for (;l<nsub;l++,ibin++) {
       // Read header
       status=fread(header,sizeof(char),256,file);
+
       if (status==0)
 	break;
       status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
       s.mjd[i]+=nfd2mjd(nfd)+0.5*length/86400.0;
       s.length[i]+=length;
+      nadd++;
 
       // Read buffer
       status=fread(z,sizeof(float),nch,file);
@@ -98,12 +105,13 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
       // Increment
       if (l%nbin==nbin-1) {
 	// Scale
-	s.mjd[i]/=(float) nbin;
-	
+	s.mjd[i]/=(float) nadd;
+
 	for (j=0;j<s.nchan;j++) 
-	  s.z[i+s.nsub*j]/=(float) nbin;
+	  s.z[i+s.nsub*j]/=(float) nadd;
 
 	ibin=0;
+	nadd=0;
 	i++;
       }
     }
@@ -111,6 +119,11 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     // Close file
     fclose(file);
   }
+  // Scale last subint
+  s.mjd[i]/=(float) nadd;
+
+  for (j=0;j<s.nchan;j++) 
+    s.z[i+s.nsub*j]/=(float) nadd;
 
   // Swap frequency range
   if (f0>0.0 && df0>0.0) {

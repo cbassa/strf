@@ -96,7 +96,7 @@ void obspos_xyz(double mjd,double lng,double lat,float alt,xyz_t *pos,xyz_t *vel
 // Get observing site
 struct site get_site(int site_id)
 {
-  int i=0;
+  int i=0,status;
   char line[LIM];
   FILE *file;
   int id;
@@ -123,7 +123,7 @@ struct site get_site(int site_id)
     line[strlen(line)-1]='\0';
 
     // Read data
-    sscanf(line,"%4d %2s %lf %lf %f",
+    status=sscanf(line,"%4d %2s %lf %lf %f",
 	   &id,abbrev,&lat,&lng,&alt);
     strcpy(observer,line+38);
 
@@ -148,7 +148,7 @@ struct site get_site(int site_id)
 // Identify trace
 void identify_trace(char *tlefile,struct trace t,int satno)
 {
-  int i,imode,flag=0;
+  int i,imode,flag=0,status;
   struct point *p;
   struct site s;
   double *v;
@@ -246,7 +246,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
     printf("\nBest fitting object:\n");
     printf("%05d: %s  %8.3f MHz %8.3f kHz\n",satnomin,nfdmin,1e-6*freqmin,1e-3*rmsmin);
     printf("Store frequency? [y/n]\n");
-    scanf("%s",text);
+    status=scanf("%s",text);
     if (text[0]=='y') {
       file=fopen(freqlist,"a");
       fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
@@ -270,7 +270,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
 // Compute trace
 struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat)
 {
-  int i,j,imode,flag,satno,tflag,m;
+  int i,j,imode,flag,satno,tflag,m,status;
   struct point *p;
   struct site s;
   FILE *file,*infile;
@@ -299,7 +299,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   for (i=0;;) {
     if (fgetline(infile,line,LIM)<=0)
       break;
-    sscanf(line,"%d %lf",&satno,&freq0);
+    status=sscanf(line,"%d %lf",&satno,&freq0);
 
     if (freq0>=fmin && freq0<=fmax)
       i++;
@@ -334,7 +334,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   for (j=0;;) {
     if (fgetline(infile,line,LIM)<=0)
       break;
-    sscanf(line,"%d %lf",&satno,&freq0);
+    status=sscanf(line,"%d %lf",&satno,&freq0);
     if (freq0<fmin || freq0>fmax)
       continue;
 
