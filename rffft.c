@@ -18,6 +18,8 @@ void usage(void)
   printf("-t <tint>       Integration time [1s]\n");
   printf("-n <nsub>       Number of integrations per file [60]\n");
   printf("-m <use>        Use every mth integration [1]\n");
+  printf("-l              Treat as lower subband\n");
+  printf("-d              Treat input as dada file\n");
   printf("-h              This help\n");
 
   return;
@@ -26,11 +28,13 @@ void usage(void)
 int main(int argc,char *argv[])
 {
   int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1;
+  int lowersubband=0,dadaformat=0;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
   char infname[128],outfname[128],path[64]="/data/record",prefix[32]="";
   int16_t *ibuf;
+  char *cbuf;
   float *z,length,fchan=100.0,tint=1.0;
   double freq,samp_rate;
   struct timeval start,end;
@@ -38,7 +42,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:ld"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -61,6 +65,14 @@ int main(int argc,char *argv[])
 	fchan=atof(optarg);
 	break;
 	
+      case 'l':
+	lowersubband=1;
+	break;
+
+      case 'd':
+	dadaformat=1;
+	break;
+
       case 'n':
 	nsub=atoi(optarg);
 	break;
@@ -95,6 +107,7 @@ int main(int argc,char *argv[])
 
   // Dump statistics
   printf("Filename: %s\n",infname);
+  printf("Frequency: %f MHz\n",freq*1e-6);
   printf("Bandwidth: %f MHz\n",samp_rate*1e-6);
   printf("Sampling time: %f us\n",1e6/samp_rate);
   printf("Number of channels: %d\n",nchan);
@@ -108,6 +121,10 @@ int main(int argc,char *argv[])
   d=fftwf_malloc(sizeof(fftwf_complex)*nchan);
   ibuf=(int16_t *) malloc(sizeof(int16_t)*2*nchan);
   z=(float *) malloc(sizeof(float)*nchan);
+  
+  // Allocate character buffer
+  if (dadaformat==1)
+    cbuf=(char *) malloc(sizeof(char)*4*nchan);
 
   // Plan
   fft=fftwf_plan_dft_1d(nchan,c,d,FFTW_FORWARD,FFTW_ESTIMATE);
@@ -115,9 +132,17 @@ int main(int argc,char *argv[])
   // Create prefix
   gettimeofday(&start,0);
   strftime(prefix,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
+  
+  // Override if dada format
+  if (dadaformat==1) 
+    strcpy(prefix,"dada");
 
   // Open file
   infile=fopen(infname,"r");
+
+  // Read 4096 byte header if dada format
+  if (dadaformat==1)
+    nbytes=fread(cbuf,sizeof(char),4096,infile);
 
   // Forever loop
   for (m=0;;m++) {
@@ -137,31 +162,75 @@ int main(int argc,char *argv[])
       // Integrate
       for (j=0;j<nint;j++) {
 	//	nbytes=fread(fbuf,sizeof(float),2*nchan,infile);
-	nbytes=fread(ibuf,sizeof(int16_t),2*nchan,infile);
+	if (dadaformat==1)
+	  nbytes=fread(cbuf,sizeof(char),4*nchan,infile);
+	else
+	  nbytes=fread(ibuf,sizeof(int16_t),2*nchan,infile);
 	if (nbytes==0)
 	  break;
 
 	// Skip buffer
 	if (j%nuse!=0)
 	  continue;
+
+	// Unpack single polarization data
+	if (dadaformat==0) {
+	  for (i=0;i<nchan;i++) {
+	    c[i][0]=(float) ibuf[2*i]/32768.0;
+	    c[i][1]=(float) ibuf[2*i+1]/32768.0;
+	  }
+
+	  // Execute
+	  fftwf_execute(fft);
 	
-	// Unpack
-	for (i=0;i<nchan;i++) {
-	  c[i][0]=(float) ibuf[2*i]/32768.0;
-	  c[i][1]=(float) ibuf[2*i+1]/32768.0;
-	}
+	  // Add
+	  for (i=0;i<nchan;i++) {
+	    if (i<nchan/2)
+	      l=i+nchan/2;
+	    else
+	      l=i-nchan/2;
+	    
+	    if (lowersubband==1)
+	      l=nchan-l;
+	    z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
+	  }
+	} else {
+	  for (i=0;i<nchan;i++) {
+	    c[i][0]=(float) cbuf[4*i]/256.0;
+	    c[i][1]=(float) cbuf[4*i+1]/256.0;
+	  }
+	  // Execute
+	  fftwf_execute(fft);
 	
-	// Execute
-	fftwf_execute(fft);
+	  // Add
+	  for (i=0;i<nchan;i++) {
+	    if (i<nchan/2)
+	      l=i+nchan/2;
+	    else
+	      l=i-nchan/2;
+	    
+	    if (lowersubband==1)
+	      l=nchan-l;
+	    z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
+	  }
+	  for (i=0;i<nchan;i++) {
+	    c[i][0]=(float) cbuf[4*i+2]/256.0;
+	    c[i][1]=(float) cbuf[4*i+3]/256.0;
+	  }
+	  // Execute
+	  fftwf_execute(fft);
 	
-	// Add
-	for (i=0;i<nchan;i++) {
-	  if (i<nchan/2)
-	    l=i+nchan/2;
-	  else
-	    l=i-nchan/2;
-	  
-	  z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
+	  // Add
+	  for (i=0;i<nchan;i++) {
+	    if (i<nchan/2)
+	      l=i+nchan/2;
+	    else
+	      l=i-nchan/2;
+	    
+	    if (lowersubband==1)
+	      l=nchan-l;
+	    z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
+	  }
 	}
       }
 
@@ -210,6 +279,8 @@ int main(int argc,char *argv[])
   fftwf_free(c);
   fftwf_free(d);
   free(z);
+  if (dadaformat==1)
+    free(cbuf);
 
   return 0;
 }
