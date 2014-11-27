@@ -113,7 +113,7 @@ int main(int argc,char *argv[])
   int arg=0;
   float sigma=5.0;
   FILE *file;
-  double f,f0,df0;
+  double f,f0=0.0,df0=0.0;
   char filename[128]="find.dat";
 
   // Get site
