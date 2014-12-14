@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <time.h>
 #include <sys/time.h>
+#include "rftime.h"
 
 void usage(void)
 {
@@ -19,6 +20,7 @@ void usage(void)
   printf("-n <nsub>       Number of integrations per file [60]\n");
   printf("-m <use>        Use every mth integration [1]\n");
   printf("-F <format>     char, int, float [int]\n");
+  printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-h              This help\n");
 
   return;
@@ -26,7 +28,7 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1;
+  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
@@ -36,13 +38,13 @@ int main(int argc,char *argv[])
   char *cbuf;
   float *fbuf;
   float *z,length,fchan=100.0,tint=1.0;
-  double freq,samp_rate;
+  double freq,samp_rate,mjd;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -86,6 +88,11 @@ int main(int argc,char *argv[])
 	tint=atof(optarg);
 	break;
 	
+      case 'T':
+	strcpy(nfd,optarg);
+	realtime=0;
+	break;
+
       case 'h':
 	usage();
 	return 0;
@@ -129,8 +136,13 @@ int main(int argc,char *argv[])
   fft=fftwf_plan_dft_1d(nchan,c,d,FFTW_FORWARD,FFTW_ESTIMATE);
 
   // Create prefix
-  gettimeofday(&start,0);
-  strftime(prefix,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
+  if (realtime==1) {
+    gettimeofday(&start,0);
+    strftime(prefix,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
+  } else {
+    sprintf(prefix,"%.19s",nfd);
+    mjd=nfd2mjd(nfd);
+  }
   
   // Open file
   infile=fopen(infname,"r");
@@ -202,17 +214,23 @@ int main(int argc,char *argv[])
 
       // Log end time
       gettimeofday(&end,0);
+
+      // Time stats
+      length=(end.tv_sec-start.tv_sec)+(end.tv_usec-start.tv_usec)*1e-6;
       
       // Scale
       for (i=0;i<nchan;i++) 
 	z[i]*=(float) nuse/(float) nchan;
       
-      // Time stats
-      length=(end.tv_sec-start.tv_sec)+(end.tv_usec-start.tv_usec)*1e-6;
       
       // Format start time
-      strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
-      sprintf(nfd,"%s.%03ld",tbuf,start.tv_usec/1000);
+      if (realtime==1) {
+	strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
+	sprintf(nfd,"%s.%03ld",tbuf,start.tv_usec/1000);
+      } else {
+	mjd2nfd(mjd+(m*tint*nsub+k)/86400.0,nfd);
+	length=tint;
+      }
 
       // Header
       sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);

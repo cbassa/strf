@@ -38,6 +38,9 @@ void filter(struct spectrogram s,int site_id)
 
   // Loop over subints
   for (i=0;i<s.nsub;i++) {
+    if (s.mjd[i]==0.0)
+      continue;
+
     // Set mask
     for (j=0;j<s.nchan;j++)
       mask[j]=1;
@@ -802,10 +805,10 @@ void plot_traces(struct trace *t,int nsat)
 
       // Plot line
       if (flag==0) {
-	cpgmove((float) j,(float) t[i].freq[j]);
+	cpgmove((float) j,t[i].freq[j]);
 	flag=1;
       } else {
-	cpgdraw((float) j,(float) t[i].freq[j]);
+	cpgdraw((float) j,t[i].freq[j]);
       }
 
       // Below horizon

@@ -829,7 +829,7 @@ int main(int argc,char *argv[])
 
     // Save
     if (c=='S') {
-      printf("%s_%8.3f_%05d.dat\n",nfd,d.ffit/1000.0,satno);
+      printf("%s_%.3f_%05d.dat\n",nfd,d.ffit/1000.0,satno);
       printf("Save highlighted points, provide filename: ");
       status=scanf("%s",filename);
       save_data(xmin,ymin,xmax,ymax,filename);

@@ -16,6 +16,7 @@
 
 struct point {
   xyz_t obspos,obsvel;
+  xyz_t grpos,grvel;
 };
 struct site {
   int id;
@@ -272,11 +273,11 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 {
   int i,j,imode,flag,satno,tflag,m,status;
   struct point *p;
-  struct site s;
+  struct site s,sg;
   FILE *file,*infile;
   orbit_t orb;
   xyz_t satpos,satvel;
-  double dx,dy,dz,dvx,dvy,dvz,r,v,za;
+  double dx,dy,dz,dvx,dvy,dvz,r,v,za,vg;
   double freq0;
   char line[LIM],text[8];
   struct trace *t;
@@ -330,6 +331,13 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   for (i=0;i<m;i++) 
     obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
 
+  // Compute Graves positions
+  if (site_id==9000) {
+    sg=get_site(9999);
+    for (i=0;i<m;i++) 
+      obspos_xyz(mjd[i],sg.lng,sg.lat,sg.alt,&p[i].grpos,&p[i].grvel);
+  }
+
   infile=fopen(freqlist,"r");
   for (j=0;;) {
     if (fgetline(infile,line,LIM)<=0)
@@ -370,12 +378,25 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 	v=(dvx*dx+dvy*dy+dvz*dz)/r;
 	za=acos((p[i].obspos.x*dx+p[i].obspos.y*dy+p[i].obspos.z*dz)/(r*XKMPER))*R2D;
 	
-	freq=(1.0-v/C)*freq0;
-	
 	// Store
 	t[j].mjd[i]=mjd[i];
-	t[j].freq[i]=freq;
+	t[j].freq[i]=(1.0-v/C)*freq0;
 	t[j].za[i]=za;
+
+	// Compute Graves velocity/frequency
+	if (site_id==9000) {
+	  dx=satpos.x-p[i].grpos.x;  
+	  dy=satpos.y-p[i].grpos.y;
+	  dz=satpos.z-p[i].grpos.z;
+	  dvx=satvel.x-p[i].grvel.x;
+	  dvy=satvel.y-p[i].grvel.y;
+	  dvz=satvel.z-p[i].grvel.z;
+	  r=sqrt(dx*dx+dy*dy+dz*dz);
+	  vg=(dvx*dx+dvy*dy+dvz*dz)/r;
+	  
+	  // Graves frequency
+	  t[j].freq[i]=(1.0-v/C)*(1.0-vg/C)*freq0;
+	}
       }
     }
     fclose(file);
