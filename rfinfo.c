@@ -6,14 +6,21 @@ int main(int argc,char *argv[])
 {
   int i,firstfile=1,status;
   FILE *file;
-  char header[256],filename[128],nfd[32];
+  char header[256],filename[128],nfd[32],fileroot[128];
   double freq,samp_rate;
   float length;
   int nchan;
 
+  if (strchr(argv[1],'_')!=NULL) {
+    strncpy(fileroot,argv[1],strlen(argv[1])-11);
+    fileroot[strlen(argv[1])-11]='\0';
+  } else {
+    strcpy(fileroot,argv[1]);
+  }
+
   // Open first file
   for (i=0;;i++) {
-    sprintf(filename,"%s_%06d.bin",argv[1],i);
+    sprintf(filename,"%s_%06d.bin",fileroot,i);
     file=fopen(filename,"r");
     
     // Break if file does not exist
