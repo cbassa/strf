@@ -192,7 +192,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
     // Initialize
     imode=init_sgdp4(&orb);
     if (imode==SGDP4_ERROR)
-      printf("Error\n");
+      printf("SGDP4 Error\n");
 
     // Loop over points
     for (i=0,sum1=0.0,sum2=0.0;i<t.n;i++) {
@@ -350,6 +350,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].satno=satno;
     t[j].site=site_id;
     t[j].n=m;
+    t[j].freq0=freq0;
     t[j].mjd=(double *) malloc(sizeof(double)*m);
     t[j].freq=(double *) malloc(sizeof(double)*m);
     t[j].za=(float *) malloc(sizeof(float)*m);

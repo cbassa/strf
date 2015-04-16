@@ -20,7 +20,76 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat);
-struct trace locate_trace(struct spectrogram s,struct select sel,int site_id);
+struct trace fit_trace(struct spectrogram s,struct select sel,int site_id);
+
+// Fit trace
+struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
+{
+  int i,j,k,l,sn,w=100.0;
+  int i0,i1,j0,j1,jmax;
+  double f,fmin;
+  float x,y,s1,s2,z,za,zs,zm,sigma;
+  FILE *file;
+  char filename[64];
+  
+  sprintf(filename,"track_%05d_%08.3f.dat",t.satno,t.freq0);
+
+  // Open file
+  file=fopen(filename,"a");
+
+  fmin=(s.freq-0.5*s.samp_rate)*1e-6;
+
+  // Loop over trace
+  for (i=0;i<t.n;i++) {
+    // Skip when satellite is below the horizon
+    if (t.za[i]>90.0)
+      continue;
+    
+    // Compute position
+    y=(t.freq[i]-fmin)*s.nchan/(s.samp_rate*1e-6);
+    j0=(int) floor(y-w);
+    j1=(int) floor(y+w);
+
+    // Keep in range
+    if (j0<0)
+      j0=0;
+    if (j1>=s.nchan)
+      j1=s.nchan;
+    
+    // Find maximum and significance
+    zm=0.0;
+    jmax=0;
+    s1=0.0;
+    s2=0.0;
+    sn=0;
+    for (j=j0;j<j1;j++) {
+      z=s.z[i+s.nsub*j];
+      s1+=z;
+      s2+=z*z;
+      sn++;
+      if (z>zm) {
+	zm=z;
+	jmax=j;
+	}
+    }
+    za=s1/(float) sn;
+    zs=sqrt(s2/(float) sn-za*za);
+    sigma=(zm-za)/zs;
+
+    // Store
+    if (sigma>5.0 && s.mjd[i]>1.0) {
+      f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
+      fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+      cpgpt1((float) i,(float) jmax,17);
+    }
+  }
+
+  // Close file
+  fclose(file);
+
+  return t;
+}
+
 
 void filter(struct spectrogram s,int site_id)
 {
@@ -82,7 +151,7 @@ void filter(struct spectrogram s,int site_id)
       else
 	mask[j]=0;
     }    
-
+    /*
     // Find maximum when points are adjacent
     for (j=0;j<s.nchan-1;j++) {
       if (mask[j]==1 && mask[j+1]==1) {
@@ -96,7 +165,7 @@ void filter(struct spectrogram s,int site_id)
 	  mask[j]=0;
       }
     }
-
+    */
     // Mark points
     for (j=0;j<s.nchan;j++) {
       if (mask[j]==1) {
@@ -123,9 +192,9 @@ int main(int argc,char *argv[])
   float cool_g[]={0.0,0.0,0.0,1.0,1.0,1.0,0.6,0.0,1.0};
   float cool_b[]={0.0,0.3,0.8,1.0,0.3,0.0,0.0,0.0,1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=8.0;
-  int i,j,k,flag=0,isel=0;
+  int i,j,k,flag=0,isel=0,sn;
   int redraw=1,mode=0,posn=0,click=0;
-  float dt,zzmax,s1,s2;
+  float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
   float width=1500;
@@ -294,7 +363,7 @@ int main(int argc,char *argv[])
 	cpgsci(7);
 	// Plot points
 	for (i=0;i<sel.n;i++) 
-	  cpgpt1(sel.x[i],sel.y[i],17);
+	  cpgpt1(sel.x[i],sel.y[i],4);
 	// Plot upper bound
 	for (i=0;i<sel.n;i++) {
 	  if (i==0)
@@ -323,6 +392,14 @@ int main(int argc,char *argv[])
     if (c=='q')
       break;
 
+    // Track
+    if (c=='t') {
+      for (i=0;i<nsat;i++) {
+	printf("Locating trace for object %05d\n",t[i].satno);
+	locate_trace(s,t[i],4171);
+      }
+    }
+
     // Select start
     if (c=='s') {
       sel.x[isel]=x;
@@ -338,7 +415,7 @@ int main(int argc,char *argv[])
 
     // Fit
     if (c=='f') {
-      tf=locate_trace(s,sel,site_id);
+      tf=fit_trace(s,sel,site_id);
       tf.site=site_id;
       continue;
     }
@@ -468,16 +545,28 @@ int main(int argc,char *argv[])
       for (i=i0;i<i1;i++) {
 	zzmax=0.0;
 	jmax=0;
+	s1=0.0;
+	s2=0.0;
+	sn=0;
 	for (j=j0;j<j1;j++) {
-	  if (s.z[i+s.nsub*j]>zzmax) {
-	    zzmax=s.z[i+s.nsub*j];
+	  z=s.z[i+s.nsub*j];
+	  if (z>zzmax) {
+	    zzmax=z;
 	    jmax=j;
 	  }
+	  s1+=z;
+	  s2+=z*z;
+	  sn++;
 	}
+	za=s1/(float) sn;
+	zs=sqrt(s2/(float) sn-za*za);
+	sigma=(zzmax-za)/zs;
+
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
+	if (sigma>5.0 && s.mjd[i]>1.0) {
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
-	cpgpt1((float) i,(float) jmax,17);
+	  cpgpt1((float) i,(float) jmax,17);
+	}
       }
       fclose(file);
     }
@@ -822,8 +911,8 @@ void plot_traces(struct trace *t,int nsat)
   return;
 }
 
-// Locate trace
-struct trace locate_trace(struct spectrogram s,struct select sel,int site_id)
+// Fit trace
+struct trace fit_trace(struct spectrogram s,struct select sel,int site_id)
 {
   int i,j,k,l,sn;
   int i0,i1,j0,j1,jmax;
@@ -895,3 +984,4 @@ struct trace locate_trace(struct spectrogram s,struct select sel,int site_id)
 
   return t;
 }
+

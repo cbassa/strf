@@ -23,8 +23,8 @@ struct site {
 } site;
 struct point {
   char timestamp[24];
-  double mjd,freq,v;
-  float t,f;
+  double mjd,freq,v,freq0;
+  float t,f,res;
   float flux;
   int flag,site_id,rsite_id;
   struct site s,r;
@@ -464,7 +464,7 @@ int main(int argc,char *argv[])
       cpgbox("BCTSN",0.,0,"BTSN",0.,0);
       //      cpgenv(xmin,xmax,ymin,ymax,0,0);
       cpglab(xlabel,ylabel,"");
-      
+
       // Plot orbit
       if (satno>0 && plot_curve==1 && residuals==0) {
 
@@ -512,17 +512,16 @@ int main(int argc,char *argv[])
 	  cpgsci(1);
 	  cpgsls(1);
 	}
-      }
-
+      } 
       // Plot selected points
       for (i=0;i<d.n;i++) {
 	for (j=0;j<nsite;j++) 
 	  if (d.p[i].site_id==site_number[j])
 	    break;
-
+	
 	color=j+2;
 	style=17;
-
+	
 	x=d.p[i].t;
 	y=d.p[i].f;
 	if (d.p[i].flag==1) {
@@ -1421,7 +1420,8 @@ double compute_rms(void)
       } else {
 	f=(1.0-v/C)*d.ffit;
       }
-
+      d.p[i].freq0=f;
+      d.p[i].res=d.p[i].freq-f;
       rms+=pow(d.p[i].freq-f,2);
       n++;
     }
