@@ -21,6 +21,9 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat);
 struct trace fit_trace(struct spectrogram s,struct select sel,int site_id);
+void convolve(float *y,int n,float *w,int m,float *z);
+float gauss(float x,float w);
+void quadfit(float x[],float y[],int n,float a[]);
 
 // Fit trace
 struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
@@ -179,6 +182,79 @@ void filter(struct spectrogram s,int site_id)
   fclose(file);
 
   free(mask);
+
+  return;
+}
+
+void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
+{
+  int i,j,k,l,m=21,n;
+  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=2.0,x0,c0=-0.005;
+  double f;
+  FILE *file;
+
+  n=j1-j0;
+
+  // Allocate
+  y=(float *) malloc(sizeof(float)*n);
+  sy=(float *) malloc(sizeof(float)*n);
+  a=(float *) malloc(sizeof(float)*n); 
+  b=(float *) malloc(sizeof(float)*n); 
+  c=(float *) malloc(sizeof(float)*n);
+
+  // Make gaussian smoothing filter
+  w=(float *) malloc(sizeof(float)*m);
+  for (i=0;i<m;i++) 
+    w[i]=gauss((float) (i-m/2),dw);
+
+  // Open file
+  file=fopen("peakfind.dat","w");
+
+  // Loop over subints
+  for (i=i0;i<i1;i++) {
+    if (s.mjd[i]==0.0)
+      continue;
+
+    // Fill array
+    for (j=0;j<n;j++)
+      y[j]=s.z[i+s.nsub*(j0+j)];
+
+    // Convolve
+    convolve(y,n,w,m,sy);
+    
+    // Fit parabolas
+    dx[0]=-1.0;
+    dx[1]=0.0;
+    dx[2]=1.0;
+    for (j=1;j<n-1;j++) {
+      quadfit(dx,&sy[j-1],3,d);
+      a[j]=d[0];
+      b[j]=d[1];
+      c[j]=d[2];
+    }
+
+    // Mark points
+    for (j=0;j<n-1;j++) {
+      if (b[j]>0.0 && b[j+1]<0.0 && c[j]<c0) {
+	x0=(float) (j+j0)+b[j]/(b[j]-b[j+1]);
+	f=s.freq-0.5*s.samp_rate+(double) x0*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	cpgpt1((float) i+0.5,x0+0.5,17);
+      }
+    }
+  }
+
+  // Close
+  fclose(file);
+
+  // Free
+  free(y);
+  free(sy);
+  free(a);
+  free(b);
+  free(c);
+  free(w);
 
   return;
 }
@@ -412,6 +488,22 @@ int main(int argc,char *argv[])
 
     if (c=='g')
       filter(s,site_id);
+
+    if (c=='G') {
+      i0=(int) floor(xmin);
+      i1=(int) ceil(xmax);
+      j0=(int) floor(ymin);
+      j1=(int) ceil(ymax);
+      if (i0<0)
+	i0=0;
+      if (i1>=s.nsub)
+	i1=s.nsub-1;
+      if (j0<0)
+	j0=0;
+      if (j1>=s.nchan)
+	j1=s.nchan-1;
+      peakfind(s,site_id,i0,i1,j0,j1);
+    }
 
     // Fit
     if (c=='f') {
@@ -985,3 +1077,57 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id)
   return t;
 }
 
+// Discrete convolution
+void convolve(float *y,int n,float *w,int m,float *z)
+{
+  int i,j,k,imid;
+
+  imid=m/2;
+  for (i=0;i<n;i++) {
+    z[i]=0.0;
+    for (j=0;j<m;j++) {
+      k=i-imid+j;
+      if (k<0 || k>n-1)
+	continue;
+      z[i]+=w[j]*y[k];
+    }
+  }
+
+  return;
+}
+
+// Gaussian
+float gauss(float x,float w)
+{
+  float c;
+
+  c=pow(x/w,2);
+
+  return exp(-0.5*c)/(sqrt(2.0*M_PI)*w);
+}
+
+// Quadratic fit
+void quadfit(float x[],float y[],int n,float a[])
+{
+  int i;
+  float p,q,r,s,t,u,v,d;
+
+  p=q=r=s=t=u=v=0.;
+  for (i=0;i<n;i++) {
+    p+=x[i];
+    q+=pow(x[i],2);
+    r+=pow(x[i],3);
+    s+=pow(x[i],4);
+    t+=y[i];
+    u+=x[i]*y[i];
+    v+=pow(x[i],2)*y[i];
+  }
+
+  d=n*q*s+2.*p*q*r-q*q*q-p*p*s-(float) n*r*r;
+
+  a[0]=(q*s*t+q*r*u+p*r*v-q*q*v-p*s*u-r*r*t)/d;
+  a[1]=((float) n*s*u+p*q*v+q*r*t-q*q*u-p*s*t-(float) n*r*v)/d;
+  a[2]=((float) n*q*v+p*r*t+p*q*u-q*q*t-p*p*v-(float) n*r*u)/d;
+
+  return;
+}
