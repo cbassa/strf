@@ -208,7 +208,7 @@ int main(int argc,char *argv[])
 	  else
 	    l=i-nchan/2;
 	  
-	  z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
+	  z[l]+=sqrt(d[i][0]*d[i][0]+d[i][1]*d[i][1]);
 	}
       }
 
@@ -228,7 +228,7 @@ int main(int argc,char *argv[])
 	strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
 	sprintf(nfd,"%s.%03ld",tbuf,start.tv_usec/1000);
       } else {
-	mjd2nfd(mjd+(m*tint*nsub+k)/86400.0,nfd);
+	mjd2nfd(mjd+(m*nsub+k)*tint/86400.0,nfd); 
 	length=tint;
       }
 
