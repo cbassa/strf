@@ -267,9 +267,13 @@ int main(int argc,char *argv[])
   float cool_r[]={0.0,0.0,0.0,0.0,0.6,1.0,1.0,1.0,1.0};
   float cool_g[]={0.0,0.0,0.0,1.0,1.0,1.0,0.6,0.0,1.0};
   float cool_b[]={0.0,0.3,0.8,1.0,0.3,0.0,0.0,0.0,1.0};
+  float heat_l[] = {0.0, 0.2, 0.4, 0.6, 1.0};
+  float heat_r[] = {0.0, 0.5, 1.0, 1.0, 1.0};
+  float heat_g[] = {0.0, 0.0, 0.5, 1.0, 1.0};
+  float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=8.0;
   int i,j,k,flag=0,isel=0,sn;
-  int redraw=1,mode=0,posn=0,click=0;
+  int redraw=1,mode=0,posn=0,click=0,graves=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
@@ -289,6 +293,7 @@ int main(int argc,char *argv[])
   struct select sel;
   char *env;
   int site_id=0;
+  int cmap=0;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -302,7 +307,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:g"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -331,6 +336,10 @@ int main(int argc,char *argv[])
 	
       case 'z':
 	zmax=atof(optarg);
+	break;
+
+      case 'g':
+	graves=1;
 	break;
 
       case 'h':
@@ -365,11 +374,10 @@ int main(int argc,char *argv[])
     return 0;
 
   // Compute traces
-  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
   cpgopen("/xs");
-  cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
   cpgsch(0.8);
   cpgask(0);
 
@@ -398,7 +406,15 @@ int main(int argc,char *argv[])
       cpgsvp(0.1,0.95,0.1,0.95);
       cpgswin(xmin,xmax,ymin,ymax);
 
-      cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+      if (cmap==2) {
+	cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
+      } else {
+	if (cmap==0)
+	  cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
+	else if (cmap==1)
+	  cpgctab(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
+	cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+      }
 
       // Pixel axis
       cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
@@ -710,6 +726,15 @@ int main(int argc,char *argv[])
       continue;
     }
 
+    // Color map
+    if (c=='C') {
+      cmap++;
+      if (cmap>2)
+	cmap=0;
+      redraw=1;
+      continue;
+    }
+
     // Toggle overlay
     if (c=='p' || c=='X') {
       if (foverlay==0)
@@ -754,7 +779,7 @@ int main(int argc,char *argv[])
 
     // Recompute traces
     if (c=='R') {
-      t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+      t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
       redraw=1;
       continue;
     }

@@ -269,7 +269,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
 }
 
 // Compute trace
-struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat)
+struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat,int graves)
 {
   int i,j,imode,flag,satno,tflag,m,status;
   struct point *p;
@@ -287,6 +287,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   env=getenv("ST_DATADIR");
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
+  printf("%d\n",graves);
 
   // Frequency limits
   fmin=freq-0.5*bw;
@@ -332,7 +333,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
 
   // Compute Graves positions
-  if (site_id==9000) {
+  if (graves==1) {
     sg=get_site(9999);
     for (i=0;i<m;i++) 
       obspos_xyz(mjd[i],sg.lng,sg.lat,sg.alt,&p[i].grpos,&p[i].grvel);
@@ -385,7 +386,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 	t[j].za[i]=za;
 
 	// Compute Graves velocity/frequency
-	if (site_id==9000) {
+	if (graves==1) {
 	  dx=satpos.x-p[i].grpos.x;  
 	  dy=satpos.y-p[i].grpos.y;
 	  dz=satpos.z-p[i].grpos.z;
