@@ -20,7 +20,7 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat);
-struct trace fit_trace(struct spectrogram s,struct select sel,int site_id);
+struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 void convolve(float *y,int n,float *w,int m,float *z);
 float gauss(float x,float w);
 void quadfit(float x[],float y[],int n,float a[]);
@@ -189,7 +189,7 @@ void filter(struct spectrogram s,int site_id)
 void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
 {
   int i,j,k,l,m=21,n;
-  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=2.0,x0,c0=-0.005;
+  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=1.0,x0,c0=-0.000008;
   double f;
   FILE *file;
 
@@ -273,7 +273,7 @@ int main(int argc,char *argv[])
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=8.0;
   int i,j,k,flag=0,isel=0,sn;
-  int redraw=1,mode=0,posn=0,click=0,graves=0;
+  int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
@@ -294,6 +294,8 @@ int main(int argc,char *argv[])
   char *env;
   int site_id=0;
   int cmap=0;
+  double foff=0.0,mjdgrid=0.0;
+  int jj0,jj1;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -307,7 +309,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:g"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -346,6 +348,16 @@ int main(int argc,char *argv[])
 	usage();
 	return 0;
 
+      case 'm':
+	cmap=atoi(optarg);
+	if (cmap>2)
+	  cmap=0;
+	break;
+
+      case 'o':
+	foff=(double) atof(optarg);
+	break;
+
       case 'c':
 	strcpy(tlefile,optarg);
 	break;
@@ -365,8 +377,8 @@ int main(int argc,char *argv[])
   }
 
   // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
- 
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,foff);
+  
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
   // Exit on empty data
@@ -474,6 +486,31 @@ int main(int argc,char *argv[])
 	cpgsci(1);
       }
 
+      // Plot grid
+      if (grid==1) {
+	cpgsci(2);
+	for (i=0,flag=0;i<s.nsub-1;i++) {
+	  dt=86400.0*(s.mjd[i]-mjdgrid);
+	  jj1=(int) (floor) (dt/2.3);
+	  if (i==0)
+	    jj0=jj1;
+	  if (jj1-jj0>0.0) {
+	    flag=0;
+	    jj0=jj1;
+	  }
+	  if (jj0%2==0)
+	    cpgsls(1);
+	  else
+	    cpgsls(2);
+	  if (flag==0) {
+	    cpgmove((float) i,ymin);
+	    cpgdraw((float) i,ymax);
+	    flag=1;
+	  }
+	}
+	cpgsci(1);
+	cpgsls(1);
+      }
       redraw=0;
     }
 
@@ -483,6 +520,16 @@ int main(int argc,char *argv[])
     // Quit
     if (c=='q')
       break;
+
+    // Toggle grid
+    if (c=='k') {
+      if (grid==0)
+	grid=1;
+      else
+	grid=0;
+      mjdgrid=s.mjd[(int) floor(x)];
+      redraw=1;
+    }
 
     // Track
     if (c=='t') {
@@ -523,7 +570,7 @@ int main(int argc,char *argv[])
 
     // Fit
     if (c=='f') {
-      tf=fit_trace(s,sel,site_id);
+      tf=fit_trace(s,sel,site_id,graves);
       tf.site=site_id;
       continue;
     }
@@ -627,7 +674,10 @@ int main(int argc,char *argv[])
       j=(int) floor(y);
       f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
       if (s.mjd[i]>1.0) {
-	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	if (graves==0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	else 
+	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
 	printf("%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
       }
       fclose(file);
@@ -672,7 +722,10 @@ int main(int argc,char *argv[])
 
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
 	if (sigma>5.0 && s.mjd[i]>1.0) {
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
+	  if (graves==0)
+	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
+	  else
+	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,zzmax,site_id);
 	  cpgpt1((float) i,(float) jmax,17);
 	}
       }
@@ -1029,7 +1082,7 @@ void plot_traces(struct trace *t,int nsat)
 }
 
 // Fit trace
-struct trace fit_trace(struct spectrogram s,struct select sel,int site_id)
+struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves)
 {
   int i,j,k,l,sn;
   int i0,i1,j0,j1,jmax;
@@ -1085,7 +1138,10 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id)
       // Store
       if (sigma>5.0 && s.mjd[i]>1.0) {
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+	if (graves==0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+	else
+	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
 	cpgpt1((float) i,(float) jmax,17);
 	t.mjd[l]=s.mjd[i];
 	t.freq[l]=f;

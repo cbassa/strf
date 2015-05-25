@@ -103,7 +103,7 @@ int main(int argc,char *argv[])
 
   for (isub=0;;isub+=15) {
     // Read data
-    s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
+    s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
     if (s.mjd[0]<54000)
       break;
 
@@ -113,7 +113,7 @@ int main(int argc,char *argv[])
     printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
     // Compute traces
-    t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat);
+    t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,0);
     printf("Traces for %d objects for location %d\n",nsat,site_id);
 
     printf("%s\n",pngfile);

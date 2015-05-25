@@ -94,6 +94,19 @@ void obspos_xyz(double mjd,double lng,double lat,float alt,xyz_t *pos,xyz_t *vel
   return;
 }
 
+// Convert equatorial into horizontal coordinates
+void equatorial2horizontal(double mjd,double ra,double de,double lng,double lat,double *azi,double *alt)
+{
+  double h;
+
+  h=gmst(mjd)+lng-ra;
+  
+  *azi=modulo(atan2(sin(h*D2R),cos(h*D2R)*sin(lat*D2R)-tan(de*D2R)*cos(lat*D2R))*R2D,360.0);
+  *alt=asin(sin(lat*D2R)*sin(de*D2R)+cos(lat*D2R)*cos(de*D2R)*cos(h*D2R))*R2D;
+
+  return;
+}
+
 // Get observing site
 struct site get_site(int site_id)
 {
@@ -167,7 +180,8 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Reloop stderr
-  freopen("/tmp/stderr.txt","w",stderr);
+  if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
+    fprintf(stderr,"Failed to redirect stderr\n");
 
   // Get site
   s=get_site(t.site);
@@ -208,6 +222,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
       r=sqrt(dx*dx+dy*dy+dz*dz);
       v[i]=(dvx*dx+dvy*dy+dvz*dz)/r;
       za=acos((p[i].obspos.x*dx+p[i].obspos.y*dy+p[i].obspos.z*dz)/(r*XKMPER))*R2D;
+
       beta=(1.0-v[i]/C);
       sum1+=beta*t.freq[i];
       sum2+=beta*beta;
@@ -283,18 +298,18 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   struct trace *t;
   float fmin,fmax;
   char *env,freqlist[LIM];
+  double ra,de,azi,alt;
 
   env=getenv("ST_DATADIR");
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
-
-  printf("%d\n",graves);
 
   // Frequency limits
   fmin=freq-0.5*bw;
   fmax=freq+0.5*bw;
 
   // Reloop stderr
-  freopen("/tmp/stderr.txt","w",stderr);
+  if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
+    fprintf(stderr,"Failed to redirect stderr\n");
   
   // Find number of satellites in frequency range
   infile=fopen(freqlist,"r");
@@ -395,9 +410,14 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 	  dvz=satvel.z-p[i].grvel.z;
 	  r=sqrt(dx*dx+dy*dy+dz*dz);
 	  vg=(dvx*dx+dvy*dy+dvz*dz)/r;
-	  
-	  // Graves frequency
+	  ra=modulo(atan2(dy,dx)*R2D,360.0);
+	  de=asin(dz/r)*R2D;
+	  equatorial2horizontal(mjd[i],ra,de,sg.lng,sg.lat,&azi,&alt);
+
 	  t[j].freq[i]=(1.0-v/C)*(1.0-vg/C)*freq0;
+	  if (!((azi<90.0 || azi>270.0) && alt>15.0 && alt<40.0))
+	    t[j].za[i]=100.0;
+
 	}
       }
     }

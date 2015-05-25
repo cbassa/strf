@@ -80,7 +80,7 @@ int main(int argc,char *argv[])
   }
 
   // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,nbin);
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
 
   // Write data
   write_spectrogram(s,outfile);

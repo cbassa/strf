@@ -16,6 +16,7 @@
 
 struct point {
   xyz_t obspos,obsvel;
+  xyz_t grvpos,grvvel;
 };
 struct site {
   int id;
@@ -36,7 +37,7 @@ int main(int argc,char *argv[])
   int imode;
   double *mjd,mjd0=57028.0;
   struct point *p;
-  struct site s;
+  struct site s,g;
   FILE *file;
   orbit_t orb;
   double dx,dy,dz,dvx,dvy,dvz,za;
@@ -52,18 +53,21 @@ int main(int argc,char *argv[])
   
   // Get sites
   s=get_site(4171);
+  g=get_site(9999);
 
   // MJD range
   for (i=0;i<n;i++)
     mjd[i]=mjd0+(double) i/86400.0;
 
   // Get positions
-  for (i=0;i<n;i++) 
+  for (i=0;i<n;i++) {
     obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
+    obspos_xyz(mjd[i],g.lng,g.lat,g.alt,&p[i].grvpos,&p[i].grvvel);
+  }
 
   // Loop over objects
   file=fopen("/home/bassa/code/c/satellite/sattools/tle/catalog.tle","r");
-  while (read_twoline(file,19822,&orb)==0) {
+  while (read_twoline(file,25544,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
     if (imode==SGDP4_ERROR)

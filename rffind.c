@@ -172,7 +172,7 @@ int main(int argc,char *argv[])
   }
 
   // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,1);
+  s=read_spectrogram(path,isub,nsub,f0,df0,1,0.0);
 
   // Exit on emtpy file
   if (s.nsub==0)

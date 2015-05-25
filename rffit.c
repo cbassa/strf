@@ -201,7 +201,7 @@ int identify_satellite(char *catalog,double rmsmax)
       flag=1;
     }
     if (rms<rmsmax) {
-      printf("%05d %.3f kHz\n",orb.satno,rms);
+      printf("%05d %.3f kHz %.6f MHz\n",orb.satno,rms,d.ffit/1000.0);
       i++;
     }
   }
@@ -319,7 +319,8 @@ int main(int argc,char *argv[])
     fclose(fp);
   }
 
-  freopen("/tmp/stderr.txt","w",stderr);
+  if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
+    fprintf(stderr,"Failed to redirect stderr\n");
 
   cpgopen("/xs");
   cpgask(0);
@@ -566,7 +567,8 @@ int main(int argc,char *argv[])
       status=scanf("%i",&i);
       if (i>=0 && i<=9) {
 	printf("\nNew value: ");
-	fgets(string,64,stdin);
+	if (fgets(string,64,stdin)==NULL)
+	  fprintf(stderr,"Failed to read string\n");
 	status=scanf("%s",string);
 	//	if (i==0) strcpy(d.satname,string);
 	if (i==1) orb.eqinc=RAD(atof(string));
@@ -634,7 +636,7 @@ int main(int argc,char *argv[])
 	printf("No points selected!\n");
       } else {
 	rms=fit_curve(orb,ia);
-	printf("rms: %.3f kHz, cf: %.3f MHz, TCA: %s\n",rms,d.ffit/1000.0,nfd);
+	printf("rms: %.3f kHz, cf: %.6f MHz, TCA: %s\n",rms,d.ffit/1000.0,nfd);
 	redraw=1;
       }
     }
@@ -1282,7 +1284,10 @@ void save_data(float xmin,float ymin,float xmax,float ymax,char *filename)
   for (i=0,j=0;i<d.n;i++) {
     if (d.p[i].t>xmin && d.p[i].t<xmax && d.p[i].f>ymin && d.p[i].f<ymax && d.p[i].flag==2) {
       //      fprintf(file,"%s\t%14.3lf\t%8.3f\t%04d\n",d.p[i].timestamp,1000.0*d.p[i].freq,d.p[i].flux,d.p[i].site_id);
-      fprintf(file,"%lf\t%14.3lf\t%8.3f\t%04d\n",d.p[i].mjd,1000.0*d.p[i].freq,d.p[i].flux,d.p[i].site_id);
+      if (d.p[i].rsite_id==0)
+	fprintf(file,"%lf\t%14.3lf\t%8.3f\t%04d\n",d.p[i].mjd,1000.0*d.p[i].freq,d.p[i].flux,d.p[i].site_id);
+      else
+	fprintf(file,"%lf\t%14.3lf\t%8.3f\t%04d\t%04d\n",d.p[i].mjd,1000.0*d.p[i].freq,d.p[i].flux,d.p[i].site_id,d.p[i].rsite_id);
       j++;
     }
   }

@@ -4,7 +4,7 @@
 #include "rftime.h"
 #include "rfio.h"
 
-struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin)
+struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff)
 {
   int i,j,k,l,flag=0,status,msub,ibin,nadd;
   char filename[128],header[256],nfd[32];
@@ -32,6 +32,8 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   status=fread(header,sizeof(char),256,file);
   status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
 
+  s.freq+=foff;
+  
   // Close file
   fclose(file);
 
