@@ -160,6 +160,155 @@ struct site get_site(int site_id)
 }
 
 // Identify trace
+void identify_trace_graves(char *tlefile,struct trace t,int satno)
+{
+  int i,imode,flag=0,status,imid;
+  struct point *p;
+  struct site s,sg;
+  double *v,*vg;
+  orbit_t orb;
+  xyz_t satpos,satvel;
+  FILE *file;
+  double dx,dy,dz,dvx,dvy,dvz,r,za;
+  double sum1,sum2,beta,freq0,rms,mjd0;
+  char nfd[32],nfdmin[32],text[16];
+  int satnomin;
+  double rmsmin,freqmin,altmin,azimin;
+  double ra,de,azi,alt;
+  char *env,freqlist[LIM];
+
+  env=getenv("ST_DATADIR");
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
+
+  // Reloop stderr
+  if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
+    fprintf(stderr,"Failed to redirect stderr\n");
+
+  // Get sites
+  s=get_site(t.site);
+  sg=get_site(9999);
+
+  // Allocate
+  p=(struct point *) malloc(sizeof(struct point)*t.n);
+  v=(double *) malloc(sizeof(double)*t.n);
+  vg=(double *) malloc(sizeof(double)*t.n);
+
+  // Get observer position
+  for (i=0;i<t.n;i++) {
+    obspos_xyz(t.mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
+    obspos_xyz(t.mjd[i],sg.lng,sg.lat,sg.alt,&p[i].grpos,&p[i].grvel);
+  }
+  printf("Fitting trace:\n");
+
+  // Mid point
+  imid=t.n/2;
+
+  // Loop over TLEs
+  file=fopen(tlefile,"r");
+  if (file==NULL) {
+    fprintf(stderr,"TLE file %s not found\n",tlefile);
+    return;
+  }
+  while (read_twoline(file,satno,&orb)==0) {
+    // Initialize
+    imode=init_sgdp4(&orb);
+    if (imode==SGDP4_ERROR)
+      printf("SGDP4 Error\n");
+
+    // Loop over points
+    for (i=0,sum1=0.0,sum2=0.0;i<t.n;i++) {
+      // Get satellite position
+      satpos_xyz(t.mjd[i]+2400000.5,&satpos,&satvel);
+
+      dx=satpos.x-p[i].obspos.x;  
+      dy=satpos.y-p[i].obspos.y;
+      dz=satpos.z-p[i].obspos.z;
+      dvx=satvel.x-p[i].obsvel.x;
+      dvy=satvel.y-p[i].obsvel.y;
+      dvz=satvel.z-p[i].obsvel.z;
+      r=sqrt(dx*dx+dy*dy+dz*dz);
+      v[i]=(dvx*dx+dvy*dy+dvz*dz)/r;
+      za=acos((p[i].obspos.x*dx+p[i].obspos.y*dy+p[i].obspos.z*dz)/(r*XKMPER))*R2D;
+      if (i==imid) {
+	ra=modulo(atan2(dy,dx)*R2D,360.0);
+	de=asin(dz/r)*R2D;
+	equatorial2horizontal(t.mjd[i],ra,de,s.lng,s.lat,&azi,&alt);
+      }
+      dx=satpos.x-p[i].grpos.x;  
+      dy=satpos.y-p[i].grpos.y;
+      dz=satpos.z-p[i].grpos.z;
+      dvx=satvel.x-p[i].grvel.x;
+      dvy=satvel.y-p[i].grvel.y;
+      dvz=satvel.z-p[i].grvel.z;
+      r=sqrt(dx*dx+dy*dy+dz*dz);
+      vg[i]=(dvx*dx+dvy*dy+dvz*dz)/r;
+
+
+      //      t[j].freq[i]=(1.0-v/C)*(1.0-vg/C)*freq0;
+      //      if (!((azi<90.0 || azi>270.0) && alt>15.0 && alt<40.0))
+      //	t[j].za[i]=100.0;
+    }
+    freq0=143050000.0;
+
+    // Compute residuals
+    for (i=0,rms=0.0;i<t.n;i++) 
+      rms+=pow(t.freq[i]-(1.0-v[i]/C)*(1.0-vg[i]/C)*freq0,2);
+    rms=sqrt(rms/(double) t.n);
+
+    // Find TCA
+    for (i=0,mjd0=0.0;i<t.n-1;i++) 
+      if (v[i]*v[i-1]<0.0)
+	mjd0=t.mjd[i];
+    
+    if (mjd0>0.0)
+      mjd2nfd(mjd0,nfd);
+    else
+      strcpy(nfd,"0000-00-00T00:00:00");
+    
+    if (rms<1000) {
+      if (rms<50.0)
+	printf("%05d: %s %8.1f Hz (%.1f,%.1f)\n",orb.satno,nfd,rms,modulo(azi+180.0,360.0),alt);
+      //      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",orb.satno,nfd,1e-6*freq0,1e-3*rms);
+      if (flag==0 || rms<rmsmin) {
+	satnomin=orb.satno;
+	strcpy(nfdmin,nfd);
+	freqmin=freq0;
+	rmsmin=rms;
+	altmin=alt;
+	azimin=azi;
+	flag=1;
+      }
+    }
+  }
+  fclose(file);
+  fclose(stderr);
+
+  if (flag==1) {
+    printf("\nBest fitting object:\n");
+    printf("%05d: %s  %8.1f Hz (%.1f,%.1f)\n",satnomin,nfdmin,rmsmin,modulo(azimin+180.0,360.0),altmin);
+    printf("Store frequency? [y/n]\n");
+    status=scanf("%s",text);
+    if (text[0]=='y') {
+      file=fopen(freqlist,"a");
+      fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
+      fclose(file);
+      file=fopen("log.txt","a");
+      fprintf(file,"%05d %8.3f %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
+      fclose(file);
+      printf("Frequency stored\n\n");
+    }
+  } else {
+    printf("\nTrace not identified..\n");
+  }
+
+  // Free
+  free(p);
+  free(v);
+
+  return;
+}
+
+// Identify trace
 void identify_trace(char *tlefile,struct trace t,int satno)
 {
   int i,imode,flag=0,status;

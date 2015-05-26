@@ -577,7 +577,10 @@ int main(int argc,char *argv[])
 
     // Identify
     if (c=='i') {
-      identify_trace(tlefile,tf,0);
+      if (graves==0)
+	identify_trace(tlefile,tf,0);
+      else
+	identify_trace_graves(tlefile,tf,0);
       redraw=1;
       continue;
     }
@@ -1038,6 +1041,7 @@ void usage(void)
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
   printf("-C <site>    Site ID\n");
   printf("-c <catalog> TLE catalog\n");
+  printf("-g           GRAVES data\n");
   printf("-h           This help\n");
 
   return;
