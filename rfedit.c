@@ -14,9 +14,10 @@ void usage(void)
 {
   printf("rfplot: plot RF observations\n\n");
   printf("-p <path>    Path to file prefix /a/b/c_??????.bin\n");
-  printf("-o <file>    Output file name [test_000000.bin]\n");
+  printf("-O <file>    Output file name [test_000000.bin]\n");
   printf("-s <start>   Number of starting subintegration [0]\n");
   printf("-l <length>  Number of subintegrations to plot [3600]\n");
+  printf("-o <offset>  Frequency offset to apply (Hz) [0.0]\n");
   printf("-b <nbin>    Number of subintegrations to bin [1]\n");
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
@@ -30,21 +31,25 @@ int main(int argc,char *argv[])
   struct spectrogram s;
   char path[128],outfile[128]="test";
   int arg=0,nsub=3600,nbin=1,isub=0;
-  double f0=0.0,df0=0.0;
+  double f0=0.0,df0=0.0,foff=0.0;
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:o:f:w:s:l:b:h"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:o:O:f:w:s:l:b:h"))!=-1) {
       switch (arg) {
 	
       case 'p':
 	strcpy(path,optarg);
 	break;
 	
-      case 'o':
+      case 'O':
 	strcpy(outfile,optarg);
 	break;
 	
+      case 'o':
+	foff=(double) atof(optarg);
+	break;
+
       case 's':
 	isub=atoi(optarg);
 	break;
@@ -80,7 +85,7 @@ int main(int argc,char *argv[])
   }
 
   // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,foff);
 
   // Write data
   write_spectrogram(s,outfile);

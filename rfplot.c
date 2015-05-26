@@ -491,7 +491,7 @@ int main(int argc,char *argv[])
 	cpgsci(2);
 	for (i=0,flag=0;i<s.nsub-1;i++) {
 	  dt=86400.0*(s.mjd[i]-mjdgrid);
-	  jj1=(int) (floor) (dt/2.3);
+	  jj1=(int) (floor) (dt/2.4);
 	  if (i==0)
 	    jj0=jj1;
 	  if (jj1-jj0>0.0) {
