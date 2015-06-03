@@ -19,8 +19,10 @@ void usage(void)
   printf("-t <tint>       Integration time [1s]\n");
   printf("-n <nsub>       Number of integrations per file [60]\n");
   printf("-m <use>        Use every mth integration [1]\n");
-  printf("-F <format>     char, int, float [int]\n");
+  printf("-F <format>     Input format char, int, float [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
+  printf("-b              Digitize output to bytes [off]\n");
+  printf("-q              Quiet mode, no output [off]\n");
   printf("-h              This help\n");
 
   return;
@@ -28,23 +30,24 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1;
+  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
   char infname[128],outfname[128],path[64]=".",prefix[32]="";
-  char format='i';
+  char informat='i',outformat='f';
   int16_t *ibuf;
   char *cbuf;
   float *fbuf;
-  float *z,length,fchan=100.0,tint=1.0;
+  float *z,length,fchan=100.0,tint=1.0,zavg,zstd;
+  char *cz;
   double freq,samp_rate,mjd;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bq"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -69,15 +72,23 @@ int main(int argc,char *argv[])
 	
       case 'F':
 	if (strcmp(optarg,"char")==0)
-	  format='c';
+	  informat='c';
 	else if (strcmp(optarg,"int")==0)
-	  format='i';
+	  informat='i';
 	else if (strcmp(optarg,"float")==0)
-	  format='f';
+	  informat='f';
+	break;
+
+      case 'b':
+	outformat='c';
 	break;
 
       case 'n':
 	nsub=atoi(optarg);
+	break;
+
+      case 'q':
+	quiet=1;
 	break;
 
       case 'm':
@@ -131,7 +142,8 @@ int main(int argc,char *argv[])
   cbuf=(char *) malloc(sizeof(char)*2*nchan);
   fbuf=(float *) malloc(sizeof(float)*2*nchan);
   z=(float *) malloc(sizeof(float)*nchan);
-  
+  cz=(char *) malloc(sizeof(char)*nchan);
+
   // Plan
   fft=fftwf_plan_dft_1d(nchan,c,d,FFTW_FORWARD,FFTW_ESTIMATE);
 
@@ -165,11 +177,11 @@ int main(int argc,char *argv[])
       // Integrate
       for (j=0;j<nint;j++) {
 	// Read buffer
-	if (format=='i')
+	if (informat=='i')
 	  nbytes=fread(ibuf,sizeof(int16_t),2*nchan,infile);
-	else if (format=='c')
+	else if (informat=='c')
 	  nbytes=fread(cbuf,sizeof(char),2*nchan,infile);
-	else if (format=='f')
+	else if (informat=='f')
 	  nbytes=fread(fbuf,sizeof(float),2*nchan,infile);
 
 	// End on empty buffer
@@ -181,17 +193,17 @@ int main(int argc,char *argv[])
 	  continue;
 
 	// Unpack 
-	if (format=='i') {
+	if (informat=='i') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) ibuf[2*i]/32768.0;
 	    c[i][1]=(float) ibuf[2*i+1]/32768.0;
 	  } 
-	} else if (format=='c') {
+	} else if (informat=='c') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) cbuf[2*i]/256.0;
 	    c[i][1]=(float) cbuf[2*i+1]/256.0;
 	  } 
-	} else if (format=='f') {
+	} else if (informat=='f') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) fbuf[2*i];
 	    c[i][1]=(float) fbuf[2*i+1];
@@ -222,7 +234,29 @@ int main(int argc,char *argv[])
       for (i=0;i<nchan;i++) 
 	z[i]*=(float) nuse/(float) nchan;
       
-      
+      // Scale to bytes
+      if (outformat=='c') {
+	// Compute average
+	for (i=0,zavg=0.0;i<nchan;i++)
+	  zavg+=z[i];
+	zavg/=(float) nchan;
+	
+      // Compute standard deviation
+	for (i=0,zstd=0.0;i<nchan;i++)
+	  zstd+=pow(z[i]-zavg,2);
+	zstd=sqrt(zstd/(float) nchan);
+
+	// Convert
+	for (i=0;i<nchan;i++) {
+	  z[i]=256.0/6.0*(z[i]-zavg)/zstd;
+	  if (z[i]<-128.0)
+	    z[i]=-128.0;
+	  if (z[i]>127.0)
+	    z[i]=127.0;
+	  cz[i]=(char) z[i];
+	}
+      }
+
       // Format start time
       if (realtime==1) {
 	strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&start.tv_sec));
@@ -233,13 +267,21 @@ int main(int argc,char *argv[])
       }
 
       // Header
-      sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);
+      if (outformat=='f') 
+	sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);
+      else if (outformat=='c')
+	sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,freq,samp_rate,length,nchan,nsub,zavg,zstd);
 
-      printf("%s %s %f %d\n",outfname,nfd,length,j);
+      // Limit output
+      if (!quiet)
+	printf("%s %s %f %d\n",outfname,nfd,length,j);
       
       // Dump file
       fwrite(header,sizeof(char),256,outfile);
-      fwrite(z,sizeof(float),nchan,outfile);
+      if (outformat=='f')
+	fwrite(z,sizeof(float),nchan,outfile);
+      else if (outformat=='c')
+	fwrite(cz,sizeof(char),nchan,outfile);
       
       // Break;
       if (nbytes==0)
@@ -263,6 +305,7 @@ int main(int argc,char *argv[])
   fftwf_free(c);
   fftwf_free(d);
   free(z);
+  free(cz);
 
   return 0;
 }

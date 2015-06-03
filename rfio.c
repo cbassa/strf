@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include "rftime.h"
@@ -6,15 +7,16 @@
 
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff)
 {
-  int i,j,k,l,flag=0,status,msub,ibin,nadd;
+  int i,j,k,l,flag=0,status,msub,ibin,nadd,nbits=-32;
   char filename[128],header[256],nfd[32];
   FILE *file;
   struct spectrogram s;
-  float *z;
+  float *z,zavg,zstd;
+  char *cz;
   int nch,j0,j1;
   double freq,samp_rate;
   float length;
-  int nchan;
+  int nchan,dummy;
   float s1,s2;
 
   // Open first file to get number of channels
@@ -30,7 +32,12 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 
   // Read header
   status=fread(header,sizeof(char),256,file);
-  status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
+  if (strstr(header,"NBITS         8")==NULL) {
+    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
+  } else {
+    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&dummy,&zavg,&zstd);
+    nbits=8;
+  }
 
   s.freq+=foff;
   
@@ -61,7 +68,10 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 
   // Allocate
   s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
+  s.zavg=(float *) malloc(sizeof(float)*s.nsub);
+  s.zstd=(float *) malloc(sizeof(float)*s.nsub);
   z=(float *) malloc(sizeof(float)*nch);
+  cz=(char *) malloc(sizeof(char)*nch);
   s.mjd=(double *) malloc(sizeof(double)*s.nsub);
   s.length=(float *) malloc(sizeof(float)*s.nsub);
 
@@ -91,13 +101,23 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 
       if (status==0)
 	break;
-      status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
+      if (nbits==-32)
+	status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
+      else if (nbits==8)
+	status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",nfd,&freq,&samp_rate,&length,&nchan,&dummy,&zavg,&zstd);
+
       s.mjd[i]+=nfd2mjd(nfd)+0.5*length/86400.0;
       s.length[i]+=length;
       nadd++;
 
       // Read buffer
-      status=fread(z,sizeof(float),nch,file);
+      if (nbits==-32) {
+	status=fread(z,sizeof(float),nch,file);
+      } else if (nbits==8) {
+	status=fread(cz,sizeof(char),nch,file);
+	for (j=0;j<nch;j++)
+	  z[j]=6.0/256.0*(float) cz[j]*zstd+zavg;
+      }
       if (status==0)
 	break;
       
@@ -135,8 +155,38 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     s.samp_rate=df0;
   }
 
+  // Compute averages
+  for (i=0;i<s.nsub;i++) {
+    s.zavg[i]=0.0;
+    for (j=0;j<s.nchan;j++) 
+      if (!isnan(s.z[i+s.nsub*j]) && !isinf(s.z[i+s.nsub*j]))
+	s.zavg[i]+=s.z[i+s.nsub*j];
+    s.zavg[i]/=(float) s.nchan;
+  }
+
+  // Compute deviations
+  for (i=0;i<s.nsub;i++) {
+    s.zstd[i]=0.0;
+    for (j=0;j<s.nchan;j++) 
+      if (!isnan(s.z[i+s.nsub*j]) && !isinf(s.z[i+s.nsub*j]))
+	s.zstd[i]+=pow(s.zavg[i]-s.z[i+s.nsub*j],2);
+    s.zstd[i]=sqrt(s.zstd[i]/(float) s.nchan);
+  }
+
+  // Compute limits
+  for (i=0;i<s.nsub;i++) {
+    if (i==0) {
+      s.zmin=s.zavg[i]-1.0*s.zstd[i];
+      s.zmax=s.zavg[i]+1.0*s.zstd[i];
+    } else {
+      if (s.zavg[i]-1.0*s.zstd[i]<s.zmin) s.zmin=s.zavg[i]-1.0*s.zstd[i];
+      if (s.zavg[i]+1.0*s.zstd[i]>s.zmax) s.zmax=s.zavg[i]+1.0*s.zstd[i];
+    }
+  }
+
   // Free 
   free(z);
+  free(cz);
 
   return s;
 }
