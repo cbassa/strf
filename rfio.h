@@ -3,7 +3,8 @@ struct spectrogram {
   double *mjd;
   double freq,samp_rate;
   float *length;
-  float *z;
+  float *z,*zavg,*zstd;
+  float zmin,zmax;
   char nfd0[32];
 };
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff);

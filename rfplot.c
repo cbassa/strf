@@ -414,7 +414,20 @@ int main(int argc,char *argv[])
       //      cpgeras();
       cpgpage();
       cpgsci(1);
+      /*
+      cpgsvp(0.1,0.95,0.9,0.95);
+      cpgswin(xmin,xmax,s.zmin,s.zmax);
+      cpgbox("BCTS",0.,0,"BCTSN",0.,0);
 
+      for (i=0;i<s.nsub;i++) {
+	if (i==0)
+	  cpgmove((float) i,s.zavg[i]);
+	else
+	  cpgdraw((float) i,s.zavg[i]);
+      }
+
+      cpgsvp(0.1,0.95,0.1,0.85);
+      */
       cpgsvp(0.1,0.95,0.1,0.95);
       cpgswin(xmin,xmax,ymin,ymax);
 
@@ -912,6 +925,8 @@ int main(int argc,char *argv[])
 
   // Free
   free(s.z);
+  free(s.zavg);
+  free(s.zstd);
   free(s.mjd);
   if (tf.n>0) {
     free(tf.mjd);
