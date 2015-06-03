@@ -232,7 +232,7 @@ int main(int argc,char *argv[])
 {
   int i,j,flag,redraw=1,plot_curve=1,plot_type=1,residuals=0,elset=0;
   int imode,year,style,color;
-  char xlabel[64],ylabel[32],text[64];
+  char xlabel[64],ylabel[32],text[64],freqlist[128];
   int site_id=4171;
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
@@ -249,10 +249,12 @@ int main(int argc,char *argv[])
   float dx[]={0.1,0.1,0.4,0.4,0.7,0.7},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25};
   int satno=-1,status;
   struct site s0,s1;
-  int site_number[16],nsite=0;
+  int site_number[16],nsite=0,graves=0;
+  char *env;
 
+  env=getenv("ST_DATADIR");
   // Decode options
-  while ((arg=getopt(argc,argv,"d:c:i:hs:"))!=-1) {
+  while ((arg=getopt(argc,argv,"d:c:i:hs:g"))!=-1) {
     switch(arg) {
     case 'd':
       datafile=optarg;
@@ -275,6 +277,10 @@ int main(int argc,char *argv[])
       site_id=atoi(optarg);
       break;
 
+    case 'g':
+      graves=1;
+      break;
+
     default:
       usage();
       return 0;
@@ -284,6 +290,12 @@ int main(int argc,char *argv[])
   // Read data
   d=read_data(datafile);
   d.fitfreq=1;
+
+  // Set graves frequency
+  if (graves==1) {
+    d.fitfreq=0;
+    d.ffit=143050.0;
+  }
 
   // Count number of sites and assign colors
   for (i=0;i<d.n;i++) {
@@ -613,14 +625,12 @@ int main(int argc,char *argv[])
 
     // Flux limit
     if (c=='l') {
-      printf("Provide flux limit: ");
-      status=scanf("%lf",&rms);
-      // Select
-      for (i=0;i<d.n;i++) {
-	if (d.p[i].flux<rms)
-	  d.p[i].flag=0;
-      }
-      redraw=1;
+      env=getenv("ST_DATADIR");
+      sprintf(freqlist,"%s/data/frequencies.txt",env);  
+      fp=fopen(freqlist,"a");
+      fprintf(fp,"%05d %8.3f\n",orb.satno,d.ffit/1000.0);
+      fclose(fp);
+      printf("Logged %05d at %8.3f to %s\n",orb.satno,d.ffit/1000.0,freqlist); 
       printf("\n================================================================================\n");
     }
 
