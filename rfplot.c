@@ -189,7 +189,7 @@ void filter(struct spectrogram s,int site_id)
 void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
 {
   int i,j,k,l,m=21,n;
-  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=1.0,x0,c0=-0.000008;
+  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=1.0,x0,c0=-0.0007;
   double f;
   FILE *file;
 

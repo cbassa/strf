@@ -245,8 +245,8 @@ int main(int argc,char *argv[])
   int arg=0,nobs=0;
   FILE *fp,*std;
   char line0[72],line1[72],line2[72];
-  int ia[]={0,0,0,0,0,0};
-  float dx[]={0.1,0.1,0.4,0.4,0.7,0.7},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25};
+  int ia[]={0,0,0,0,0,0,0};
+  float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0};
   int satno=-1,status;
   struct site s0,s1;
   int site_number[16],nsite=0,graves=0;
@@ -358,20 +358,15 @@ int main(int argc,char *argv[])
 
       // Buttons
       cpgtext(0.12,-0.05,"Inclination");
-
-      cpgtext(0.42,-0.05,"Eccentricity");
-      cpgpt1(0.4,0.0,19);
-      cpgtext(0.72,-0.05,"Mean Anomaly");
-      cpgpt1(0.7,0.0,19);
+      cpgtext(0.372,-0.05,"Eccentricity");
+      cpgtext(0.62,-0.05,"Mean Anomaly");
+      cpgtext(0.87,-0.05,"B\\u*\\d");
       cpgtext(0.12,-0.3,"Ascending Node");
-      cpgpt1(0.1,-0.25,19);
-      cpgtext(0.42,-0.3,"Arg. of Perigee");
-      cpgpt1(0.4,-0.25,19);
-      cpgtext(0.72,-0.3,"Mean Motion");
-      cpgpt1(0.7,-0.25,19);
+      cpgtext(0.37,-0.3,"Arg. of Perigee");
+      cpgtext(0.62,-0.3,"Mean Motion");
 
       // Toggles
-      for (i=0;i<6;i++) {
+      for (i=0;i<7;i++) {
 	cpgpt1(dx[i],dy[i],19);
 	if (ia[i]==1) {
 	  cpgsci(2);
@@ -565,7 +560,7 @@ int main(int argc,char *argv[])
     }
 
     // Toggles
-    if (isdigit(c) && c-'0'>=1 && c-'0'<7) {
+    if (isdigit(c) && c-'0'>=1 && c-'0'<8) {
       if (ia[c-49]==0) 
 	ia[c-49]=1;
       else if (ia[c-49]==1) 
@@ -1339,6 +1334,7 @@ double chisq(double a[])
   // a[3]: argument of periastron
   // a[4]: mean anomaly
   // a[5]: revs per day
+  // a[6]: Bstar drag
 
   if (a[2]<0.0)
     a[2]=0.0;
@@ -1354,6 +1350,7 @@ double chisq(double a[])
   orb.argp=RAD(modulo(a[3],360.0));
   orb.mnan=RAD(modulo(a[4],360.0));
   orb.rev=a[5];
+  orb.bstar=a[6];
 
   // Initialize
   imode=init_sgdp4(&orb);
@@ -1576,7 +1573,7 @@ void print_tle(orbit_t orb,char *filename)
 void search(void) 
 {
   int i,j,n;
-  double a[6],da[6];
+  double a[7],da[7];
   FILE *file;
   double xmin,xmax,ymin,ymax;
   int nx,ny,status;
@@ -1614,6 +1611,7 @@ void search(void)
       da[3]=0.0;
       da[4]=0.0;
       da[5]=0.0;
+      da[6]=0.0;
 
       // Fit
       //versafit(n,6,a,da,chisq,0.0,1e-3,"n");
@@ -1624,6 +1622,7 @@ void search(void)
       orb.argp=RAD(modulo(a[3],360.0));
       orb.mnan=RAD(modulo(a[4],360.0));
       orb.rev=a[5];
+      orb.bstar=a[6];
 
       fprintf(file,"%8.4f %8.4f %f\n",a[4],a[1],compute_rms());
     }
@@ -1639,9 +1638,8 @@ void search(void)
 double fit_curve(orbit_t orb,int *ia)
 {
   int i,n;
-  double a[6],da[6];
-  //  double db[6]={1.0,1.0,0.01,1.0,1.0,0.1};
-  double db[6]={5.0,5.0,0.1,5.0,5.0,0.1};
+  double a[7],da[7];
+  double db[7]={5.0,5.0,0.1,5.0,5.0,0.1,0.00001};
   double rms;
 
   a[0]=orb.eqinc*R2D;
@@ -1650,8 +1648,9 @@ double fit_curve(orbit_t orb,int *ia)
   a[3]=orb.argp*R2D;
   a[4]=orb.mnan*R2D;
   a[5]=orb.rev;
+  a[6]=orb.bstar;
 
-  for (i=0;i<6;i++) {
+  for (i=0;i<7;i++) {
     if (ia[i]==1)
       da[i]=db[i];
     else
@@ -1665,6 +1664,7 @@ double fit_curve(orbit_t orb,int *ia)
   // a[3]: argument of periastron
   // a[4]: mean anomaly
   // a[5]: revs per day
+  // a[6]: Bstar drag
 
   // Count highlighted points
   for (i=0,n=0;i<d.n;i++)
@@ -1672,7 +1672,7 @@ double fit_curve(orbit_t orb,int *ia)
       n++;
 
   if (n>0)
-    versafit(n,6,a,da,chisq,0.0,1e-5,"n");
+    versafit(n,7,a,da,chisq,0.0,1e-5,"n");
 
   // Return parameters
   orb.eqinc=RAD(a[0]);
@@ -1681,6 +1681,7 @@ double fit_curve(orbit_t orb,int *ia)
   orb.argp=RAD(modulo(a[3],360.0));
   orb.mnan=RAD(modulo(a[4],360.0));
   orb.rev=a[5];
+  orb.bstar=a[6];
 
   //  print_tle(orb);
   rms=compute_rms();
