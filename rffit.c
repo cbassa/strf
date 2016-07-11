@@ -243,7 +243,7 @@ int main(int argc,char *argv[])
   int mode=0,posn=0,click=0;
   char *catalog,*datafile,filename[64],string[64],bstar[10]=" 00000-0";
   int arg=0,nobs=0;
-  FILE *fp,*std;
+  FILE *fp,*std,*fpres;
   char line0[72],line1[72],line2[72];
   int ia[]={0,0,0,0,0,0,0};
   float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0};
@@ -717,6 +717,10 @@ int main(int argc,char *argv[])
 
     // Toggle residuals
     if (c=='j') {
+      fpres=fopen("residuals.dat","w");
+      for (i=0;i<d.n;i++) 
+	fprintf(fpres,"%14.8lf %lf %lf\n",d.p[i].mjd,d.p[i].freq,d.p[i].res);
+      fclose(fpres);
       if (residuals==0)
 	residuals=1;
       else if (residuals==1)
@@ -1435,6 +1439,7 @@ double compute_rms(void)
       d.p[i].freq0=f;
       d.p[i].res=d.p[i].freq-f;
       rms+=pow(d.p[i].freq-f,2);
+
       n++;
     }
   }

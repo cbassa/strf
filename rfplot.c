@@ -391,6 +391,7 @@ int main(int argc,char *argv[])
 
   cpgopen("/xs");
   cpgsch(0.8);
+  cpgpap(12.0,0.55);
   cpgask(0);
 
   // Default limits
@@ -625,6 +626,14 @@ int main(int argc,char *argv[])
       zmax*=0.99;
       redraw=1;
       printf("Zmax: %g\n",zmax);
+      continue;
+    }
+
+    if (c=='Z') {
+      printf("zmin,zmax\n");
+      scanf("%f %f",&zmin,&zmax);
+      printf("%f %f\n",zmin,zmax);
+      redraw=1;
       continue;
     }
     
