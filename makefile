@@ -8,7 +8,7 @@ LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 CC = gcc
 
 all:
-	make rfedit rfplot rffft rfpng rffind rffit rfsim
+	make rfedit rfplot rffft rfpng rffind rffit rfsim rfspec
 
 rfsim: rfsim.o sgdp4.o satutl.o deep.o ferror.o rftime.o
 	$(CC) -o rfsim rfsim.o sgdp4.o satutl.o deep.o ferror.o rftime.o -lm
@@ -27,6 +27,9 @@ rfedit: rfedit.o rfio.o rftime.o
 
 rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+
+rfspec: rfspec.o rftime.o rfio.o 
+	gfortran -o rfspec rfspec.o rftime.o rfio.o $(LFLAGS)
 
 rffft: rffft.o rftime.o
 	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm
