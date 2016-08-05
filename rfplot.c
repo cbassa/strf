@@ -19,7 +19,7 @@ struct select {
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-void plot_traces(struct trace *t,int nsat);
+void plot_traces(struct trace *t,int nsat,float fcen);
 struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 void convolve(float *y,int n,float *w,int m,float *z);
 float gauss(float x,float w);
@@ -407,7 +407,7 @@ int main(int argc,char *argv[])
   // Set selection
   isel=0;
   sel.n=0;
-  sel.w=50.0;
+  sel.w=10.0;
 
   // Forever loop
   for (;;) {
@@ -431,7 +431,7 @@ int main(int argc,char *argv[])
       */
       cpgsvp(0.1,0.95,0.1,0.95);
       cpgswin(xmin,xmax,ymin,ymax);
-
+      
       if (cmap==2) {
 	cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
       } else {
@@ -454,16 +454,16 @@ int main(int argc,char *argv[])
       fmax=s.freq-0.5*s.samp_rate+ymax*s.samp_rate/(float) s.nchan;
       fmin*=1e-6;
       fmax*=1e-6;
-
-      cpgswin(xmin,xmax,fmin,fmax);
+      
+      // Human readable frequency axis
+      fcen=0.5*(fmax+fmin);
+      cpgswin(xmin,xmax,fmin-fcen,fmax-fcen);
       if (foverlay==1) {
 	cpgsci(3);
-	plot_traces(t,nsat);
+	plot_traces(t,nsat,fcen);
 	cpgsci(1);
       }
 
-      // Human readable frequency axis
-      fcen=0.5*(fmax+fmin);
       fcen=floor(1000*fcen)/1000.0;
       sprintf(ylabel,"Frequency - %.3f MHz",fcen);
       fmin-=fcen;
@@ -524,6 +524,7 @@ int main(int argc,char *argv[])
 	}
 	cpgsci(1);
 	cpgsls(1);
+
       }
       redraw=0;
     }
@@ -1071,7 +1072,7 @@ void usage(void)
   return;
 }
 
-void plot_traces(struct trace *t,int nsat)
+void plot_traces(struct trace *t,int nsat,float fcen)
 {
   int i,j,flag,textflag;
   char text[8];
@@ -1082,20 +1083,20 @@ void plot_traces(struct trace *t,int nsat)
 
     // Plot label at start of trace
     if (t[i].za[0]<=90.0)
-	cpgtext(0.0,(float) t[i].freq[0],text);
+	cpgtext(0.0,(float) t[i].freq[0]-fcen,text);
 
     // Loop over trace
     for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
-	cpgtext((float) j,(float) t[i].freq[j],text);
+	cpgtext((float) j,(float) t[i].freq[j]-fcen,text);
 
       // Plot line
       if (flag==0) {
-	cpgmove((float) j,t[i].freq[j]);
+	cpgmove((float) j,t[i].freq[j]-fcen);
 	flag=1;
       } else {
-	cpgdraw((float) j,t[i].freq[j]);
+	cpgdraw((float) j,t[i].freq[j]-fcen);
       }
 
       // Below horizon
@@ -1164,7 +1165,7 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int gr
       sigma=(zm-za)/zs;
 
       // Store
-      if (sigma>5.0 && s.mjd[i]>1.0) {
+      if (sigma>3.0 && s.mjd[i]>1.0) {
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
 	if (graves==0)
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
