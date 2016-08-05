@@ -220,7 +220,8 @@ int main(int argc,char *argv[])
 	  else
 	    l=i-nchan/2;
 	  
-	  z[l]+=sqrt(d[i][0]*d[i][0]+d[i][1]*d[i][1]);
+	  //z[l]+=sqrt(d[i][0]*d[i][0]+d[i][1]*d[i][1]);
+	  z[l]+=d[i][0]*d[i][0]+d[i][1]*d[i][1];
 	}
       }
 
