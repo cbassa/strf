@@ -14,6 +14,7 @@
 struct select {
   int flag,n;
   float x[NMAX],y[NMAX],w;
+  float sigma;
 };
 
 void dec2sex(double x,char *s,int f,int len);
@@ -407,7 +408,8 @@ int main(int argc,char *argv[])
   // Set selection
   isel=0;
   sel.n=0;
-  sel.w=10.0;
+  sel.w=100.0;
+  sel.sigma=5.0;
 
   // Forever loop
   for (;;) {
@@ -532,10 +534,41 @@ int main(int argc,char *argv[])
     // Get cursor
     cpgband(mode,posn,x0,y0,&x,&y,&c);
 
+    // Help
+    if (c=='h') {
+      printf("q        Quit\n");
+      printf("k        Plot grid (not sure what it does)\n");
+      printf("t        Locate traces\n");
+      printf("s        Select track points\n");
+      printf("u        Undo track point selection\n");
+      printf("f        Fits selected track points (generates out.dat)\n");
+      printf("g        Filter points above 5 sigma (generates filter.dat)\n");
+      printf("G        Find peaks in current window (generates peakfind.dat)\n");
+      printf("i        Identify selected track points\n");
+      printf("I        Manually identify selected track points\n");
+      printf("v        Decrease dynamic range\n");
+      printf("b        Increase dynamic range\n");
+      printf("Z        Provide manual dynamic range limits\n");
+      printf("D/mid    Mark point (appends to mark.dat)\n");
+      printf("c        Center view\n");
+      printf("C        Toggle through color maps\n");
+      printf("p/right  Toggle overlays\n");
+      printf("+        Zoom\n");
+      printf("-/x      Unzoom\n");
+      printf("R        Recompute traces\n");
+      printf("r        Reset view\n");
+      printf("z        Select part to zoom into\n");
+      printf("TAB      Pan through view\n");
+      
+      continue;
+    }
+    
+    
     // Quit
     if (c=='q')
       break;
 
+    
     // Toggle grid
     if (c=='k') {
       if (grid==0)
@@ -600,6 +633,17 @@ int main(int argc,char *argv[])
       continue;
     }
 
+    // Set selection
+    if (c=='S') {
+      printf("Current selection width: %g pixels\n",sel.w);
+      printf("Current sigma: %g\n",sel.sigma);
+      printf("Provide selection width (pixels), and sigma: ");
+      status=scanf("%f %f",&sel.w,&sel.sigma);
+      printf("New selection width: %g pixels\n",sel.w);
+      printf("New sigma: %g\n",sel.sigma);
+      continue;
+    }
+    
     // Identify
     if (c=='I') {
       printf("Provide satno: ");
@@ -632,7 +676,7 @@ int main(int argc,char *argv[])
 
     if (c=='Z') {
       printf("zmin,zmax\n");
-      scanf("%f %f",&zmin,&zmax);
+      status=scanf("%f %f",&zmin,&zmax);
       printf("%f %f\n",zmin,zmax);
       redraw=1;
       continue;
@@ -1072,6 +1116,7 @@ void usage(void)
   return;
 }
 
+
 void plot_traces(struct trace *t,int nsat,float fcen)
 {
   int i,j,flag,textflag;
@@ -1165,7 +1210,7 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int gr
       sigma=(zm-za)/zs;
 
       // Store
-      if (sigma>3.0 && s.mjd[i]>1.0) {
+      if (sigma>sel.sigma && s.mjd[i]>1.0) {
 	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
 	if (graves==0)
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
