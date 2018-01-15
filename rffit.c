@@ -839,7 +839,7 @@ int main(int argc,char *argv[])
 
     // Save
     if (c=='S') {
-      printf("%s_%.3f_%05d.dat\n",nfd,d.ffit/1000.0,satno);
+      printf("%s_%.3f_%04d_%05d.dat\n",nfd,d.ffit/1000.0,d.p[0].site_id,satno);
       printf("Save highlighted points, provide filename: ");
       status=scanf("%s",filename);
       save_data(xmin,ymin,xmax,ymax,filename);
@@ -1129,6 +1129,7 @@ int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *
   double ra,de;
   xyz_t satpos,obspos,satvel,obsvel;
 
+    
   // Loop over data points
   obspos_xyz(mjd,s,&obspos,&obsvel);
   satpos_xyz(mjd+2400000.5,&satpos,&satvel);
