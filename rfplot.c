@@ -1261,7 +1261,7 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
   float x,y,s1,s2,z,za,zs,zm,sigma;
   double f,*px,*py,*psy,a[5],sa[5],chisq;
   struct trace t;
-  FILE *file;
+  FILE *file,*pfile;
 
   // Allocate
   nw=2*(int) sel.w;
@@ -1278,6 +1278,7 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 
   // Open file
   file=fopen("out.dat","w");
+  pfile=fopen("gauss.dat","w");
 
   // Loop over selected regions
   for (k=0,l=0;k<sel.n-1;k++) {
@@ -1327,8 +1328,9 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
       // Fit gaussian
       status=fit_gaussian(px,py,psy,m,a,sa,5,&chisq);
 
-
-      printf("%d %f %f %f %f %f %f %d %f\n",status,chisq,a[0],a[1],a[2],a[3],a[4],jmax,zm);
+      f=s.freq-0.5*s.samp_rate+a[0]*s.samp_rate/(double) s.nchan;
+      if (s.mjd[i]>1.0 && status==0)
+	fprintf(pfile,"%lf %lf %lf %d %lf %lf %lf %d %lf\n",s.mjd[i],f,a[2],site_id,a[1],a[3],a[4],status,chisq);
 
       // Remove 
       s1-=zm;
@@ -1358,6 +1360,7 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 
   // Close file
   fclose(file);
+  fclose(pfile);
 
   // Free
   free(px);
