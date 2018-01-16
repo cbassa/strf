@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <math.h>
 #include <cpgplot.h>
 #include <getopt.h>
@@ -83,7 +84,7 @@ struct site get_site(int site_id)
   file=fopen(filename,"r");
   if (file==NULL) {
     printf("File with site information not found!\n");
-    return;
+    exit(0);
   }
   while (fgets(line,LIM,file)!=NULL) {
     // Skip

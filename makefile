@@ -25,8 +25,8 @@ rffind: rffind.o rfio.o rftime.o
 rfedit: rfedit.o rfio.o rftime.o
 	$(CC) -o rfedit rfedit.o rfio.o rftime.o -lm
 
-rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
-	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o gaussfit.o
+	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o gaussfit.o $(LFLAGS)
 
 rfspec: rfspec.o rftime.o rfio.o 
 	gfortran -o rfspec rfspec.o rftime.o rfio.o $(LFLAGS)
