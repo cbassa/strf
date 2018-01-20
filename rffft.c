@@ -39,7 +39,7 @@ int main(int argc,char *argv[])
   int16_t *ibuf;
   char *cbuf;
   float *fbuf;
-  float *z,length,fchan=100.0,tint=1.0,zavg,zstd;
+  float *z,length,fchan=100.0,tint=1.0,zavg,zstd,*zw;
   char *cz;
   double freq,samp_rate,mjd;
   struct timeval start,end;
@@ -143,6 +143,12 @@ int main(int argc,char *argv[])
   fbuf=(float *) malloc(sizeof(float)*2*nchan);
   z=(float *) malloc(sizeof(float)*nchan);
   cz=(char *) malloc(sizeof(char)*nchan);
+  zw=(float *) malloc(sizeof(float)*nchan);
+
+  // Compute window
+  for (i=0;i<nchan;i++)
+    zw[i]=0.54-0.46*cos(2.0*M_PI*i/(nchan-1));
+  
 
   // Plan
   fft=fftwf_plan_dft_1d(nchan,c,d,FFTW_FORWARD,FFTW_ESTIMATE);
@@ -195,18 +201,18 @@ int main(int argc,char *argv[])
 	// Unpack 
 	if (informat=='i') {
 	  for (i=0;i<nchan;i++) {
-	    c[i][0]=(float) ibuf[2*i]/32768.0;
-	    c[i][1]=(float) ibuf[2*i+1]/32768.0;
+	    c[i][0]=(float) ibuf[2*i]/32768.0*zw[i];
+	    c[i][1]=(float) ibuf[2*i+1]/32768.0*zw[i];
 	  } 
 	} else if (informat=='c') {
 	  for (i=0;i<nchan;i++) {
-	    c[i][0]=(float) cbuf[2*i]/256.0;
-	    c[i][1]=(float) cbuf[2*i+1]/256.0;
+	    c[i][0]=(float) cbuf[2*i]/256.0*zw[i];
+	    c[i][1]=(float) cbuf[2*i+1]/256.0*zw[i];
 	  } 
 	} else if (informat=='f') {
 	  for (i=0;i<nchan;i++) {
-	    c[i][0]=(float) fbuf[2*i];
-	    c[i][1]=(float) fbuf[2*i+1];
+	    c[i][0]=(float) fbuf[2*i]*zw[i];
+	    c[i][1]=(float) fbuf[2*i+1]*zw[i];
 	  } 
 	}
 	  
@@ -307,7 +313,8 @@ int main(int argc,char *argv[])
   fftwf_free(d);
   free(z);
   free(cz);
-
+  free(zw);
+  
   return 0;
 }
 
