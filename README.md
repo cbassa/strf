@@ -1,5 +1,4 @@
 # STRF
-=========
 
 **strf** is the satellite tracking toolkit for radio observations (RF). The software is designed to allow tracking of satellites from radio observations, using Doppler curves to identify satellites and/or determine their orbits.
 
