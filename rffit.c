@@ -180,7 +180,7 @@ int identify_satellite_from_doppler(char *catalog,double rmsmax)
   double rms,rmsmin;
   int ia[]={0,0,0,0,0,0};
   int satno=0,imode;
-  double v,alt,azi;
+  double v,alt,azi,mjdmid;
 
   // Open catalog
   fp=fopen(catalog,"rb");
@@ -194,9 +194,10 @@ int identify_satellite_from_doppler(char *catalog,double rmsmax)
     if (imode==SGDP4_ERROR)
       printf("Error\n");
 
-    velocity(orb,d.p[d.n/2].mjd,d.p[d.n/2].s,&v,&azi,&alt);
-    if (alt<0.0)
-      continue;
+    //    velocity(orb,d.p[d.n/2].mjd,d.p[d.n/2].s,&v,&azi,&alt);
+    //    if (alt<0.0)
+    //      printf("Continue?\n");
+    //      continue;
     rms=fit_curve(orb,ia);
     if (flag==0 || rms<rmsmin) {
       rmsmin=rms;
