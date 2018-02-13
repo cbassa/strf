@@ -469,17 +469,21 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   
   // Find number of satellites in frequency range
   infile=fopen(freqlist,"r");
-  for (i=0;;) {
-    if (fgetline(infile,line,LIM)<=0)
-      break;
-    status=sscanf(line,"%d %lf",&satno,&freq0);
-
-    if (freq0>=fmin && freq0<=fmax)
-      i++;
+  if (infile==NULL) {
+    printf("%s not found\n",freqlist);
+    return t;
+  } else {
+    for (i=0;;) {
+      if (fgetline(infile,line,LIM)<=0)
+	break;
+      status=sscanf(line,"%d %lf",&satno,&freq0);
+      
+      if (freq0>=fmin && freq0<=fmax)
+	i++;
+    }
+    fclose(infile);
+    *nsat=i;
   }
-  fclose(infile);
-  *nsat=i;
-
   // Break out
   if (i==0)
     return t;
