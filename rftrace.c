@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "sgdp4h.h"
 #include "satutl.h"
+#include "rftime.h"
 #include "rftrace.h"
 #include <sys/time.h>
 #include <time.h>
@@ -128,7 +129,7 @@ struct site get_site(int site_id)
   file=fopen(filename,"r");
   if (file==NULL) {
     printf("File with site information not found!\n");
-    return;
+    return s;
   }
   while (fgets(line,LIM,file)!=NULL) {
     // Skip

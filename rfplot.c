@@ -27,7 +27,6 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 void convolve(float *y,int n,float *w,int m,float *z);
 float gauss(float x,float w);
 void quadfit(float x[],float y[],int n,float a[]);
-int fit_gaussian(double *x,double *y,double *sy,int n,double *q,double *sq,int m,double *chisq);
 
 // Fit trace
 struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
@@ -628,13 +627,6 @@ int main(int argc,char *argv[])
     // Fit
     if (c=='f') {
       tf=fit_trace(s,sel,site_id,graves);
-      tf.site=site_id;
-      continue;
-    }
-
-    // Fit
-    if (c=='F') {
-      tf=fit_gaussian_trace(s,sel,site_id,graves);
       tf.site=site_id;
       continue;
     }
@@ -1250,123 +1242,6 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int gr
   // Close file
   fclose(file);
 
-  return t;
-}
-
-// Fit trace
-struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_id,int graves)
-{
-  int i,j,k,l,m,sn;
-  int i0,i1,j0,j1,jmax,nw,status;
-  float x,y,s1,s2,z,za,zs,zm,sigma;
-  double f,*px,*py,*psy,a[5],sa[5],chisq;
-  struct trace t;
-  FILE *file,*pfile;
-
-  // Allocate
-  nw=2*(int) sel.w;
-  px=(double *) malloc(sizeof(double)*nw);
-  py=(double *) malloc(sizeof(double)*nw);
-  psy=(double *) malloc(sizeof(double)*nw);
-
-  // Set up trace
-  t.satno=99999;
-  t.n=(int) ceil(sel.x[sel.n-1]-sel.x[0]);
-  t.mjd=(double *) malloc(sizeof(double)*t.n);
-  t.freq=(double *) malloc(sizeof(double)*t.n);
-  t.za=(float *) malloc(sizeof(float)*t.n);
-
-  // Open file
-  file=fopen("out.dat","w");
-  pfile=fopen("gauss.dat","w");
-
-  // Loop over selected regions
-  for (k=0,l=0;k<sel.n-1;k++) {
-    for (x=sel.x[k];x<=sel.x[k+1];x+=1.0) {
-      y=(x-sel.x[k])/(sel.x[k+1]-sel.x[k])*(sel.y[k+1]-sel.y[k])+sel.y[k];
-      i=(int) floor(x);
-      j0=(int) floor(y-sel.w);
-      j1=(int) floor(y+sel.w);
-
-      // Keep in range
-      if (j0<0)
-	j0=0;
-      if (j1>=s.nchan)
-	j1=s.nchan;
-
-      // Fill arrays
-      for (j=j0,m=0;j<j1;j++,m++) {
-	px[m]=(float) j;
-	py[m]=s.z[i+s.nsub*j];
-	psy[m]=1.0;
-      }
-      
-      // Find maximum and significance
-      zm=0.0;
-      jmax=0;
-      s1=0.0;
-      s2=0.0;
-      sn=0;
-      for (j=j0;j<j1;j++) {
-	z=s.z[i+s.nsub*j];
-	s1+=z;
-	s2+=z*z;
-	sn++;
-	if (z>zm) {
-	  zm=z;
-	  jmax=j;
-	}
-      }
-      
-      // Estimate parameters
-      a[0]=jmax;
-      a[1]=1.0;
-      a[2]=zm;
-      a[3]=0.0;
-      a[4]=0.0;
-
-      // Fit gaussian
-      status=fit_gaussian(px,py,psy,m,a,sa,5,&chisq);
-
-      f=s.freq-0.5*s.samp_rate+a[0]*s.samp_rate/(double) s.nchan;
-      if (s.mjd[i]>1.0 && status==0)
-	fprintf(pfile,"%lf %lf %lf %d %lf %lf %lf %d %lf\n",s.mjd[i],f,a[2],site_id,a[1],a[3],a[4],status,chisq);
-
-      // Remove 
-      s1-=zm;
-      s2-=zm*zm;
-      sn--;
-      za=s1/(float) sn;
-      zs=sqrt(s2/(float) sn-za*za);
-      sigma=(zm-za)/zs;
-
-      // Store
-      if (sigma>sel.sigma && s.mjd[i]>1.0) {
-	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	if (graves==0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
-	else
-	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
-	cpgpt1((float) i,(float) jmax,17);
-	cpgpt1((float) i,(float) a[0],24);
-	t.mjd[l]=s.mjd[i];
-	t.freq[l]=f;
-	t.za[l]=0.0;
-	l++;
-      }
-    }
-  }
-  t.n=l;
-
-  // Close file
-  fclose(file);
-  fclose(pfile);
-
-  // Free
-  free(px);
-  free(py);
-  free(psy);
-  
   return t;
 }
 
