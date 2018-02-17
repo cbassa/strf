@@ -12,7 +12,7 @@ cd $ST_TLEDIR
 DATE=`date +%Y%m%d_%H%M%S`
 
 # Get cookie
-wget --post-data='identity=cbassa&password=eadohrohsah8Foos' --cookies=on --keep-session-cookies --save-cookies=/tmp/cookies.txt 'https://www.space-track.org/ajaxauth/login' -o /tmp/stget.log
+wget --post-data='identity=username&password=password' --cookies=on --keep-session-cookies --save-cookies=/tmp/cookies.txt 'https://www.space-track.org/ajaxauth/login' -o /tmp/stget.log
 
 # Get data
 wget  --keep-session-cookies --load-cookies=/tmp/cookies.txt 'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/EPOCH/%3Enow-30/format/3le' -O catalog.tle
@@ -35,5 +35,9 @@ dos2unix inttles.tle
 cp inttles.tle ${DATE}_inttles.txt
 rm inttles.zip
 
+# Get CALPOLY tles
+wget http://mstl.atl.calpoly.edu/~ops/keps/kepler.txt -O kepler.tle
+dos2unix kepler.tle
+
 # Create TLE bulk file
-cat classfd.tle catalog.tle >bulk.tle
+cat classfd.tle catalog.tle kepler.tle >bulk.tle

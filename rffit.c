@@ -298,6 +298,14 @@ int main(int argc,char *argv[])
   int site_number[16],nsite=0,graves=0;
   char *env;
 
+  // Get site
+  env=getenv("ST_COSPAR");
+  if (env!=NULL) {
+    site_id=atoi(env);
+  } else {
+    printf("ST_COSPAR environment variable not found.\n");
+  }
+  
   env=getenv("ST_DATADIR");
   // Decode options
   while ((arg=getopt(argc,argv,"d:c:i:hs:g"))!=-1) {
