@@ -340,8 +340,14 @@ int main(int argc,char *argv[])
 
   xmin=d.mjdmin-d.mjd0-0.005;
   xmax=d.mjdmax-d.mjd0+0.005;
-  ymin=-12.0*d.f0/C;
-  ymax=12*d.f0/C;
+  if (graves==0) {
+    ymin=-12.0*d.f0/C;
+    ymax=12*d.f0/C;
+  } else if (graves==1) {
+    ymin=-20.0*d.f0/C;
+    ymax=20*d.f0/C;
+  }
+    
   //  ymin=d.freqmin;
   //  ymax=d.freqmax;
 
