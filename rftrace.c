@@ -4,7 +4,10 @@
 #include <stdlib.h>
 #include "sgdp4h.h"
 #include "satutl.h"
+#include "rftime.h"
 #include "rftrace.h"
+#include <sys/time.h>
+#include <time.h>
 
 #define LIM 80
 #define D2R M_PI/180.0
@@ -126,7 +129,7 @@ struct site get_site(int site_id)
   file=fopen(filename,"r");
   if (file==NULL) {
     printf("File with site information not found!\n");
-    return;
+    return s;
   }
   while (fgets(line,LIM,file)!=NULL) {
     // Skip
@@ -324,7 +327,9 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   int satnomin;
   double rmsmin,freqmin;
   char *env,freqlist[LIM];
-
+  struct timeval tv;
+  char tbuf[30];
+  
   env=getenv("ST_DATADIR");
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
@@ -413,8 +418,10 @@ void identify_trace(char *tlefile,struct trace t,int satno)
     printf("Store frequency? [y/n]\n");
     status=scanf("%s",text);
     if (text[0]=='y') {
+      gettimeofday(&tv,0);
+      strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&tv.tv_sec));
       file=fopen(freqlist,"a");
-      fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
+      fprintf(file,"%05d %8.3f %.19s %04d\n",satnomin,1e-6*freqmin,tbuf,s.id);
       fclose(file);
       file=fopen("log.txt","a");
       fprintf(file,"%05d %8.3f %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
@@ -462,17 +469,21 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   
   // Find number of satellites in frequency range
   infile=fopen(freqlist,"r");
-  for (i=0;;) {
-    if (fgetline(infile,line,LIM)<=0)
-      break;
-    status=sscanf(line,"%d %lf",&satno,&freq0);
-
-    if (freq0>=fmin && freq0<=fmax)
-      i++;
+  if (infile==NULL) {
+    printf("%s not found\n",freqlist);
+    return t;
+  } else {
+    for (i=0;;) {
+      if (fgetline(infile,line,LIM)<=0)
+	break;
+      status=sscanf(line,"%d %lf",&satno,&freq0);
+      
+      if (freq0>=fmin && freq0<=fmax)
+	i++;
+    }
+    fclose(infile);
+    *nsat=i;
   }
-  fclose(infile);
-  *nsat=i;
-
   // Break out
   if (i==0)
     return t;

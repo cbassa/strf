@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Check if TLE directory exists
+if [ ! -d $ST_TLEDIR ]; then
+    mkdir -p $ST_TLEDIR
+fi
+
+# Goto TLE dir
+cd $ST_TLEDIR
+
+# Get date
+DATE=`date +%Y%m%d_%H%M%S`
+
+# Get cookie
+wget --post-data='identity=username&password=password' --cookies=on --keep-session-cookies --save-cookies=/tmp/cookies.txt 'https://www.space-track.org/ajaxauth/login' -o /tmp/stget.log
+
+# Get data
+wget  --keep-session-cookies --load-cookies=/tmp/cookies.txt 'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/EPOCH/%3Enow-30/format/3le' -O catalog.tle
+dos2unix catalog.tle
+sed -i -e "s/^1     /1 0000/g" -e "s/^2     /2 0000/g" -e "s/^1    /1 000/g" -e "s/^2    /2 000/g" -e "s/^1   /1 00/g" -e "s/^2   /2 00/g" -e "s/^1  /1 0/g" -e "s/^2  /2 0/g" catalog.tle
+cp catalog.tle ${DATE}_catalog.txt
+rm login
+
+# Get classfd
+wget http://www.prismnet.com/~mmccants/tles/classfd.zip --no-check-certificate -O classfd.zip
+unzip -o classfd.zip
+dos2unix classfd.tle
+cp classfd.tle ${DATE}_classfd.txt
+rm classfd.zip
+
+# Get inttles
+wget http://www.prismnet.com/~mmccants/tles/inttles.zip --no-check-certificate -O inttles.zip
+unzip -o inttles.zip
+dos2unix inttles.tle
+cp inttles.tle ${DATE}_inttles.txt
+rm inttles.zip
+
+# Get CALPOLY tles
+wget http://mstl.atl.calpoly.edu/~ops/keps/kepler.txt -O kepler.tle
+dos2unix kepler.tle
+
+# Create TLE bulk file
+cat classfd.tle catalog.tle kepler.tle >bulk.tle

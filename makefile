@@ -8,10 +8,7 @@ LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 CC = gcc
 
 all:
-	make rfedit rfplot rffft rfpng rffind rffit rfsim rfspec
-
-rfsim: rfsim.o sgdp4.o satutl.o deep.o ferror.o rftime.o
-	$(CC) -o rfsim rfsim.o sgdp4.o satutl.o deep.o ferror.o rftime.o -lm
+	make rfedit rfplot rffft rfpng rffit
 
 rffit: rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o
 	gfortran -o rffit rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o $(LFLAGS)
@@ -19,17 +16,11 @@ rffit: rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o
 rfpng: rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	gfortran -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
 
-rffind: rffind.o rfio.o rftime.o
-	gfortran -o rffind rffind.o rfio.o rftime.o $(LFLAGS)
-
 rfedit: rfedit.o rfio.o rftime.o
 	$(CC) -o rfedit rfedit.o rfio.o rftime.o -lm
 
-rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o gaussfit.o
-	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o gaussfit.o $(LFLAGS)
-
-rfspec: rfspec.o rftime.o rfio.o 
-	gfortran -o rfspec rfspec.o rftime.o rfio.o $(LFLAGS)
+rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o 
+	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
 
 rffft: rffft.o rftime.o
 	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm

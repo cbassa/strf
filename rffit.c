@@ -49,6 +49,7 @@ double gmst(double);
 double dgmst(double);
 void obspos_xyz(double,struct site,xyz_t *,xyz_t *);
 int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *alt);
+double altitude(orbit_t orb,double mjd,struct site s);
 void deselect_inside(float x0,float y0,float x,float y);
 void highlight(float x0,float y0,float x,float y,int flag);
 void deselect_outside(float xmin,float ymin,float xmax,float ymax);
@@ -64,6 +65,7 @@ void search(void);
 double fit_curve(orbit_t orb,int *ia);
 double mjd2doy(double mjd,int *yr);
 double doy2mjd(int year,double doy);
+int identify_satellite_from_visibility(char *catalog,double altmin);
 
 // Get observing site
 struct site get_site(int site_id)
@@ -171,14 +173,14 @@ void format_tle(orbit_t orb,char *line1,char *line2)
 }
 
 
-int identify_satellite(char *catalog,double rmsmax)
+int identify_satellite_from_doppler(char *catalog,double rmsmax)
 {
   int i=0,flag=0;
   FILE *fp;
   double rms,rmsmin;
   int ia[]={0,0,0,0,0,0};
   int satno=0,imode;
-  double v,alt,azi;
+  double v,alt,azi,mjdmid;
 
   // Open catalog
   fp=fopen(catalog,"rb");
@@ -192,9 +194,10 @@ int identify_satellite(char *catalog,double rmsmax)
     if (imode==SGDP4_ERROR)
       printf("Error\n");
 
-    velocity(orb,d.p[d.n/2].mjd,d.p[d.n/2].s,&v,&azi,&alt);
-    if (alt<0.0)
-      continue;
+    //    velocity(orb,d.p[d.n/2].mjd,d.p[d.n/2].s,&v,&azi,&alt);
+    //    if (alt<0.0)
+    //      printf("Continue?\n");
+    //      continue;
     rms=fit_curve(orb,ia);
     if (flag==0 || rms<rmsmin) {
       rmsmin=rms;
@@ -222,6 +225,48 @@ int identify_satellite(char *catalog,double rmsmax)
   return satno;
 }
 
+int identify_satellite_from_visibility(char *catalog,double altmin)
+{
+  int i=0,flag=0,nalt,nsel;
+  FILE *fp;
+  int satno=0,imode;
+  double alt,frac;
+
+  // Open catalog
+  fp=fopen(catalog,"rb");
+  if (fp==NULL)
+    fatal_error("File open failed for reading %s\n",catalog);
+
+  // Loop over TLEs
+  while (read_twoline(fp,0,&orb)==0) {
+    // Initialize
+    imode=init_sgdp4(&orb);
+    if (imode==SGDP4_ERROR)
+      printf("Error\n");
+
+    if (orb.rev<10.0)
+      continue;
+    
+    // Loop over observations
+    for (i=0,nalt=0,nsel=0;i<d.n;i++) {
+      if (d.p[i].flag==2) {
+	alt=altitude(orb,d.p[i].mjd,d.p[i].s);
+	nsel++;
+	if (alt>altmin)
+	  nalt++;
+      }
+    }
+    frac=(float) nalt/(float) nsel;
+    if (nsel==nalt)
+      printf("%5d %d/%d %.4f\n",orb.satno,nalt,nsel,frac);
+  }
+  rewind(fp);
+
+  fclose(fp);
+
+  return satno;
+}
+
 void usage()
 {
   printf("dpplot -d <data file> -c [tle catalog] -i [satno] -h\n\ndata file:    Tabulated doppler curve\ntle catalog:  Catalog with TLE's (optional)\nsatno:        Satellite to load from TLE catalog (optional)\n\n");
@@ -238,7 +283,7 @@ int main(int argc,char *argv[])
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
   float x0,y0,x,y;
-  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0;
+  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
   float t,f,vtca;
   char c,nfd[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
@@ -253,6 +298,14 @@ int main(int argc,char *argv[])
   int site_number[16],nsite=0,graves=0;
   char *env;
 
+  // Get site
+  env=getenv("ST_COSPAR");
+  if (env!=NULL) {
+    site_id=atoi(env);
+  } else {
+    printf("ST_COSPAR environment variable not found.\n");
+  }
+  
   env=getenv("ST_DATADIR");
   // Decode options
   while ((arg=getopt(argc,argv,"d:c:i:hs:g"))!=-1) {
@@ -679,11 +732,19 @@ int main(int argc,char *argv[])
     if (c=='i') {
       printf("rms limit (kHz): ");
       status=scanf("%lf",&rms);
-      satno=identify_satellite(catalog,rms);
+      satno=identify_satellite_from_doppler(catalog,rms);
       if (satno>0) {
 	redraw=1;
 	plot_curve=1;
       }
+      printf("\n================================================================================\n");
+    }
+
+    // Identify
+    if (c=='I') {
+      printf("Above altitude (deg): ");
+      status=scanf("%lf",&altmin);
+      satno=identify_satellite_from_visibility(catalog,altmin);
       printf("\n================================================================================\n");
     }
 
@@ -956,7 +1017,7 @@ int main(int argc,char *argv[])
 
     // Help
     if (c=='h') {
-      printf("Usage:\n================================================================================\nq   Quit\np   Toggle curve plotting\n1   Toggle fitting parameter (Inclination)\n2   Toggle fitting parameter (RA of ascending node)\n3   Toggle fitting parameter (Eccentricity)\n4   Toggle fitting parameter (Argyment of perigee)\n5   Toggle fitting parameter (Mean anomaly)\n6   Toggle fitting parameter (Mean motion)\nc   Change parameter\nm   Move highlighted points in frequency\nl   Select points on flux limit\nf   Fit highlighted points\ng   Get TLE from catalog\ni   Identify satellite from catalog\nw   Write present TLE\nR   Reread TLE from catalog\nX   Delete nearest point (right mouse button)\nz   Start box to zoom\nd   Start box to delete points\nA   Zoom/delete points (left mouse button)\nh   Highlight points in present window\nx   Deselect all except highlighted\nI   Invert selection\nD   Delete highlighted points\ns   Save highlighted points into file\nU   Deselect all points\nu   Deselect highlighted points\nt   Load template tle\nr   Reset zoom\nh   This help\n================================================================================\n\n");
+      printf("Usage:\n================================================================================\nq   Quit\np   Toggle curve plotting\n1   Toggle fitting parameter (Inclination)\n2   Toggle fitting parameter (RA of ascending node)\n3   Toggle fitting parameter (Eccentricity)\n4   Toggle fitting parameter (Argyment of perigee)\n5   Toggle fitting parameter (Mean anomaly)\n6   Toggle fitting parameter (Mean motion)\nc   Change parameter\nm   Move highlighted points in frequency\nl   Select points on flux limit\nf   Fit highlighted points\ng   Get TLE from catalog\ni   Identify satellite from catalog based on Doppler curve\nI   Identify satellite from catalog based on visibility\nw   Write present TLE\nR   Reread TLE from catalog\nX   Delete nearest point (right mouse button)\nz   Start box to zoom\nd   Start box to delete points\nA   Zoom/delete points (left mouse button)\nh   Highlight points in present window\nx   Deselect all except highlighted\nI   Invert selection\nD   Delete highlighted points\ns   Save highlighted points into file\nU   Deselect all points\nu   Deselect highlighted points\nt   Load template tle\nr   Reset zoom\nh   This help\n================================================================================\n\n");
     }
 
 
@@ -1156,6 +1217,30 @@ int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *
   equatorial2horizontal(mjd,s,ra,de,azi,alt);
 
   return 0;
+}
+
+// SGDP4 algitude
+double altitude(orbit_t orb,double mjd,struct site s)
+{
+  double dx,dy,dz,dvx,dvy,dvz,r;
+  double ra,de,azi,alt;
+  xyz_t satpos,obspos,satvel,obsvel;
+
+  // Loop over data points
+  obspos_xyz(mjd,s,&obspos,&obsvel);
+  satpos_xyz(mjd+2400000.5,&satpos,&satvel);
+
+  dx=satpos.x-obspos.x;  
+  dy=satpos.y-obspos.y;
+  dz=satpos.z-obspos.z;
+  r=sqrt(dx*dx+dy*dy+dz*dz);
+
+  ra=modulo(atan2(dy,dx)*R2D,360.0);
+  de=asin(dz/r)*R2D;
+
+  equatorial2horizontal(mjd,s,ra,de,&azi,&alt);
+
+  return alt;
 }
 
 // Observer position
