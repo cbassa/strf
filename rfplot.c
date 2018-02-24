@@ -300,7 +300,7 @@ int main(int argc,char *argv[])
   struct select sel;
   char *env;
   int site_id=0;
-  int cmap=0;
+  int cmap=2;
   double foff=0.0,mjdgrid=0.0;
   int jj0,jj1;
 
