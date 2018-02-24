@@ -27,240 +27,9 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 void convolve(float *y,int n,float *w,int m,float *z);
 float gauss(float x,float w);
 void quadfit(float x[],float y[],int n,float a[]);
-
-// Fit trace
-struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
-{
-  int i,j,k,l,sn,w=100.0;
-  int i0,i1,j0,j1,jmax;
-  double f,fmin;
-  float x,y,s1,s2,z,za,zs,zm,sigma;
-  FILE *file;
-  char filename[64];
-  
-  sprintf(filename,"track_%05d_%08.3f.dat",t.satno,t.freq0);
-
-  // Open file
-  file=fopen(filename,"a");
-
-  fmin=(s.freq-0.5*s.samp_rate)*1e-6;
-
-  // Loop over trace
-  for (i=0;i<t.n;i++) {
-    // Skip when satellite is below the horizon
-    if (t.za[i]>90.0)
-      continue;
-    
-    // Compute position
-    y=(t.freq[i]-fmin)*s.nchan/(s.samp_rate*1e-6);
-    j0=(int) floor(y-w);
-    j1=(int) floor(y+w);
-
-    // Keep in range
-    if (j0<0)
-      j0=0;
-    if (j1>=s.nchan)
-      j1=s.nchan;
-    
-    // Find maximum and significance
-    zm=0.0;
-    jmax=0;
-    s1=0.0;
-    s2=0.0;
-    sn=0;
-    for (j=j0;j<j1;j++) {
-      z=s.z[i+s.nsub*j];
-      s1+=z;
-      s2+=z*z;
-      sn++;
-      if (z>zm) {
-	zm=z;
-	jmax=j;
-	}
-    }
-    za=s1/(float) sn;
-    zs=sqrt(s2/(float) sn-za*za);
-    sigma=(zm-za)/zs;
-
-    // Store
-    if (sigma>5.0 && s.mjd[i]>1.0) {
-      f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-      fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
-      cpgpt1((float) i,(float) jmax,17);
-    }
-  }
-
-  // Close file
-  fclose(file);
-
-  return t;
-}
-
-
-void filter(struct spectrogram s,int site_id)
-{
-  int i,j,k,l,jmax,zmax;
-  float s1,s2,avg,std,dz;
-  FILE *file;
-  double f;
-  int *mask;
-  float sigma=5;
-
-  mask=(int *) malloc(sizeof(int)*s.nchan);
-
-  // Open file
-  file=fopen("filter.dat","w");
-
-  // Loop over subints
-  for (i=0;i<s.nsub;i++) {
-    if (s.mjd[i]==0.0)
-      continue;
-
-    // Set mask
-    for (j=0;j<s.nchan;j++)
-      mask[j]=1;
-
-    // Iterate to remove outliers
-    for (k=0;k<10;k++) {
-
-      // Find average
-      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
-	if (mask[j]==1) {
-	  s1+=s.z[i+s.nsub*j];
-	  s2+=1.0;
-	}
-      }
-      avg=s1/s2;
-      
-      // Find standard deviation
-      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
-	if (mask[j]==1) {
-	  dz=s.z[i+s.nsub*j]-avg;
-	  s1+=dz*dz;
-	  s2+=1.0;
-	}
-      }
-      std=sqrt(s1/s2);
-
-      // Update mask
-      for (j=0,l=0;j<s.nchan;j++) {
-	if (fabs(s.z[i+s.nsub*j]-avg)>sigma*std) {
-	  mask[j]=0;
-	  l++;
-	}
-      }
-    }
-    // Reset mask
-    for (j=0;j<s.nchan;j++) {
-      if (s.z[i+s.nsub*j]-avg>sigma*std) 
-	mask[j]=1;
-      else
-	mask[j]=0;
-    }    
-    /*
-    // Find maximum when points are adjacent
-    for (j=0;j<s.nchan-1;j++) {
-      if (mask[j]==1 && mask[j+1]==1) {
-	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j+1)])
-	  mask[j]=0;
-      }
-    }
-    for (j=s.nchan-2;j>=0;j--) {
-      if (mask[j]==1 && mask[j-1]==1) {
-	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j-1)])
-	  mask[j]=0;
-      }
-    }
-    */
-    // Mark points
-    for (j=0;j<s.nchan;j++) {
-      if (mask[j]==1) {
-	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
-	cpgpt1((float) i+0.5,(float) j+0.5,17);
-      }
-    }
-  }
-  fclose(file);
-
-  free(mask);
-
-  return;
-}
-
-void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
-{
-  int i,j,k,l,m=21,n;
-  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=1.0,x0,c0=-0.0007;
-  double f;
-  FILE *file;
-
-  n=j1-j0;
-
-  // Allocate
-  y=(float *) malloc(sizeof(float)*n);
-  sy=(float *) malloc(sizeof(float)*n);
-  a=(float *) malloc(sizeof(float)*n); 
-  b=(float *) malloc(sizeof(float)*n); 
-  c=(float *) malloc(sizeof(float)*n);
-
-  // Make gaussian smoothing filter
-  w=(float *) malloc(sizeof(float)*m);
-  for (i=0;i<m;i++) 
-    w[i]=gauss((float) (i-m/2),dw);
-
-  // Open file
-  file=fopen("peakfind.dat","w");
-
-  // Loop over subints
-  for (i=i0;i<i1;i++) {
-    if (s.mjd[i]==0.0)
-      continue;
-
-    // Fill array
-    for (j=0;j<n;j++)
-      y[j]=s.z[i+s.nsub*(j0+j)];
-
-    // Convolve
-    convolve(y,n,w,m,sy);
-    
-    // Fit parabolas
-    dx[0]=-1.0;
-    dx[1]=0.0;
-    dx[2]=1.0;
-    for (j=1;j<n-1;j++) {
-      quadfit(dx,&sy[j-1],3,d);
-      a[j]=d[0];
-      b[j]=d[1];
-      c[j]=d[2];
-    }
-
-    // Mark points
-    for (j=0;j<n-1;j++) {
-      if (b[j]>0.0 && b[j+1]<0.0 && c[j]<c0) {
-	x0=(float) (j+j0)+b[j]/(b[j]-b[j+1]);
-	f=s.freq-0.5*s.samp_rate+(double) x0*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
-	cpgpt1((float) i+0.5,x0+0.5,17);
-      }
-    }
-  }
-
-  // Close
-  fclose(file);
-
-  // Free
-  free(y);
-  free(sy);
-  free(a);
-  free(b);
-  free(c);
-  free(w);
-
-  return;
-}
+struct trace locate_trace(struct spectrogram s,struct trace t,int site_id);
+void filter(struct spectrogram s,int site_id);
+void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1);
 
 int main(int argc,char *argv[])
 {
@@ -278,7 +47,7 @@ int main(int argc,char *argv[])
   float heat_r[] = {0.0, 0.5, 1.0, 1.0, 1.0};
   float heat_g[] = {0.0, 0.0, 0.5, 1.0, 1.0};
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
-  float xmin,xmax,ymin,ymax,zmin,zmax=8.0;
+  float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
   int i,j,k,flag=0,isel=0,sn;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
@@ -391,7 +160,7 @@ int main(int argc,char *argv[])
   // Exit on empty data
   if (s.nsub==0)
     return 0;
-
+  
   // Compute traces
   t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
@@ -1296,6 +1065,241 @@ void quadfit(float x[],float y[],int n,float a[])
   a[0]=(q*s*t+q*r*u+p*r*v-q*q*v-p*s*u-r*r*t)/d;
   a[1]=((float) n*s*u+p*q*v+q*r*t-q*q*u-p*s*t-(float) n*r*v)/d;
   a[2]=((float) n*q*v+p*r*t+p*q*u-q*q*t-p*p*v-(float) n*r*u)/d;
+
+  return;
+}
+
+// Fit trace
+struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
+{
+  int i,j,k,l,sn,w=100.0;
+  int i0,i1,j0,j1,jmax;
+  double f,fmin;
+  float x,y,s1,s2,z,za,zs,zm,sigma;
+  FILE *file;
+  char filename[64];
+  
+  sprintf(filename,"track_%05d_%08.3f.dat",t.satno,t.freq0);
+
+  // Open file
+  file=fopen(filename,"a");
+
+  fmin=(s.freq-0.5*s.samp_rate)*1e-6;
+
+  // Loop over trace
+  for (i=0;i<t.n;i++) {
+    // Skip when satellite is below the horizon
+    if (t.za[i]>90.0)
+      continue;
+    
+    // Compute position
+    y=(t.freq[i]-fmin)*s.nchan/(s.samp_rate*1e-6);
+    j0=(int) floor(y-w);
+    j1=(int) floor(y+w);
+
+    // Keep in range
+    if (j0<0)
+      j0=0;
+    if (j1>=s.nchan)
+      j1=s.nchan;
+    
+    // Find maximum and significance
+    zm=0.0;
+    jmax=0;
+    s1=0.0;
+    s2=0.0;
+    sn=0;
+    for (j=j0;j<j1;j++) {
+      z=s.z[i+s.nsub*j];
+      s1+=z;
+      s2+=z*z;
+      sn++;
+      if (z>zm) {
+	zm=z;
+	jmax=j;
+	}
+    }
+    za=s1/(float) sn;
+    zs=sqrt(s2/(float) sn-za*za);
+    sigma=(zm-za)/zs;
+
+    // Store
+    if (sigma>5.0 && s.mjd[i]>1.0) {
+      f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
+      fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+      cpgpt1((float) i,(float) jmax,17);
+    }
+  }
+
+  // Close file
+  fclose(file);
+
+  return t;
+}
+
+// Filter data
+void filter(struct spectrogram s,int site_id)
+{
+  int i,j,k,l,jmax,zmax;
+  float s1,s2,avg,std,dz;
+  FILE *file;
+  double f;
+  int *mask;
+  float sigma=5;
+
+  mask=(int *) malloc(sizeof(int)*s.nchan);
+
+  // Open file
+  file=fopen("filter.dat","w");
+
+  // Loop over subints
+  for (i=0;i<s.nsub;i++) {
+    if (s.mjd[i]==0.0)
+      continue;
+
+    // Set mask
+    for (j=0;j<s.nchan;j++)
+      mask[j]=1;
+
+    // Iterate to remove outliers
+    for (k=0;k<10;k++) {
+
+      // Find average
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  s1+=s.z[i+s.nsub*j];
+	  s2+=1.0;
+	}
+      }
+      avg=s1/s2;
+      
+      // Find standard deviation
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  dz=s.z[i+s.nsub*j]-avg;
+	  s1+=dz*dz;
+	  s2+=1.0;
+	}
+      }
+      std=sqrt(s1/s2);
+
+      // Update mask
+      for (j=0,l=0;j<s.nchan;j++) {
+	if (fabs(s.z[i+s.nsub*j]-avg)>sigma*std) {
+	  mask[j]=0;
+	  l++;
+	}
+      }
+    }
+    // Reset mask
+    for (j=0;j<s.nchan;j++) {
+      if (s.z[i+s.nsub*j]-avg>sigma*std) 
+	mask[j]=1;
+      else
+	mask[j]=0;
+    }    
+    /*
+    // Find maximum when points are adjacent
+    for (j=0;j<s.nchan-1;j++) {
+      if (mask[j]==1 && mask[j+1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j+1)])
+	  mask[j]=0;
+      }
+    }
+    for (j=s.nchan-2;j>=0;j--) {
+      if (mask[j]==1 && mask[j-1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j-1)])
+	  mask[j]=0;
+      }
+    }
+    */
+    // Mark points
+    for (j=0;j<s.nchan;j++) {
+      if (mask[j]==1) {
+	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	cpgpt1((float) i+0.5,(float) j+0.5,17);
+      }
+    }
+  }
+  fclose(file);
+
+  free(mask);
+
+  return;
+}
+
+// Peakfinding algorithm
+void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
+{
+  int i,j,k,l,m=21,n;
+  float *w,*y,*sy,*a,*b,*c,d[3],dx[3],dw=1.0,x0,c0=-0.0007;
+  double f;
+  FILE *file;
+
+  n=j1-j0;
+
+  // Allocate
+  y=(float *) malloc(sizeof(float)*n);
+  sy=(float *) malloc(sizeof(float)*n);
+  a=(float *) malloc(sizeof(float)*n); 
+  b=(float *) malloc(sizeof(float)*n); 
+  c=(float *) malloc(sizeof(float)*n);
+
+  // Make gaussian smoothing filter
+  w=(float *) malloc(sizeof(float)*m);
+  for (i=0;i<m;i++) 
+    w[i]=gauss((float) (i-m/2),dw);
+
+  // Open file
+  file=fopen("peakfind.dat","w");
+
+  // Loop over subints
+  for (i=i0;i<i1;i++) {
+    if (s.mjd[i]==0.0)
+      continue;
+
+    // Fill array
+    for (j=0;j<n;j++)
+      y[j]=s.z[i+s.nsub*(j0+j)];
+
+    // Convolve
+    convolve(y,n,w,m,sy);
+    
+    // Fit parabolas
+    dx[0]=-1.0;
+    dx[1]=0.0;
+    dx[2]=1.0;
+    for (j=1;j<n-1;j++) {
+      quadfit(dx,&sy[j-1],3,d);
+      a[j]=d[0];
+      b[j]=d[1];
+      c[j]=d[2];
+    }
+
+    // Mark points
+    for (j=0;j<n-1;j++) {
+      if (b[j]>0.0 && b[j+1]<0.0 && c[j]<c0) {
+	x0=(float) (j+j0)+b[j]/(b[j]-b[j+1]);
+	f=s.freq-0.5*s.samp_rate+(double) x0*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	cpgpt1((float) i+0.5,x0+0.5,17);
+      }
+    }
+  }
+
+  // Close
+  fclose(file);
+
+  // Free
+  free(y);
+  free(sy);
+  free(a);
+  free(b);
+  free(c);
+  free(w);
 
   return;
 }
