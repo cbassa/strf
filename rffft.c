@@ -21,6 +21,7 @@ void usage(void)
   printf("-m <use>        Use every mth integration [1]\n");
   printf("-F <format>     Input format char, int, float [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
+  printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
   printf("-h              This help\n");
@@ -30,7 +31,7 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0;
+  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
@@ -41,13 +42,13 @@ int main(int argc,char *argv[])
   float *fbuf;
   float *z,length,fchan=100.0,tint=1.0,zavg,zstd,*zw;
   char *cz;
-  double freq,samp_rate,mjd;
+  double freq,samp_rate,mjd,freqmin=-1,freqmax=-1;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bq"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -79,6 +80,10 @@ int main(int argc,char *argv[])
 	  informat='f';
 	break;
 
+      case 'R':
+	sscanf(optarg,"%lf,%lf",&freqmin,&freqmax);
+	break;
+	
       case 'b':
 	outformat='c';
 	break;
@@ -124,6 +129,17 @@ int main(int argc,char *argv[])
   // Number of integrations
   nint=(int) (tint*(float) samp_rate/(float) nchan);
 
+  // Get channel range
+  if (freqmin>0.0 && freqmax>0.0) {
+    imin=(int) ((freqmin-freq+0.5*samp_rate)/fchan);
+    imax=(int) ((freqmax-freq+0.5*samp_rate)/fchan);
+    if (imin<0 || imin>=nchan || imax<0 || imax>=nchan || imax<=imin) {
+      fprintf(stderr,"Output frequency range (%.3lf MHz -> %.3lf MHz) incompatible with\ninput settings (%.3lf MHz center frequency, %.3lf MHz sample rate)!\n",freqmin*1e-6,freqmax*1e-6,freq*1e-6,samp_rate*1e-6);
+      return -1;
+    }
+    partial=1;
+  }
+  
   // Dump statistics
   printf("Filename: %s\n",infname);
   printf("Frequency: %f MHz\n",freq*1e-6);
@@ -274,22 +290,34 @@ int main(int argc,char *argv[])
       }
 
       // Header
-      if (outformat=='f') 
-	sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);
-      else if (outformat=='c')
-	sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,freq,samp_rate,length,nchan,nsub,zavg,zstd);
-
+      if (partial==0) {
+	if (outformat=='f') 
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);
+	else if (outformat=='c')
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,freq,samp_rate,length,nchan,nsub,zavg,zstd);
+      } else if (partial==1) {
+	if (outformat=='f') 
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,0.5*(freqmax+freqmin),freqmax-freqmin,length,imax-imin,nsub);
+	else if (outformat=='c')
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,0.5*(freqmax+freqmin),freqmax-freqmin,length,imax-imin,nsub,zavg,zstd);
+      }
       // Limit output
       if (!quiet)
 	printf("%s %s %f %d\n",outfname,nfd,length,j);
       
       // Dump file
       fwrite(header,sizeof(char),256,outfile);
-      if (outformat=='f')
-	fwrite(z,sizeof(float),nchan,outfile);
-      else if (outformat=='c')
-	fwrite(cz,sizeof(char),nchan,outfile);
-      
+      if (partial==0) {
+	if (outformat=='f')
+	  fwrite(z,sizeof(float),nchan,outfile);
+	else if (outformat=='c')
+	  fwrite(cz,sizeof(char),nchan,outfile);
+      } else if (partial==1) {
+	if (outformat=='f')
+	  fwrite(&z[imin],sizeof(float),imax-imin,outfile);
+	else if (outformat=='c')
+	  fwrite(&cz[imin],sizeof(char),imax-imin,outfile);
+      }
       // Break;
       if (nbytes==0)
 	break;
