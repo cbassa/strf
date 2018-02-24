@@ -1005,8 +1005,13 @@ int main(int argc,char *argv[])
     if (c=='r') {
       xmin=d.mjdmin-d.mjd0;
       xmax=d.mjdmax-d.mjd0;
-      ymin=-12.0*d.f0/C;
-      ymax=12.0*d.f0/C;
+      if (graves==0) {
+	ymin=-12.0*d.f0/C;
+	ymax=12*d.f0/C;
+      } else if (graves==1) {
+	ymin=-20.0*d.f0/C;
+	ymax=20*d.f0/C;
+      }
       mode=0;
       click=0;
       redraw=1;
