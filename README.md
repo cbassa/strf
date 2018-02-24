@@ -22,10 +22,11 @@ Install
 
 Run notes
 ---------
-* You will need to set the following environment variables to run **strf**.
+* You will need to set the following environment variables in your login file to run **strf**.
 	* `ST_COSPAR` COSPAR number
 	* `ST_DATADIR` path to **strf** directory
 	* `ST_TLEDIR` path to TLE directory
+	* `ST_LOGIN` space-track.org login info (of the form `ST_LOGIN="identity=username&password=password"`)
 * You should install NTP support on the system and configure time/date to automatically
   synchronize to time servers.
 
