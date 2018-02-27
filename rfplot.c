@@ -515,7 +515,7 @@ int main(int argc,char *argv[])
     }
 
     // Mark single point
-    if (c=='D') {
+    if (c=='D' || c=='a') {
       file=fopen("mark.dat","a");
       i=(int) floor(x);
       j=(int) floor(y);
@@ -575,43 +575,6 @@ int main(int argc,char *argv[])
 	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,zzmax,site_id);
 	  cpgpt1((float) i,(float) jmax,17);
 	}
-      }
-      fclose(file);
-    }
-
-    // Mark
-    if (c=='a') {
-      i0=(int) floor(xmin);
-      i1=(int) ceil(xmax);
-      j0=(int) floor(ymin);
-      j1=(int) ceil(ymax);
-      if (i0<0)
-	i0=0;
-      if (i1>=s.nsub)
-	i1=s.nsub-1;
-      if (j0<0)
-	j0=0;
-      if (j1>=s.nchan)
-	j1=s.nchan-1;
-
-      printf("Provide filename: ");
-      status=scanf("%s",filename);
-      
-      file=fopen(filename,"a");
-      // Loop over image
-      for (i=i0;i<i1;i++) {
-	zzmax=0.0;
-	jmax=0;
-	for (j=j0;j<j1;j++) {
-	  if (s.z[i+s.nsub*j]>zzmax) {
-	    zzmax=s.z[i+s.nsub*j];
-	    jmax=j;
-	  }
-	}
-	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
-	cpgpt1((float) i,(float) jmax,17);
       }
       fclose(file);
     }
