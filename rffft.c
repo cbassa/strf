@@ -123,6 +123,9 @@ int main(int argc,char *argv[])
     return 0;
   }
 
+  // Ensure integer number of spectra per subintegration
+  tint=ceil(fchan*tint)/fchan;
+  
   // Number of channels
   nchan=(int) (samp_rate/fchan);
 
