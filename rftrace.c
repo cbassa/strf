@@ -477,9 +477,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
       if (fgetline(infile,line,LIM)<=0)
 	break;
       status=sscanf(line,"%d %lf",&satno,&freq0);
-      
-      if (freq0>=fmin && freq0<=fmax)
+
+      if (freq0>=0.9*fmin && freq0<=1.1*fmax)
 	i++;
+	
     }
     fclose(infile);
     *nsat=i;
@@ -519,9 +520,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     if (fgetline(infile,line,LIM)<=0)
       break;
     status=sscanf(line,"%d %lf",&satno,&freq0);
-    if (freq0<fmin || freq0>fmax)
+    
+    if (freq0<0.9*fmin || freq0>1.1*fmax)
       continue;
-
+    
     // Allocate
     t[j].satno=satno;
     t[j].site=site_id;
