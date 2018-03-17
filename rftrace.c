@@ -478,7 +478,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 	break;
       status=sscanf(line,"%d %lf",&satno,&freq0);
 
-      if (freq0>=0.9*fmin && freq0<=1.1*fmax)
+      if (graves==1 && fabs(freq0-143.050)<1e-3)
+	i++;
+      else if (freq0>=fmin && freq0<=fmax && graves==0)
 	i++;
 	
     }
@@ -520,8 +522,14 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     if (fgetline(infile,line,LIM)<=0)
       break;
     status=sscanf(line,"%d %lf",&satno,&freq0);
+
+    flag=0;
+    if (graves==1 && fabs(freq0-143.050)<1e-3)
+      flag=1;
+    else if (freq0>=fmin && freq0<=fmax && graves==0)
+      flag=1;
     
-    if (freq0<0.9*fmin || freq0>1.1*fmax)
+    if (flag==0)
       continue;
     
     // Allocate
