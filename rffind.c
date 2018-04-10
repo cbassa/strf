@@ -106,7 +106,7 @@ int main(int argc,char *argv[])
   int i,j,k,l,j0,j1,m=2,n;
   struct spectrogram s;
   char path[128];
-  int isub=0,nsub=60;
+  int isub=0,nsub=0;
   char *env;
   int site_id=0;
   float avg,std;
@@ -171,21 +171,40 @@ int main(int argc,char *argv[])
     return 0;
   }
 
-  // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,1,0.0);
+  if (nsub==0) {
+    // Read data
+    for (i=isub;;i++) {
+      s=read_spectrogram(path,i,nsub,f0,df0,1,0.0);
 
-  // Exit on emtpy file
-  if (s.nsub==0)
-    return 0;
+      // Exit on emtpy file
+      if (s.nsub==0)
+	break;
+      
+      printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+    
+      // Filter
+      filter(s,site_id,sigma,filename);
+    }
+  } else {
+    // Read data
+    s=read_spectrogram(path,isub,nsub,f0,df0,1,0.0);
 
-  printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+    // Exit on emtpy file
+    if (s.nsub==0)
+      return 0;
 
-  // Filter
-  filter(s,site_id,sigma,filename);
+    printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+    
+    // Filter
+    filter(s,site_id,sigma,filename);
+  }
 
   // Free
   free(s.z);
   free(s.mjd);
+  //  free(s.zavg);
+  //  free(s.zstd);
+  //  free(s.length);
 
   return 0;
 }

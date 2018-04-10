@@ -33,12 +33,11 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   // Read header
   status=fread(header,sizeof(char),256,file);
   if (strstr(header,"NBITS         8")==NULL) {
-    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch);
+    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&msub);
   } else {
     status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&dummy,&zavg,&zstd);
     nbits=8;
   }
-
   s.freq+=foff;
   
   // Close file
@@ -63,9 +62,13 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     j1=s.nchan;
   }
 
+  // Read whole file if not specified
+  if (nsub==0 && msub>0)
+    nsub=msub;
+  
   // Number of subints
   s.nsub=nsub/nbin;
-
+  
   // Allocate
   s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
   s.zavg=(float *) malloc(sizeof(float)*s.nsub);
@@ -90,7 +93,8 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     file=fopen(filename,"r");
     if (file==NULL) {
       printf("%s does not exist\n",filename);
-	  break;
+      s.nsub=0;
+      break;
     }
     printf("opened %s\n",filename);
 
@@ -102,7 +106,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
       if (status==0)
 	break;
       if (nbits==-32)
-	status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\n",nfd,&freq,&samp_rate,&length,&nchan);
+	status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\n",nfd,&freq,&samp_rate,&length,&nchan,&msub);
       else if (nbits==8)
 	status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",nfd,&freq,&samp_rate,&length,&nchan,&dummy,&zavg,&zstd);
 

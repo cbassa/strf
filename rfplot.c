@@ -878,7 +878,7 @@ void plot_traces(struct trace *t,int nsat,float fcen)
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
 	cpgtext((float) j,(float) t[i].freq[j]-fcen,text);
-     
+
       // Plot line
       if (flag==0) {
 	cpgmove((float) j,t[i].freq[j]-fcen);
@@ -1165,7 +1165,7 @@ void filter(struct spectrogram s,int site_id)
       else
 	mask[j]=0;
     }    
-    /*
+
     // Find maximum when points are adjacent
     for (j=0;j<s.nchan-1;j++) {
       if (mask[j]==1 && mask[j+1]==1) {
@@ -1179,7 +1179,7 @@ void filter(struct spectrogram s,int site_id)
 	  mask[j]=0;
       }
     }
-    */
+
     // Mark points
     for (j=0;j<s.nchan;j++) {
       if (mask[j]==1) {
