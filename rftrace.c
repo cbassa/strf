@@ -439,6 +439,37 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   return;
 }
 
+// Is it a classified satellite
+int is_classified(int satno)
+{
+  int flag=0,no;
+  char *env,tlefile[128],line[LIM];
+  FILE *file;
+  
+  // Get classfd.tle path
+  env=getenv("ST_TLEDIR");
+  sprintf(tlefile,"%s/classfd.tle",env);  
+
+  // Does it exist
+  file=fopen(tlefile,"r");
+  if (file==NULL) {
+    printf("%s not found\n",tlefile);
+    flag=0;
+  } else {
+    // Loop over TLEs
+    while (fgetline(file,line,LIM)>0) {
+      // Use 1st TLE line
+      if (line[0]=='1') {
+	sscanf(line+2,"%d",&no);
+	if (no==satno) flag=1;
+      }
+    }
+  }
+  fclose(file);
+  
+  return flag;
+}
+
 // Compute trace
 struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat,int graves)
 {
@@ -540,7 +571,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].mjd=(double *) malloc(sizeof(double)*m);
     t[j].freq=(double *) malloc(sizeof(double)*m);
     t[j].za=(float *) malloc(sizeof(float)*m);
-
+    t[j].classfd=is_classified(t[j].satno);
+    t[j].graves=graves;
+    
     sprintf(text," %d",satno);
     // Loop over TLEs
     file=fopen(tlefile,"r");

@@ -237,11 +237,8 @@ int main(int argc,char *argv[])
       // Human readable frequency axis
       fcen=0.5*(fmax+fmin);
       cpgswin(xmin,xmax,fmin-fcen,fmax-fcen);
-      if (foverlay==1) {
-	cpgsci(3);
+      if (foverlay==1) 
 	plot_traces(t,nsat,fcen);
-	cpgsci(1);
-      }
 
       fcen=floor(1000*fcen)/1000.0;
       sprintf(ylabel,"Frequency - %.3f MHz",fcen);
@@ -864,6 +861,12 @@ void plot_traces(struct trace *t,int nsat,float fcen)
 
   // Loop over objects
   for (i=0;i<nsat;i++) {
+    // Select color
+    if (t[i].classfd==1)
+      cpgsci(8);
+    else
+      cpgsci(3);
+    
     sprintf(text," %d",t[i].satno);
 
     // Plot label at start of trace
@@ -875,7 +878,7 @@ void plot_traces(struct trace *t,int nsat,float fcen)
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
 	cpgtext((float) j,(float) t[i].freq[j]-fcen,text);
-
+     
       // Plot line
       if (flag==0) {
 	cpgmove((float) j,t[i].freq[j]-fcen);
@@ -891,6 +894,7 @@ void plot_traces(struct trace *t,int nsat,float fcen)
 	flag=1;
     }	  
   }
+  cpgsci(1);
 
   return;
 }

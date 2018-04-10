@@ -1,5 +1,5 @@
 struct trace {
-  int satno,n,site;
+  int satno,n,site,classfd,graves;
   double *mjd;
   double *freq,freq0;
   float *za;
