@@ -620,7 +620,6 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 	  t[j].freq[i]=(1.0-v/C)*(1.0-vg/C)*freq0;
 	  if (!((azi<90.0 || azi>270.0) && alt>15.0 && alt<40.0))
 	    t[j].za[i]=100.0;
-
 	}
       }
     }
