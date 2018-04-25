@@ -93,7 +93,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     file=fopen(filename,"r");
     if (file==NULL) {
       printf("%s does not exist\n",filename);
-      s.nsub=0;
+      s.nsub=nsub;
       break;
     }
     printf("opened %s\n",filename);
