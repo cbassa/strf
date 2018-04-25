@@ -9,11 +9,9 @@
 #define LIM 128
 #define NMAX 64
 
-void usage(void)
-{
-}
 
-void filter(struct spectrogram s,int site_id,float sigma,char *filename)
+
+void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves)
 {
   int i,j,k,l;
   float s1,s2,avg,std,dz;
@@ -88,8 +86,12 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename)
     for (j=0;j<s.nchan;j++) {
       if (mask[j]==1) {
 	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	if (s.mjd[i]>1.0) {
+	  if (graves==0)
+	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	  else
+	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	}
       }
     }
   } 
@@ -101,6 +103,22 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename)
   return;
 }
 
+void usage(void)
+{
+  printf("rffind: Find signals RF observations\n\n");
+  printf("-p <path>    Input path to file /a/b/c_??????.bin\n");
+  printf("-s <start>   Number of starting subintegration [0]\n");
+  printf("-l <length>  Number of subintegrations to plot [3600]\n");
+  printf("-f <freq>    Frequency to zoom into (Hz)\n");
+  printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
+  printf("-o <offset>  Frequency offset to apply\n");
+  printf("-C <site>    Site ID\n");
+  printf("-c <catalog> TLE catalog\n");
+  printf("-g           GRAVES data\n");
+  printf("-S           Sigma limit [default: 5.0]\n");
+  printf("-h           This help\n");
+}
+
 int main(int argc,char *argv[])
 {
   int i,j,k,l,j0,j1,m=2,n;
@@ -108,7 +126,7 @@ int main(int argc,char *argv[])
   char path[128];
   int isub=0,nsub=0;
   char *env;
-  int site_id=0;
+  int site_id=0,graves=0;
   float avg,std;
   int arg=0;
   float sigma=5.0;
@@ -126,7 +144,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:g:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -147,6 +165,10 @@ int main(int argc,char *argv[])
 
       case 'f':
 	f0=(double) atof(optarg);
+	break;
+
+      case 'g':
+	graves=1;
 	break;
 	
       case 'S':
@@ -183,7 +205,7 @@ int main(int argc,char *argv[])
       printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
     
       // Filter
-      filter(s,site_id,sigma,filename);
+      filter(s,site_id,sigma,filename,graves);
     }
   } else {
     // Read data
@@ -196,7 +218,7 @@ int main(int argc,char *argv[])
     printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
     
     // Filter
-    filter(s,site_id,sigma,filename);
+    filter(s,site_id,sigma,filename,graves);
   }
 
   // Free
