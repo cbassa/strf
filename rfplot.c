@@ -27,8 +27,8 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 void convolve(float *y,int n,float *w,int m,float *z);
 float gauss(float x,float w);
 void quadfit(float x[],float y[],int n,float a[]);
-struct trace locate_trace(struct spectrogram s,struct trace t,int site_id);
-void filter(struct spectrogram s,int site_id);
+struct trace locate_trace(struct spectrogram s,struct trace t,int site_id,float sigmamin,float wmin,float wmax,int graves);
+void filter(struct spectrogram s,int site_id,float sigma,int graves);
 void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1);
 
 int main(int argc,char *argv[])
@@ -316,7 +316,7 @@ int main(int argc,char *argv[])
       printf("s        Select track points\n");
       printf("u        Undo track point selection\n");
       printf("f        Fits selected track points (generates out.dat)\n");
-      printf("g        Filter points above 5 sigma (generates filter.dat)\n");
+      printf("g        Filter points above a certain sigma limit (generates filter.dat)\n");
       printf("G        Find peaks in current window (generates peakfind.dat)\n");
       printf("i        Identify selected track points\n");
       printf("I        Manually identify selected track points\n");
@@ -357,7 +357,10 @@ int main(int argc,char *argv[])
     if (c=='t') {
       for (i=0;i<nsat;i++) {
 	printf("Locating trace for object %05d\n",t[i].satno);
-	locate_trace(s,t[i],4171);
+	if (graves==0)
+	  locate_trace(s,t[i],site_id,sel.sigma,sel.w,sel.w,graves);
+	else
+	  locate_trace(s,t[i],site_id,sel.sigma,10.0,sel.w,graves);
       }
     }
 
@@ -372,7 +375,7 @@ int main(int argc,char *argv[])
     }
 
     if (c=='g')
-      filter(s,site_id);
+      filter(s,site_id,sel.sigma,graves);
 
     if (c=='G') {
       i0=(int) floor(xmin);
@@ -845,6 +848,7 @@ void usage(void)
   printf("-z <zmax>    Image scaling upper limit [8.0]\n");
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
+  printf("-o <offset>  Frequency offset to apply\n");
   printf("-C <site>    Site ID\n");
   printf("-c <catalog> TLE catalog\n");
   printf("-g           GRAVES data\n");
@@ -1037,19 +1041,16 @@ void quadfit(float x[],float y[],int n,float a[])
 }
 
 // Fit trace
-struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
+struct trace locate_trace(struct spectrogram s,struct trace t,int site_id,float sigmamin,float wmin,float wmax,int graves)
 {
-  int i,j,k,l,sn,w=100.0;
+  int i,j,k,l,sn;
   int i0,i1,j0,j1,jmax;
   double f,fmin;
   float x,y,s1,s2,z,za,zs,zm,sigma;
   FILE *file;
   char filename[64];
+  int file_open=0;
   
-  sprintf(filename,"track_%05d_%08.3f.dat",t.satno,t.freq0);
-
-  // Open file
-  file=fopen(filename,"a");
 
   fmin=(s.freq-0.5*s.samp_rate)*1e-6;
 
@@ -1061,8 +1062,8 @@ struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
     
     // Compute position
     y=(t.freq[i]-fmin)*s.nchan/(s.samp_rate*1e-6);
-    j0=(int) floor(y-w);
-    j1=(int) floor(y+w);
+    j0=(int) floor(y-wmax);
+    j1=(int) floor(y+wmax);
 
     // Keep in range
     if (j0<0)
@@ -1084,35 +1085,45 @@ struct trace locate_trace(struct spectrogram s,struct trace t,int site_id)
       if (z>zm) {
 	zm=z;
 	jmax=j;
-	}
+      }
     }
     za=s1/(float) sn;
     zs=sqrt(s2/(float) sn-za*za);
     sigma=(zm-za)/zs;
 
     // Store
-    if (sigma>5.0 && s.mjd[i]>1.0) {
+    if (sigma>sigmamin && s.mjd[i]>1.0 && fabs(y-jmax)<wmin) {
+      // Open file
+      if (file_open==0) {
+	// Open file
+	sprintf(filename,"track_%05d_%08.3f.dat",t.satno,t.freq0);
+	file=fopen(filename,"a");
+	file_open=1;
+      }
       f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-      fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+      if (graves==0)
+	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+      else
+	fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
       cpgpt1((float) i,(float) jmax,17);
     }
   }
 
   // Close file
-  fclose(file);
+  if (file_open==1)
+    fclose(file);
 
   return t;
 }
 
 // Filter data
-void filter(struct spectrogram s,int site_id)
+void filter(struct spectrogram s,int site_id,float sigma,int graves)
 {
   int i,j,k,l,jmax,zmax;
   float s1,s2,avg,std,dz;
   FILE *file;
   double f;
   int *mask;
-  float sigma=5;
 
   mask=(int *) malloc(sizeof(int)*s.nchan);
 
@@ -1184,8 +1195,12 @@ void filter(struct spectrogram s,int site_id)
     for (j=0;j<s.nchan;j++) {
       if (mask[j]==1) {
 	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
-	if (s.mjd[i]>1.0)
-	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	if (s.mjd[i]>1.0) {
+	  if (graves==0)
+	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	  else
+	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	}
 	cpgpt1((float) i+0.5,(float) j+0.5,17);
       }
     }
