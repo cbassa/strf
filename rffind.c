@@ -18,9 +18,11 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename,int grav
   FILE *file;
   double f;
   int *mask;
+  float *sig;
 
   mask=(int *) malloc(sizeof(int)*s.nchan);
-
+  sig=(float *) malloc(sizeof(float)*s.nchan);
+  
   // Open file
   file=fopen(filename,"a");
 
@@ -62,7 +64,8 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename,int grav
     }
        // Reset mask
     for (j=0;j<s.nchan;j++) {
-      if (s.z[i+s.nsub*j]-avg>sigma*std) 
+      sig[j]=(s.z[i+s.nsub*j]-avg)/std;
+      if (sig[j]>sigma) 
 	mask[j]=1;
       else
 	mask[j]=0;
@@ -88,9 +91,9 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename,int grav
 	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
 	if (s.mjd[i]>1.0) {
 	  if (graves==0)
-	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sig[j],site_id);
 	  else
-	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sig[j],site_id);
 	}
       }
     }
@@ -99,6 +102,7 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename,int grav
   fclose(file);
 
   free(mask);
+  free(sig);
 
   return;
 }
@@ -212,13 +216,12 @@ int main(int argc,char *argv[])
     s=read_spectrogram(path,isub,nsub,f0,df0,1,0.0);
 
     // Exit on emtpy file
-    if (s.nsub==0)
-      return 0;
-
-    printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
-    
-    // Filter
-    filter(s,site_id,sigma,filename,graves);
+    if (s.nsub>0) {
+      printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+      
+      // Filter
+      filter(s,site_id,sigma,filename,graves);
+    }
   }
 
   // Free
