@@ -20,7 +20,7 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat);
-struct trace locate_trace(struct spectrogram s,struct select sel,int site_id);
+void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
 
 int main(int argc,char *argv[])
 {
@@ -43,10 +43,10 @@ int main(int argc,char *argv[])
   float dt,zzmax,s1,s2;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
-  float width=1500;
+  float width=1500,sigma=5.0;
   float x,y,x0,y0;
   char c;
-  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128];
+  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128],datfile[128];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -58,7 +58,7 @@ int main(int argc,char *argv[])
   int nsat,satno;
   struct select sel;
   char *env;
-  int site_id=0,cmap=0;
+  int site_id=0,cmap=2,graves=0;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -72,15 +72,23 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:"))!=-1) {
       switch (arg) {
 	
       case 'p':
 	strcpy(path,optarg);
 	break;
+
+      case 's':
+	isub=atoi(optarg);
+	break;
 	
       case 'f':
 	f0=(double) atof(optarg);
+	break;
+
+      case 'l':
+	nsub=atoi(optarg);
 	break;
 	
       case 'w':
@@ -95,6 +103,18 @@ int main(int argc,char *argv[])
 	strcpy(tlefile,optarg);
 	break;
 
+      case 'g':
+	graves=1;
+	break;
+
+      case 'S':
+	sigma=atof(optarg);
+	break;
+
+      case 'C':
+	site_id=atoi(optarg);
+	break;
+	
       case 'm':
 	cmap=atoi(optarg);
 	if (cmap>2)
@@ -115,102 +135,105 @@ int main(int argc,char *argv[])
     return 0;
   }
 
-  for (isub=0;;isub+=30) {
-    // Read data
-    s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
-    if (s.mjd[0]<54000)
-      break;
+  // Read data
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
+  if (s.mjd[0]<54000)
+    return 0;
 
-    // Output filename
-    sprintf(pngfile,"%.19s_%8.3f.png/png",s.nfd0,s.freq*1e-6);
+  // Output filename
+  sprintf(pngfile,"%.19s_%08.3f.png/png",s.nfd0,s.freq*1e-6);
+  sprintf(datfile,"%.19s_%08.3f.dat",s.nfd0,s.freq*1e-6);
+  
+  printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
-    printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
+  // Compute traces
+  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
+  printf("Traces for %d objects for location %d\n",nsat,site_id);
 
-    // Compute traces
-    t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,0);
-    printf("Traces for %d objects for location %d\n",nsat,site_id);
-
-    printf("%s\n",pngfile);
-    cpgopen(pngfile);
-    //    cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
-    cpgsch(0.8);
-    cpgask(1);
+  printf("%s\n",pngfile);
+  cpgopen(pngfile);
+  //    cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
+  cpgsch(0.8);
+  cpgask(1);
     
-    // Default limits
-    xmin=0.0;
-    xmax=(float) s.nsub;
-    ymin=0;
-    ymax=(float) s.nchan;
-    zmin=0.0;
+  // Default limits
+  xmin=0.0;
+  xmax=(float) s.nsub;
+  ymin=0;
+  ymax=(float) s.nchan;
+  zmin=0.0;
     
-    cpgsci(1);
-    cpgpage();
-    cpgsvp(0.1,0.95,0.1,0.95);
-    cpgswin(xmin,xmax,ymin,ymax);
-
-    if (cmap==3) {
-      cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
-    } else {
-      if (cmap==0)
-	cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
-	else if (cmap==1)
-	  cpgctab(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
-	else if (cmap==2)
-	  cpgctab(viridis_l,viridis_r,viridis_g,viridis_b,256,1.0,0.5);
-      cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
-    }
-    
+  cpgsci(1);
+  cpgpage();
+  cpgsvp(0.1,0.95,0.1,0.95);
+  cpgswin(xmin,xmax,ymin,ymax);
+  
+  if (cmap==3) {
+    cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
+  } else {
+    if (cmap==0)
+      cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
+    else if (cmap==1)
+      cpgctab(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
+    else if (cmap==2)
+      cpgctab(viridis_l,viridis_r,viridis_g,viridis_b,256,1.0,0.5);
     cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
-    
-    // Pixel axis
-    cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
-    
-    // Time axis
-    cpgbox("B",0.,0,"",0.,0);
-    time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
-    
-    // Freq axis
-    fmin=s.freq-0.5*s.samp_rate+ymin*s.samp_rate/(float) s.nchan;
-    fmax=s.freq-0.5*s.samp_rate+ymax*s.samp_rate/(float) s.nchan;
-    fmin*=1e-6;
-    fmax*=1e-6;
-    
-    // Plot traces
-    cpgswin(xmin,xmax,fmin,fmax);
-    cpgsci(3);
-    plot_traces(t,nsat);
-    cpgsci(1);
-    
-    // Human readable frequency axis
-    fcen=0.5*(fmax+fmin);
-    fcen=floor(1000*fcen)/1000.0;
-    sprintf(ylabel,"Frequency - %.3f MHz",fcen);
-    fmin-=fcen;
-    fmax-=fcen;
-    cpgswin(xmin,xmax,fmin,fmax);
-    cpgbox("",0.,0,"BTSN",0.,0);
-    
-    sprintf(xlabel,"UT Date: %.10s",s.nfd0);
-    cpglab(xlabel,ylabel," ");
-    
-    cpgswin(xmin,xmax,ymin,ymax);
-   
-    cpgend();
-
-    // Free
-    free(s.z);
-    free(s.mjd);
-
-    for (i=0;i<nsat;i++) {
-      free(t[i].mjd);
-      free(t[i].freq);
-      free(t[i].za);
-    }
-    //    free(tf.mjd);
-    //    free(tf.freq);
-    //    free(tf.za);
-
   }
+    
+  cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+    
+  // Pixel axis
+  cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
+  
+  // Time axis
+  cpgbox("B",0.,0,"",0.,0);
+
+  cpgswin(xmin,xmax,ymin,ymax);
+
+  // Filter points
+  filter(s,site_id,sigma,datfile,graves);
+
+  time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
+  
+  // Freq axis
+  fmin=s.freq-0.5*s.samp_rate+ymin*s.samp_rate/(float) s.nchan;
+  fmax=s.freq-0.5*s.samp_rate+ymax*s.samp_rate/(float) s.nchan;
+  fmin*=1e-6;
+  fmax*=1e-6;
+  
+  // Plot traces
+  cpgswin(xmin,xmax,fmin,fmax);
+  cpgsch(0.6);
+  plot_traces(t,nsat);
+  cpgsch(0.8);
+  
+  // Human readable frequency axis
+  fcen=0.5*(fmax+fmin);
+  fcen=floor(1000*fcen)/1000.0;
+  sprintf(ylabel,"Frequency - %.3f MHz",fcen);
+  fmin-=fcen;
+  fmax-=fcen;
+  cpgswin(xmin,xmax,fmin,fmax);
+  cpgbox("",0.,0,"BTSN",0.,0);
+    
+  sprintf(xlabel,"UT Date: %.10s",s.nfd0);
+  cpglab(xlabel,ylabel," ");
+  
+  
+  cpgend();
+  
+  // Free
+  free(s.z);
+  free(s.mjd);
+  
+  for (i=0;i<nsat;i++) {
+    free(t[i].mjd);
+    free(t[i].freq);
+    free(t[i].za);
+  }
+  //    free(tf.mjd);
+  //    free(tf.freq);
+  //    free(tf.za);
 
   return 0;
 }
@@ -342,6 +365,12 @@ void plot_traces(struct trace *t,int nsat)
 
   // Loop over objects
   for (i=0;i<nsat;i++) {
+    // Select color
+    if (t[i].classfd==1)
+      cpgsci(8);
+    else
+      cpgsci(3);
+
     sprintf(text," %d",t[i].satno);
 
     // Plot label at start of trace
@@ -367,82 +396,107 @@ void plot_traces(struct trace *t,int nsat)
 	flag=0;
       else
 	flag=1;
-    }	  
+    }
+    cpgsci(1);
   }
 
   return;
 }
 
-// Locate trace
-struct trace locate_trace(struct spectrogram s,struct select sel,int site_id)
+// Filter points
+void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves)
 {
-  int i,j,k,l,sn;
-  int i0,i1,j0,j1,jmax;
-  double f;
-  float x,y,s1,s2,z,za,zs,zm,sigma;
-  struct trace t;
+  int i,j,k,l;
+  float s1,s2,avg,std,dz;
   FILE *file;
+  double f;
+  int *mask;
+  float *sig;
 
-  // Set up trace
-  t.satno=99999;
-  t.n=(int) ceil(sel.x[sel.n-1]-sel.x[0]);
-  t.mjd=(double *) malloc(sizeof(double)*t.n);
-  t.freq=(double *) malloc(sizeof(double)*t.n);
-  t.za=(float *) malloc(sizeof(float)*t.n);
-
+  mask=(int *) malloc(sizeof(int)*s.nchan);
+  sig=(float *) malloc(sizeof(float)*s.nchan);
+  
   // Open file
-  file=fopen("out.dat","w");
+  file=fopen(filename,"w");
 
-  // Loop over selected regions
-  for (k=0,l=0;k<sel.n-1;k++) {
-    for (x=sel.x[k];x<=sel.x[k+1];x+=1.0) {
-      y=(x-sel.x[k])/(sel.x[k+1]-sel.x[k])*(sel.y[k+1]-sel.y[k])+sel.y[k];
-      i=(int) floor(x);
-      j0=(int) floor(y-sel.w);
-      j1=(int) floor(y+sel.w);
+  // Loop over subints
+  for (i=0;i<s.nsub;i++) {
+    // Set mask
+    for (j=0;j<s.nchan;j++)
+      mask[j]=1;
 
-      // Keep in range
-      if (j0<0)
-	j0=0;
-      if (j1>=s.nchan)
-	j1=s.nchan;
+    // Iterate to remove outliers
+    for (k=0;k<10;k++) {
 
-      // Find maximum and significance
-      zm=0.0;
-      jmax=0;
-      s1=0.0;
-      s2=0.0;
-      sn=0;
-      for (j=j0;j<j1;j++) {
-	z=s.z[i+s.nsub*j];
-	s1+=z;
-	s2+=z*z;
-	sn++;
-	if (z>zm) {
-	  zm=z;
-	  jmax=j;
+      // Find average
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  s1+=s.z[i+s.nsub*j];
+	  s2+=1.0;
 	}
       }
-      za=s1/(float) sn;
-      zs=sqrt(s2/(float) sn-za*za);
-      sigma=(zm-za)/zs;
+      avg=s1/s2;
+      
+      // Find standard deviation
+      for (j=0,s1=s2=0.0;j<s.nchan;j++) {
+	if (mask[j]==1) {
+	  dz=s.z[i+s.nsub*j]-avg;
+	  s1+=dz*dz;
+	  s2+=1.0;
+	}
+      }
+      std=sqrt(s1/s2);
 
-      // Store
-      if (sigma>5.0 && s.mjd[i]>1.0) {
-	f=s.freq-0.5*s.samp_rate+(double) jmax*s.samp_rate/(double) s.nchan;
-	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
-	cpgpt1((float) i,(float) jmax,17);
-	t.mjd[l]=s.mjd[i];
-	t.freq[l]=f;
-	t.za[l]=0.0;
-	l++;
+      // Update mask
+      for (j=0,l=0;j<s.nchan;j++) {
+	if (fabs(s.z[i+s.nsub*j]-avg)>sigma*std) {
+	  mask[j]=0;
+	  l++;
+	}
       }
     }
-  }
-  t.n=l;
+       // Reset mask
+    for (j=0;j<s.nchan;j++) {
+      sig[j]=(s.z[i+s.nsub*j]-avg)/std;
+      if (sig[j]>sigma) 
+	mask[j]=1;
+      else
+	mask[j]=0;
+    }    
 
-  // Close file
+    // Find maximum when points are adjacent
+    for (j=0;j<s.nchan-1;j++) {
+      if (mask[j]==1 && mask[j+1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j+1)])
+	  mask[j]=0;
+      }
+    }
+    for (j=s.nchan-2;j>=0;j--) {
+      if (mask[j]==1 && mask[j-1]==1) {
+	if (s.z[i+s.nsub*j]<s.z[i+s.nsub*(j-1)])
+	  mask[j]=0;
+      }
+    }
+
+    // Mark points
+    for (j=0;j<s.nchan;j++) {
+      if (mask[j]==1) {
+	f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
+	if (s.mjd[i]>1.0) {
+	  if (graves==0)
+	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sig[j],site_id);
+	  else
+	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sig[j],site_id);
+	}
+	cpgpt1((float) i+0.5,(float) j+0.5,17);
+      }
+    }
+  } 
+
   fclose(file);
 
-  return t;
+  free(mask);
+  free(sig);
+
+  return;
 }

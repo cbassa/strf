@@ -148,7 +148,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:g:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:g"))!=-1) {
       switch (arg) {
 	
       case 'p':
