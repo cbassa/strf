@@ -955,10 +955,10 @@ int main(int argc,char *argv[])
       satno=orb.satno;
       if (elset==0) {
 	orb.eqinc=0.5*M_PI;
-	orb.ascn=0.0;
-	orb.ecc=0.0;
+	orb.ascn=modulo(gmst(0.5*(d.mjdmin+d.mjdmax))+site.lng,360.0)*D2R;
+	orb.ecc=0.0001;
 	orb.argp=0.0;
-	orb.mnan=0.0;
+	orb.mnan=40.0*D2R;
 	orb.rev=14.0;
 	orb.bstar=0.5e-4;
 	printf("LEO orbit\n");
