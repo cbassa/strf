@@ -40,7 +40,7 @@ struct data {
 } d;
 orbit_t orb;
 int fgetline(FILE *file,char *s,int lim);
-struct data read_data(char *filename);
+struct data read_data(char *filename,int graves,float offset);
 double date2mjd(int year,int month,double day);
 void mjd2nfd(double mjd,char *nfd);
 struct point decode_line(char *line);
@@ -271,6 +271,15 @@ void usage()
 {
   printf("dpplot -d <data file> -c [tle catalog] -i [satno] -h\n\ndata file:    Tabulated doppler curve\ntle catalog:  Catalog with TLE's (optional)\nsatno:        Satellite to load from TLE catalog (optional)\n\n");
 
+  printf("rffit: fit RF observations\n\n");
+  printf("-d <datafile>   Input data file with RF measurements\n");
+  printf("-c <catalog>    Catalog with TLE's [optional]\n");
+  printf("-i <satno>      NORAD ID of satellite to load\n");
+  printf("-s <site>       Site ID\n");
+  printf("-g              GRAVES data\n");
+  printf("-m <offset>     Frequency offset to apply [Hz]\n");
+  printf("-h              This help\n");
+  
   return;
 }
 
@@ -284,7 +293,7 @@ int main(int argc,char *argv[])
   float xminsel,xmaxsel,yminsel,ymaxsel;
   float x0,y0,x,y;
   double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
-  float t,f,vtca;
+  float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
   char *catalog,*datafile,filename[64],string[64],bstar[10]=" 00000-0";
@@ -308,7 +317,7 @@ int main(int argc,char *argv[])
   
   env=getenv("ST_DATADIR");
   // Decode options
-  while ((arg=getopt(argc,argv,"d:c:i:hs:g"))!=-1) {
+  while ((arg=getopt(argc,argv,"d:c:i:hs:gm:"))!=-1) {
     switch(arg) {
     case 'd':
       datafile=optarg;
@@ -327,6 +336,10 @@ int main(int argc,char *argv[])
       return 0;
       break;
 
+    case 'm':
+      foffset=atof(optarg)/1000.0;
+      break;
+      
     case 's':
       site_id=atoi(optarg);
       break;
@@ -342,7 +355,7 @@ int main(int argc,char *argv[])
   }
   
   // Read data
-  d=read_data(datafile);
+  d=read_data(datafile,graves,foffset);
   d.fitfreq=1;
 
   // Set graves frequency
@@ -730,8 +743,13 @@ int main(int argc,char *argv[])
 
     // Identify
     if (c=='i') {
-      printf("rms limit (kHz): ");
-      status=scanf("%lf",&rms);
+      if (graves==0) {
+	printf("rms limit (kHz): ");
+	status=scanf("%lf",&rms);
+      } else {
+	printf("Using 0.1 kHz rms limit\n");
+	rms=0.1;
+      }
       satno=identify_satellite_from_doppler(catalog,rms);
       if (satno>0) {
 	redraw=1;
@@ -1101,13 +1119,14 @@ struct point decode_line(char *line)
 }
 
 // Read data
-struct data read_data(char *filename)
+struct data read_data(char *filename,int graves,float offset)
 {
   int i=0;
   char line[LIM];
   FILE *file;
   struct data d;
   double c;
+  float sum,ssum,w,df;
 
   // Open file
   file=fopen(filename,"r");
@@ -1135,6 +1154,10 @@ struct data read_data(char *filename)
   // Close file
   fclose(file);
 
+  // Add frequency offset
+  for (i=0;i<d.n;i++)
+    d.p[i].freq+=offset;
+
   d.mjdmin=d.mjdmax=d.p[0].mjd;
   d.freqmin=d.freqmax=d.p[0].freq;
   d.fluxmin=d.fluxmax=d.p[0].flux;
@@ -1161,6 +1184,8 @@ struct data read_data(char *filename)
   // Center time and frequency
   d.mjd0=floor(0.5*(d.mjdmax+d.mjdmin));
   d.f0=floor(0.5*(d.freqmax+d.freqmin));
+  if (graves==1)
+    d.f0=143050.0;
 
   // Compute times
   for (i=0;i<d.n;i++) {
