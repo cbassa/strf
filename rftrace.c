@@ -293,10 +293,10 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
     status=scanf("%s",text);
     if (text[0]=='y') {
       file=fopen(freqlist,"a");
-      fprintf(file,"%05d %8.3f\n",satnomin,1e-6*freqmin);
+      fprintf(file,"%05d %lf\n",satnomin,1e-6*freqmin);
       fclose(file);
       file=fopen("log.txt","a");
-      fprintf(file,"%05d %8.3f %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
+      fprintf(file,"%05d %lf %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
       fclose(file);
       printf("Frequency stored\n\n");
     }
@@ -421,10 +421,10 @@ void identify_trace(char *tlefile,struct trace t,int satno)
       gettimeofday(&tv,0);
       strftime(tbuf,30,"%Y-%m-%dT%T",gmtime(&tv.tv_sec));
       file=fopen(freqlist,"a");
-      fprintf(file,"%05d %8.3f %.19s %04d\n",satnomin,1e-6*freqmin,tbuf,s.id);
+      fprintf(file,"%05d %lf %.19s %04d\n",satnomin,1e-6*freqmin,tbuf,s.id);
       fclose(file);
       file=fopen("log.txt","a");
-      fprintf(file,"%05d %8.3f %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
+      fprintf(file,"%05d %lf %.3f %.19s\n",satnomin,1e-6*freqmin,1e-3*rmsmin,nfdmin);
       fclose(file);
       printf("Frequency stored\n\n");
     }

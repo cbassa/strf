@@ -696,9 +696,9 @@ int main(int argc,char *argv[])
       env=getenv("ST_DATADIR");
       sprintf(freqlist,"%s/data/frequencies.txt",env);  
       fp=fopen(freqlist,"a");
-      fprintf(fp,"%05d %8.3f\n",orb.satno,d.ffit/1000.0);
+      fprintf(fp,"%05d %lf\n",orb.satno,d.ffit/1000.0);
       fclose(fp);
-      printf("Logged %05d at %8.3f to %s\n",orb.satno,d.ffit/1000.0,freqlist); 
+      printf("Logged %05d at %lf to %s\n",orb.satno,d.ffit/1000.0,freqlist); 
       printf("\n================================================================================\n");
     }
 

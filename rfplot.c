@@ -1199,7 +1199,7 @@ void filter(struct spectrogram s,int site_id,float sigma,int graves)
 	  if (graves==0)
 	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
 	  else
-	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	    fprintf(file,"%lf %lf %f %d 9999 %d %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id,i,j);
 	}
 	cpgpt1((float) i+0.5,(float) j+0.5,17);
       }
