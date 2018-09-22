@@ -19,7 +19,7 @@ struct select {
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-void plot_traces(struct trace *t,int nsat);
+void plot_traces(struct trace *t,int nsat,float foff);
 void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
 
 int main(int argc,char *argv[])
@@ -43,7 +43,7 @@ int main(int argc,char *argv[])
   float dt,zzmax,s1,s2;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
-  float width=1500,sigma=5.0;
+  float width=1500,sigma=5.0,foff=0.0;
   float x,y,x0,y0;
   char c;
   char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128],datfile[128];
@@ -58,7 +58,7 @@ int main(int argc,char *argv[])
   int nsat,satno;
   struct select sel;
   char *env;
-  int site_id=0,cmap=2,graves=0;
+  int site_id=0,cmap=2,graves=0,create_dat=1,fname_flag=1;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -72,13 +72,22 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:qo:O:"))!=-1) {
       switch (arg) {
 	
       case 'p':
 	strcpy(path,optarg);
 	break;
 
+      case 'o':
+	strcpy(pngfile,optarg);
+	fname_flag=0;
+	break;
+
+      case 'O':
+	foff=atof(optarg);
+	break;
+	
       case 's':
 	isub=atoi(optarg);
 	break;
@@ -111,6 +120,10 @@ int main(int argc,char *argv[])
 	sigma=atof(optarg);
 	break;
 
+      case 'q':
+	create_dat=0;
+	break;
+	
       case 'C':
 	site_id=atoi(optarg);
 	break;
@@ -141,8 +154,11 @@ int main(int argc,char *argv[])
     return 0;
 
   // Output filename
-  sprintf(pngfile,"%.19s_%08.3f.png/png",s.nfd0,s.freq*1e-6);
-  sprintf(datfile,"%.19s_%08.3f.dat",s.nfd0,s.freq*1e-6);
+  if (fname_flag==1)
+    sprintf(pngfile,"%.19s_%08.3f.png/png",s.nfd0,s.freq*1e-6);
+
+  if (create_dat==1)
+    sprintf(datfile,"%.19s_%08.3f.dat",s.nfd0,s.freq*1e-6);
   
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
@@ -150,7 +166,6 @@ int main(int argc,char *argv[])
   t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
-  printf("%s\n",pngfile);
   cpgopen(pngfile);
   //    cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
   cpgsch(0.8);
@@ -191,7 +206,8 @@ int main(int argc,char *argv[])
   cpgswin(xmin,xmax,ymin,ymax);
 
   // Filter points
-  filter(s,site_id,sigma,datfile,graves);
+  if (create_dat)
+    filter(s,site_id,sigma,datfile,graves);
 
   time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
   
@@ -203,8 +219,9 @@ int main(int argc,char *argv[])
   
   // Plot traces
   cpgswin(xmin,xmax,fmin,fmax);
-  cpgsch(0.6);
-  plot_traces(t,nsat);
+  cpgsch(0.7);
+  plot_traces(t,nsat,foff);
+  plot_traces(t,nsat,-foff);
   cpgsch(0.8);
   
   // Human readable frequency axis
@@ -358,7 +375,7 @@ void usage(void)
   return;
 }
 
-void plot_traces(struct trace *t,int nsat)
+void plot_traces(struct trace *t,int nsat,float foff)
 {
   int i,j,flag,textflag;
   char text[8];
@@ -381,14 +398,14 @@ void plot_traces(struct trace *t,int nsat)
     for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
-	cpgtext((float) j,(float) t[i].freq[j],text);
+	cpgtext((float) j,(float) (t[i].freq[j]+foff),text);
 
       // Plot line
       if (flag==0) {
-	cpgmove((float) j,(float) t[i].freq[j]);
+	cpgmove((float) j,(float) (t[i].freq[j]+foff));
 	flag=1;
       } else {
-	cpgdraw((float) j,(float) t[i].freq[j]);
+	cpgdraw((float) j,(float) (t[i].freq[j]+foff));
       }
 
       // Below horizon
