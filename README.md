@@ -2,7 +2,7 @@
 
 **strf** is the satellite tracking toolkit for radio observations (RF). The software is designed to allow tracking of satellites from radio observations, using Doppler curves to identify satellites and/or determine their orbits.
 
-The software is designed for *linux* operating systems, and will work with most software defined radios (SDRs), certainly those that are supported by http://www.gnuradio.com. The software comes with tools for data acquisition, performing FFTs to generate timestamped spectrograms (waterfall plots), and analysis, to extract and analyse Doppler curves.
+The software is designed for *linux* operating systems, and will work with most software defined radios (SDRs), certainly those that are supported by http://www.gnuradio.org. The software comes with tools for data acquisition, performing FFTs to generate timestamped spectrograms (waterfall plots), and analysis, to extract and analyse Doppler curves.
 
 Install
 ------
