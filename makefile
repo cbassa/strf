@@ -7,6 +7,12 @@ LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 # Compiler
 CC = gcc
 
+# Installation
+INSTALL_PROGRAM = install -m 557
+prefix = /usr/local
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+
 all:
 	make rfedit rfplot rffft rfpng rffit rffind
 
@@ -31,6 +37,24 @@ rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 rffft: rffft.o rftime.o
 	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm
 
+.PHONY: clean install uninstall
+
 clean:
 	rm -f *.o
 	rm -f *~
+
+install:
+	$(INSTALL_PROGRAM) rffit $(DESTDIR)$(bindir)/rffit
+	$(INSTALL_PROGRAM) rfpng $(DESTDIR)$(bindir)/rfpng
+	$(INSTALL_PROGRAM) rfedit $(DESTDIR)$(bindir)/rfedit
+	$(INSTALL_PROGRAM) rffind $(DESTDIR)$(bindir)/rffind
+	$(INSTALL_PROGRAM) rfplot $(DESTDIR)$(bindir)/rfplot
+	$(INSTALL_PROGRAM) rffft $(DESTDIR)$(bindir)/rffft
+
+uninstall:
+	$(RM) $(DESTDIR)$(bindir)/rffit
+	$(RM) $(DESTDIR)$(bindir)/rfpng
+	$(RM) $(DESTDIR)$(bindir)/rfedit
+	$(RM) $(DESTDIR)$(bindir)/rffind
+	$(RM) $(DESTDIR)$(bindir)/rfplot
+	$(RM) $(DESTDIR)$(bindir)/rffft
