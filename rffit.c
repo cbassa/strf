@@ -35,7 +35,7 @@ struct data {
   struct point *p;
   int fitfreq;
   double mjdmin,mjdmax,mjd0;
-  float freqmin,freqmax,fluxmin,fluxmax,f0,ffit;
+  double freqmin,freqmax,fluxmin,fluxmax,f0,ffit;
   char satname[LIM];
 } d;
 orbit_t orb;
@@ -1515,22 +1515,6 @@ double chisq(double a[])
     }
   }
 
-  /*  
-  // CGB 20140917; CLIO fixed position fit
-  xyz_t satpos,satvel;
-  double dx,dy,dz,dr=1000;
-  double dvx,dvy,dvz;
-  
-  satpos_xyz(56917.12393+2400000.5,&satpos,&satvel);
-  dx=-19210.91-satpos.x;
-  dy=+22594.22-satpos.y;
-  dz=-9611.52-satpos.z;
-  dvx=-2.527-satvel.x;
-  dvy=-0.078-satvel.y;
-  dvz=+0.319-satvel.z;
-  chisq+=(dx*dx+dy*dy+dz*dz)/(dr*dr);
-  printf("%8.1f %8.1f %8.1f : %8.1f | %8.3f %8.3f %8.3f : %8.3f\n",dx,dy,dz,sqrt(dx*dx+dy*dy+dz*dz),dvx,dvy,dvz,sqrt(dvx*dvx+dvy*dvy+dvz*dvz));
-  */
   free(v);
   free(v1);
 
