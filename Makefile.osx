@@ -1,0 +1,73 @@
+#
+#	STRF MacOSX Makefile
+#
+#	Mark Jessop 2018-12
+#
+
+# Your Prefix.
+# If running Macports, this will likely be /opt/local
+# if using Homebrew, then probably /usr/local/
+prefix = /opt/local
+
+# Compiling flags
+CFLAGS = -O3 -I$(prefix)/include
+
+# Linking flags
+LFLAGS = -L$(prefix)/lib -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
+
+# Compiler
+# NOTE: STRF will not compile or link correctly with the system gcc (which is actually clang)
+# It's best to build with gcc provided by Macports or Homebrew
+# Under Macports, this is provided as gcc-mp-7, as below, on Homebrew this may be different.
+CC = $(prefix)/bin/gcc-mp-7
+
+# Installation
+INSTALL_PROGRAM = install -m 557
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+
+all:
+	make rfedit rfplot rffft rfpng rffit rffind
+
+rffit: rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o
+	$(CC) -o rffit rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o $(LFLAGS)
+
+rfpng: rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
+	$(CC) -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+
+rfedit: rfedit.o rfio.o rftime.o
+	$(CC) -o rfedit rfedit.o rfio.o rftime.o -lm
+
+rffind: rffind.o rfio.o rftime.o
+	$(CC) -o rffind rffind.o rfio.o rftime.o -lm
+
+rftrack: rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
+	$(CC) -o rftrack rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o -lm
+
+rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o 
+	$(CC) -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+
+rffft: rffft.o rftime.o
+	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm $(LFLAGS)
+
+.PHONY: clean install uninstall
+
+clean:
+	rm -f *.o
+	rm -f *~
+
+install:
+	$(INSTALL_PROGRAM) rffit $(DESTDIR)$(bindir)/rffit
+	$(INSTALL_PROGRAM) rfpng $(DESTDIR)$(bindir)/rfpng
+	$(INSTALL_PROGRAM) rfedit $(DESTDIR)$(bindir)/rfedit
+	$(INSTALL_PROGRAM) rffind $(DESTDIR)$(bindir)/rffind
+	$(INSTALL_PROGRAM) rfplot $(DESTDIR)$(bindir)/rfplot
+	$(INSTALL_PROGRAM) rffft $(DESTDIR)$(bindir)/rffft
+
+uninstall:
+	$(RM) $(DESTDIR)$(bindir)/rffit
+	$(RM) $(DESTDIR)$(bindir)/rfpng
+	$(RM) $(DESTDIR)$(bindir)/rfedit
+	$(RM) $(DESTDIR)$(bindir)/rffind
+	$(RM) $(DESTDIR)$(bindir)/rfplot
+	$(RM) $(DESTDIR)$(bindir)/rffft
