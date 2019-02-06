@@ -497,10 +497,16 @@ int main(int argc,char *argv[])
 	    continue;
 	  if (d.p[i].flag==1) {
 	    cpgsci(1);
-	    cpgpt1(x,y,17);
+	    if (d.p[i].rsite_id==0)
+	      cpgpt1(x,y,17);
+	    else
+	      cpgpt1(x,y,2);
 	  } else if (d.p[i].flag==2) {
 	    cpgsci(1);
-	    cpgpt1(x,y,17);
+	    if (d.p[i].rsite_id==0)
+	      cpgpt1(x,y,17);
+	    else
+	      cpgpt1(x,y,2);
 	    cpgsci(2);
 	    cpgpt1(x,y,4);
 	  }
@@ -562,7 +568,7 @@ int main(int argc,char *argv[])
 	// Loop over sites for plotting model
 	for (j=0;j<nsite;j++) {
 	  s0=get_site(site_number[j]);
-	  s1=get_site(9999);
+	  s1=get_site(d.p[0].rsite_id);
 	  color=j+2;
 
 	  for (i=0;i<NMAX;i++) {
@@ -607,10 +613,16 @@ int main(int argc,char *argv[])
 	y=d.p[i].f;
 	if (d.p[i].flag==1) {
 	  cpgsci(color);
-	  cpgpt1(x,y,style);
+	  if (d.p[i].rsite_id==0)
+	    cpgpt1(x,y,style);
+	  else
+	    cpgpt1(x,y,2);
 	} else if (d.p[i].flag==2) {
 	  cpgsci(color);
-	  cpgpt1(x,y,style);
+	  if (d.p[i].rsite_id==0)
+	    cpgpt1(x,y,style);
+	  else
+	    cpgpt1(x,y,2);
 	  cpgsci(1);
 	  cpgpt1(x,y,4);
 	}
