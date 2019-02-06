@@ -40,6 +40,7 @@ rm inttles.zip
 # Get CALPOLY tles
 wget http://mstl.atl.calpoly.edu/~ops/keps/kepler.txt -O kepler.tle
 dos2unix kepler.tle
+sed -i -e "s/^1     /1 0000/g" -e "s/^2     /2 0000/g" -e "s/^1    /1 000/g" -e "s/^2    /2 000/g" -e "s/^1   /1 00/g" -e "s/^2   /2 00/g" -e "s/^1  /1 0/g" -e "s/^2  /2 0/g" kepler.tle
 
 # Create TLE bulk file
 cat classfd.tle catalog.tle kepler.tle >bulk.tle
