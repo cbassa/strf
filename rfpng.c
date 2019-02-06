@@ -15,6 +15,10 @@ struct select {
   int flag,n;
   float x[NMAX],y[NMAX],w;
 };
+struct point {
+  double mjd;
+  double freq;
+};
 
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
@@ -208,7 +212,7 @@ int main(int argc,char *argv[])
   // Filter points
   if (create_dat)
     filter(s,site_id,sigma,datfile,graves);
-
+    
   time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
   
   // Freq axis
@@ -219,7 +223,7 @@ int main(int argc,char *argv[])
   
   // Plot traces
   cpgswin(xmin,xmax,fmin,fmax);
-  cpgsch(0.7);
+  cpgsch(0.8);
   plot_traces(t,nsat,foff);
   plot_traces(t,nsat,-foff);
   cpgsch(0.8);
@@ -517,3 +521,4 @@ void filter(struct spectrogram s,int site_id,float sigma,char *filename,int grav
 
   return;
 }
+
