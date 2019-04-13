@@ -153,7 +153,7 @@ int main(int argc,char *argv[])
   }
 
   // Read data
-  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,0.0);
+  s=read_spectrogram(path,isub,nsub,f0,df0,nbin,foff);
   if (s.mjd[0]<54000)
     return 0;
 
@@ -224,14 +224,16 @@ int main(int argc,char *argv[])
   // Plot traces
   cpgswin(xmin,xmax,fmin,fmax);
   cpgsch(0.8);
-  plot_traces(t,nsat,foff);
-  plot_traces(t,nsat,-foff);
+  plot_traces(t,nsat,0.0);
   cpgsch(0.8);
   
   // Human readable frequency axis
   fcen=0.5*(fmax+fmin);
   fcen=floor(1000*fcen)/1000.0;
-  sprintf(ylabel,"Frequency - %.3f MHz",fcen);
+  if (fabs(foff)<1e-3)
+    sprintf(ylabel,"Frequency - %.3f MHz",fcen);
+  else
+    sprintf(ylabel,"Frequency - %.3f MHz (%.3f Hz)",fcen, foff);
   fmin-=fcen;
   fmax-=fcen;
   cpgswin(xmin,xmax,fmin,fmax);
@@ -374,6 +376,7 @@ void usage(void)
   printf("-z <zmax>    Image scaling upper limit [8.0]\n");
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
+  printf("-O <offset>  Frequency offset to apply (Hz) [0]\n");
   printf("-h           This help\n");
 
   return;
