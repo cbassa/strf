@@ -848,7 +848,7 @@ void usage(void)
   printf("-z <zmax>    Image scaling upper limit [8.0]\n");
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
-  printf("-o <offset>  Frequency offset to apply\n");
+  printf("-o <offset>  Frequency offset to apply (Hz) [0]\n");
   printf("-C <site>    Site ID\n");
   printf("-c <catalog> TLE catalog\n");
   printf("-g           GRAVES data\n");
