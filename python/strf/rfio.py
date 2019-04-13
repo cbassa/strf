@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import numpy as np
 from datetime import datetime
 import re
 import os
 from astropy.time import Time
+import scipy.optimize
 
 class Spectrogram:
     """Spectrogram class"""
@@ -34,7 +35,7 @@ class Spectrogram:
         while isub<nsub:
             # File name of file
             fname = os.path.join(path, "{:s}_{:06d}.bin".format(prefix, ifile))
-            print(fname)
+#            print(fname)
             with open(fname, "rb") as fp:
                 next_header = fp.read(256)
                 while next_header:
@@ -48,6 +49,17 @@ class Spectrogram:
             
         return Spectrogram(np.transpose(np.vstack(zs)), np.array(mjds), freq, siteid)
 
+    def correct_spectrogram(self, fcen, bw):
+        c = np.abs(self.freq-fcen)<bw
+        x = self.freq[c]-fcen
+        y = np.median(self.z, axis=1)[c]
+
+        p = [x[np.argmax(y)], 5.0, 1.0, 0.0]
+
+        q, cov_q = scipy.optimize.leastsq(gaussian_residual, p, args=(x, y))
+
+        self.freq -= q[0]
+    
 def parse_header(header_b):
     header_s = header_b.decode('ASCII').strip('\x00')
     regex = r"^HEADER\nUTC_START    (.*)\nFREQ         (.*) Hz\nBW           (.*) Hz\nLENGTH       (.*) s\nNCHAN        (.*)\nNSUB         (.*)\nEND\n$"
@@ -62,3 +74,10 @@ def parse_header(header_b):
             'nchan': int(match.group(5)),
             'nsub': int(match.group(6))}
     
+def gaussian(x, a):
+    arg = -0.5*((x-a[0])/a[1])**2
+    return a[2]*np.exp(arg)+a[3]
+
+def gaussian_residual(a, x, y):
+    ym = gaussian(x, a)
+    return y-ym

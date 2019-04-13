@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import numpy as np
 import ppgplot
 from strf.rfio import Spectrogram
@@ -10,17 +10,15 @@ if __name__ == "__main__":
     prefix = "2018-12-31T09:34:11"
     ifile = 48000
     nsub = 900
-    path = "/data2/satobs/radio/20190207"
-    prefix = "2019-02-07T08:26:59"
-    ifile = 0
-    nsub = 21600
 
     # Read spectrogram
     s = Spectrogram.read_bin_files(path, prefix, ifile, nsub, 4171)
+
+    s.correct_spectrogram(143050000.0, 200.0)
+
     
     zmin = 0.0
     zmax = 0.00008
-    zmax = 0.02
 
 
     # Start ppgplot
@@ -73,7 +71,7 @@ if __name__ == "__main__":
             fmin -= fcen
             fmax -= fcen
             ppgplot.pgswin(xmin, xmax, fmin, fmax)
-            ppgplot.pgbox("", 0., 0, "BCTSN", 0., 0)
+            ppgplot.pgbox("", 0., 0, "BTSN", 0., 0)
             ppgplot.pglab("UT Date", "Frequency - {:.3f} MHz".format(fcen), "")
 
             # Back to pixels

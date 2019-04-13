@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import numpy as np
 
 cm_cool = np.array([[-0.5, 0.0, 0.17, 0.33, 0.50, 0.67, 0.83, 1.0, 1.7], 
