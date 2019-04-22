@@ -48,9 +48,11 @@ cp inttles.tle ${DATE}_inttles.txt
 rm inttles.zip
 
 # Get CALPOLY tles
-wget http://mstl.atl.calpoly.edu/~ops/keps/kepler.txt -O kepler.tle
-dos2unix kepler.tle
-sed -i -e "s/^1     /1 0000/g" -e "s/^2     /2 0000/g" -e "s/^1    /1 000/g" -e "s/^2    /2 000/g" -e "s/^1   /1 00/g" -e "s/^2   /2 00/g" -e "s/^1  /1 0/g" -e "s/^2  /2 0/g" kepler.tle
+#wget http://mstl.atl.calpoly.edu/~ops/keps/kepler.txt -O kepler.tle
+#dos2unix kepler.tle
+#sed -i -e "s/^1     /1 0000/g" -e "s/^2     /2 0000/g" -e "s/^1    /1 000/g" -e "s/^2    /2 000/g" -e "s/^1   /1 00/g" -e "s/^2   /2 00/g" -e "s/^1  /1 0/g" -e "s/^2  /2 0/g" kepler.tle
 
 # Create TLE bulk file
-cat classfd.tle catalog.tle kepler.tle >bulk.tle
+#cat classfd.tle catalog.tle kepler.tle >bulk.tle
+cat classfd.tle catalog.tle >bulk.tle
+cat bulk.tle | grep -e "^1 "  | awk '{if ($2<80000 || $2>99000) printf("%s %s\n",$2,$3)}'  | sort | uniq >$ST_DATADIR/data/desig.txt
