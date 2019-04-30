@@ -635,3 +635,110 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 
   return t;
 }
+
+// Compute trace
+void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int graves, int skiphigh, char *outfname)
+{
+  int i,j,imode,flag,tflag,m,status;
+  struct point *p;
+  struct site s,sg;
+  FILE *file,*outfile;
+  orbit_t orb;
+  xyz_t satpos,satvel;
+  double dx,dy,dz,dvx,dvy,dvz,r,v,rg,vg;
+  double freq0;
+  char line[LIM],text[8];
+  struct trace *t;
+  float fmin,fmax;
+  char *env,freqlist[LIM];
+  double ra,de,azi,alt;
+  double rag,deg,azig,altg;
+
+  // Reloop stderr
+  if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
+    fprintf(stderr,"Failed to redirect stderr\n");
+  
+  // Get site
+  s=get_site(site_id);
+
+  // Allocate
+  p=(struct point *) malloc(sizeof(struct point)*n);
+
+  // Get observer position
+  for (i=0;i<n;i++) 
+    obspos_xyz(mjd[i],s.lng,s.lat,s.alt,&p[i].obspos,&p[i].obsvel);
+
+  // Compute Graves positions
+  if (graves==1) {
+    sg=get_site(9999);
+    for (i=0;i<n;i++) 
+      obspos_xyz(mjd[i],sg.lng,sg.lat,sg.alt,&p[i].grpos,&p[i].grvel);
+  }
+
+  // Open output file
+  outfile=fopen(outfname, "w");
+
+  // Print header
+  if (graves==1)
+    fprintf(outfile, "# satno mjd r v azi alt rg vg azig altg\n");
+  else
+    fprintf(outfile, "# satno mjd r v azi alt\n");
+  
+  // Loop over TLEs
+  file=fopen(tlefile,"r");
+  while (read_twoline(file,satno,&orb)==0) {
+    // Initialize
+    imode=init_sgdp4(&orb);
+    if (imode==SGDP4_ERROR)
+      printf("Error\n");
+
+    // Skip high satellites
+    if (skiphigh==1 && orb.rev<10.0)
+          continue;
+    
+    // Loop over points
+    for (i=0,flag=0,tflag=0;i<n;i++) {
+      // Get satellite position
+      satpos_xyz(mjd[i]+2400000.5,&satpos,&satvel);
+      
+      dx=satpos.x-p[i].obspos.x;  
+      dy=satpos.y-p[i].obspos.y;
+      dz=satpos.z-p[i].obspos.z;
+      dvx=satvel.x-p[i].obsvel.x;
+      dvy=satvel.y-p[i].obsvel.y;
+      dvz=satvel.z-p[i].obsvel.z;
+      r=sqrt(dx*dx+dy*dy+dz*dz);
+      v=(dvx*dx+dvy*dy+dvz*dz)/r;
+      ra=modulo(atan2(dy,dx)*R2D,360.0);
+      de=asin(dz/r)*R2D;
+      equatorial2horizontal(mjd[i],ra,de,sg.lng,sg.lat,&azi,&alt);
+      
+      // Compute Graves velocity/frequency
+      if (graves==1) {
+	dx=satpos.x-p[i].grpos.x;  
+	dy=satpos.y-p[i].grpos.y;
+	dz=satpos.z-p[i].grpos.z;
+	dvx=satvel.x-p[i].grvel.x;
+	dvy=satvel.y-p[i].grvel.y;
+	dvz=satvel.z-p[i].grvel.z;
+	rg=sqrt(dx*dx+dy*dy+dz*dz);
+	vg=(dvx*dx+dvy*dy+dvz*dz)/rg;
+	rag=modulo(atan2(dy,dx)*R2D,360.0);
+	deg=asin(dz/rg)*R2D;
+	equatorial2horizontal(mjd[i],rag,deg,sg.lng,sg.lat,&azig,&altg);
+	fprintf(outfile,"%05d %14.8lf %f %f %f %f %f %f %f %f\n",orb.satno,mjd[i],r,v,azi,alt,rg,vg,azig,altg);
+      } else {
+	fprintf(outfile,"%05d %14.8lf %f %f %f %f\n",orb.satno,mjd[i],r,v,azi,alt);
+      }
+    }
+  }
+  fclose(file);
+  fclose(outfile);
+
+  fclose(stderr);
+
+  // Free
+  free(p);
+
+  return;
+}

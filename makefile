@@ -14,13 +14,16 @@ exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 
 all:
-	make rfedit rfplot rffft rfpng rffit rffind
+	make rfedit rfplot rffft rfpng rffit rffind rfdop
 
 rffit: rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o
 	gfortran -o rffit rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o $(LFLAGS)
 
 rfpng: rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	gfortran -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+
+rfdop: rfdop.o rftrace.o rfio.o rftime.o sgdp4.o satutl.o deep.o ferror.o
+	$(CC) -o rfdop rfdop.o rftrace.o rfio.o rftime.o sgdp4.o satutl.o deep.o ferror.o -lm
 
 rfedit: rfedit.o rfio.o rftime.o
 	$(CC) -o rfedit rfedit.o rfio.o rftime.o -lm

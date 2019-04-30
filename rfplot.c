@@ -56,7 +56,7 @@ int main(int argc,char *argv[])
   float width=1500;
   float x,y,x0,y0;
   char c;
-  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128];
+  char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
