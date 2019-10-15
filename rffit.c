@@ -1093,38 +1093,55 @@ int main(int argc, char *argv[]) {
       printf("Usage:\n");
       printf("================================================================="
              "===============\n");
-      printf("q   Quit\n");
-      printf("p   Toggle curve plotting\n");
+      printf("Fit\n");
+      printf("c   Change parameter\n");
       printf("1   Toggle fitting parameter (Inclination)\n");
       printf("2   Toggle fitting parameter (RA of ascending node)\n");
       printf("3   Toggle fitting parameter (Eccentricity)\n");
       printf("4   Toggle fitting parameter (Argyment of perigee)\n");
       printf("5   Toggle fitting parameter (Mean anomaly)\n");
       printf("6   Toggle fitting parameter (Mean motion)\n");
-      printf("c   Change parameter\n");
-      printf("m   Move highlighted points in frequency\n");
-      printf("l   Select points on flux limit\n");
       printf("f   Fit highlighted points\n");
-      printf("g   Get TLE from catalog\n");
       printf("i   Identify satellite from catalog based on Doppler curve\n");
       printf("I   Identify satellite from catalog based on visibility\n");
-      printf("w   Write present TLE\n");
-      printf("R   Reread TLE from catalog\n");
-      printf("X   Delete nearest point (right mouse button)\n");
-      printf("z   Start box to zoom\n");
-      printf("d   Start box to delete points\n");
-      printf("A   Zoom/delete points (left mouse button)\n");
-      printf("h   Highlight points in present window\n");
-      printf("x   Deselect all except highlighted\n");
-      printf("I   Invert selection\n");
-      printf("D   Delete highlighted points\n");
-      printf("s   Highlight all points\n");
-      printf("S   Save highlighted points into file\n");
+
+      printf("\nSelect points\n");
+      printf("l   Select points on flux limit\n");
+
+      printf("\nModify selection\n");
+      printf("s   Highlight all the points\n");
       printf("U   Deselect all points\n");
       printf("u   Deselect highlighted points\n");
-      printf("t   Load template tle\n");
+      printf("x   Deselect all except highlighted\n");
+      printf("I   Invert selection\n");
+
+      printf("\nModify Points\n");
+      printf("D   Delete highlighted points\n");
+      printf("X   Delete nearest point (right mouse button)\n");
+      printf("d   Start box to delete points\n");
+      printf("A   Zoom/delete points (left mouse button)\n");
+      printf("m   Move highlighted points in frequency\n");
+
+
+      printf("Load TLEs\n");
+      printf("t   Load template TLE\n");
+      printf("g   Get TLE from catalog\n");
+      printf("R   Reread TLE from catalog\n");
+
+      // Save
+      printf("\nSave TLEs or measurements\n");
+      printf("S   Save highlighted points into file\n");
+      printf("w   Write present TLE\n");
+
+      printf("\nView Control\n");
+      printf("z   Start box to zoom\n");
+      printf("A   Zoom/delete points (left mouse button)\n");
       printf("r   Reset zoom\n");
+      printf("p   Toggle curve plotting\n");
+
+      printf("\n");
       printf("h   This help\n");
+      printf("q   Quit\n");
       printf("================================================================="
              "===============\n");
       printf("\n");
