@@ -53,4 +53,18 @@ The header keywords are mostly self explanatory, though the `NSUB` keyword speci
 	
 Here, we first make the fifo `mkfifo fifo`, then start `rffft` to read from the fifo (`-i` option), with a 101MHz center frequency (`-f` option) and a 2.5MHz sample rate (`-s` option). The `&` puts this command in the background. Finally, we start obtaining IQ data from the **airspy** with `airspy_rx` in the 2.5MHz sampling mode (`-a 1`) at the same frequency (`-f 101`, in MHz), with the 2.5MHz sample rate (`-t 2`) and writing the samples to the fifo (`-r fifo`). Similar scripts can be made with other SDRs, and otherwise with **gnuradio** flow graphs where the output file sink is a fifo.
 
+Alternatively, when no input filename is given (with the `-i` option), `rffft` will read from stdin so it is possible to directly pipe an SDR receiver's application into `rffft`.
+
+With an RTL-SDR:
+
+    rtl_sdr -g 29 -f 97400000 -s 2048000 - | ./rffft -f 97400000 -s 2048000 -F char
+
+Here we use the **RTL-SDR** receiver with `rtl_sdr` with a gain of 29dB (`-g 29`), a center frequency of 97.4MHz (`-f 97400000`, in Hz) and a samplerate of 2.048MS/s (`-s 2048000`, in S/s). Note the trailing dash (`-`) in the `rtl_sdr` command to tell it to write to stdout instead of a file so it can be piped (`|`) through `rffft`. The same center frequency and samplerate are given to `rffft`. As `rtl_sdr` outputs data as 8 bits, `-F char` is required to tell `rffft` the format of the data.
+
+With a HackRF:
+
+    hackrf_transfer -l 24 -g 32 -f 97400000 -s 8000000 -r - | ./rffft -f 97400000 -s 8000000 -F char -c 100
+
+Here we use the **HackRF** receiver with `hackrf_transfer` with a lna gain of 24dB (`-l 24`), an IF gain of 32dB (`-g 32`), a center frequency of 97.4MHz (`-f 97400000`, in Hz) and a samplerate of 8MS/s (`-s 8000000`, in S/s). The output file is given as stdout (`-r -`). Again the same frequency and samplerate are given to `rffft` and as `hackrf_transfer` also outputs 8 bit data `-F char` is also required for `rffft`.
+
 The output spectrograms can be viewed and analysed using `rfplot`. 
