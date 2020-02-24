@@ -11,7 +11,7 @@
 void usage(void)
 {
   printf("rffft: FFT RF observations\n\n");
-  printf("-i <file>       Input file (can be fifo)\n");
+  printf("-i <file>       Input file (can be fifo) [stdin]\n");
   printf("-p <prefix>     Output prefix\n");
   printf("-f <frequency>  Center frequency (Hz)\n");
   printf("-s <samprate>   Sample rate (Hz)\n");
@@ -35,7 +35,7 @@ int main(int argc,char *argv[])
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
-  char infname[128],outfname[128],path[64]=".",prefix[32]="";
+  char infname[128]="",outfname[128]="",path[64]=".",prefix[32]="";
   char informat='i',outformat='f';
   int16_t *ibuf;
   char *cbuf;
@@ -144,7 +144,7 @@ int main(int argc,char *argv[])
   }
   
   // Dump statistics
-  printf("Filename: %s\n",infname);
+  printf("Filename: %s\n", (strlen(infname) ? infname : "stdin"));
   printf("Frequency: %f MHz\n",freq*1e-6);
   printf("Bandwidth: %f MHz\n",samp_rate*1e-6);
   printf("Sampling time: %f us\n",1e6/samp_rate);
@@ -182,7 +182,11 @@ int main(int argc,char *argv[])
   }
   
   // Open file
-  infile=fopen(infname,"r");
+  if (strlen(infname)) {
+      infile = fopen(infname, "r");
+  } else {
+      infile = stdin;
+  }
 
   // Forever loop
   for (m=0;;m++) {
