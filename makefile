@@ -53,7 +53,7 @@ install:
 	$(INSTALL_PROGRAM) rffind $(DESTDIR)$(bindir)/rffind
 	$(INSTALL_PROGRAM) rfplot $(DESTDIR)$(bindir)/rfplot
 	$(INSTALL_PROGRAM) rffft $(DESTDIR)$(bindir)/rffft
-	$(INSTALL_PROGRAM) rffft $(DESTDIR)$(bindir)/tleupdate
+	$(INSTALL_PROGRAM) tleupdate $(DESTDIR)$(bindir)/tleupdate
 
 uninstall:
 	$(RM) $(DESTDIR)$(bindir)/rffit
