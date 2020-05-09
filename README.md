@@ -6,27 +6,21 @@ The software is designed for *linux* operating systems, and will work with most 
 
 Install
 ------
-* Clone locally the code repository
-* Install common dependencies
-  * gfortran
-  * gcc
-  * libpng-dev
-  * libx11-dev
-  * libjpeg-dev
-  * libexif-dev
-* Build & install required libraries
-  * pgplot plotting library: http://www.astro.caltech.edu/~tjp/pgplot/
-  * gnu scientific library: ftp://ftp.gnu.org/gnu/gsl/
-  * fftw: http://www.fftw.org/download.html
-* Run `make` on the **strf** folder
 
-Run notes
+* For Ubuntu systems or similar.
+  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev dos2unix`
+  * Clone repository: `git clone https://github.com/cbassa/strf.git`
+  * Compile: `cd strf; make`
+  * Install (in `/usr/local`): `sudo make install`
+
+Configure
 ---------
 * You will need to set the following environment variables in your login file to run **strf**.
-	* `ST_COSPAR` COSPAR number
-	* `ST_DATADIR` path to **strf** directory
-	* `ST_TLEDIR` path to TLE directory
+	* `ST_DATADIR` path to **strf** directory (e.g. `$HOME/software/strf`)
+	* `ST_TLEDIR` path to TLE directory (e.g. `$HOME/tle`)
+	* `ST_COSPAR` COSPAR site number (add to site location to `$ST_DATADIR/data/sites.txt`)
 	* `ST_LOGIN` space-track.org login info (of the form `ST_LOGIN="identity=username&password=password"`)
+* Run `tleupdate` to download latest TLEs.
 * You should install NTP support on the system and configure time/date to automatically
   synchronize to time servers.
 
