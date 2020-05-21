@@ -512,7 +512,8 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   infile=fopen(freqlist,"r");
   if (infile==NULL) {
     printf("%s not found\n",freqlist);
-    return t;
+    *nsat=0;
+    return NULL;
   } else {
     for (i=0;;) {
       if (fgetline(infile,line,LIM)<=0)
@@ -530,7 +531,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   }
   // Break out
   if (i==0)
-    return t;
+  {
+    *nsat=0;
+    return NULL;
+  }
 
   // Valid MJDs
   for (i=0;i<n;i++)
