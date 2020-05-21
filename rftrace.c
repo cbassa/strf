@@ -472,8 +472,8 @@ int is_classified(int satno)
 	if (no==satno) flag=1;
       }
     }
+    fclose(file);
   }
-  fclose(file);
   
   return flag;
 }
