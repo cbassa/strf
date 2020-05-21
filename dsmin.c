@@ -16,9 +16,6 @@ int dsmin(double **p,double *y,int n,double ftol,double (*func)(double *))
   double *vector_sum(double **,int);
   double dsmod(double **,double *,double *,int,double (*func)(double *),int,double);
 
-  // Allocate memory
-  psum=(double *) malloc(sizeof(double) * n);
-
   // Get function values
   for (i=0;i<=n;i++) 
     y[i]=func(p[i]);
@@ -69,7 +66,8 @@ int dsmin(double **p,double *y,int n,double ftol,double (*func)(double *))
 	  }
 	}
 	nfunk+=n;
-	
+
+        free(psum);
         psum=vector_sum(p,n);
       }
     } else --nfunk;

@@ -238,3 +238,12 @@ void write_spectrogram(struct spectrogram s,char *prefix)
 
   return;
 }
+
+void free_spectrogram(struct spectrogram s)
+{
+  free(s.z);
+  free(s.zavg);
+  free(s.zstd);
+  free(s.mjd);
+  free(s.length);
+}

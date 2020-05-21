@@ -722,6 +722,7 @@ int main(int argc,char *argv[])
   free(s.zavg);
   free(s.zstd);
   free(s.mjd);
+  free(s.length);
   if (tf.n>0) {
     free(tf.mjd);
     free(tf.freq);
