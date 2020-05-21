@@ -117,7 +117,6 @@ void usage(void)
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
   printf("-o <offset>  Frequency offset to apply\n");
   printf("-C <site>    Site ID\n");
-  printf("-c <catalog> TLE catalog\n");
   printf("-g           GRAVES data\n");
   printf("-S           Sigma limit [default: 5.0]\n");
   printf("-h           This help\n");
@@ -148,7 +147,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:hc:o:S:g"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:hC:o:S:g"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -181,6 +180,10 @@ int main(int argc,char *argv[])
 
       case 'w':
 	df0=(double) atof(optarg);
+	break;
+
+      case 'C':
+	site_id=atoi(optarg);
 	break;
 	
       case 'h':
