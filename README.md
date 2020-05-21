@@ -61,4 +61,16 @@ With a HackRF:
 
 Here we use the **HackRF** receiver with `hackrf_transfer` with a lna gain of 24dB (`-l 24`), an IF gain of 32dB (`-g 32`), a center frequency of 97.4MHz (`-f 97400000`, in Hz) and a samplerate of 8MS/s (`-s 8000000`, in S/s). The output file is given as stdout (`-r -`). Again the same frequency and samplerate are given to `rffft` and as `hackrf_transfer` also outputs 8 bit data `-F char` is also required for `rffft`.
 
+With a Adalm Pluto:
+
+    iio_attr -u usb:x.y.z -c ad9361-phy RX_LO frequency 97400000
+    iio_attr -u usb:x.y.z -c ad9361-phy voltage0 rf_port_select A_BALANCED
+    iio_attr -u usb:x.y.z -c ad9361-phy voltage0 rf_bandwidth 2000000
+    iio_attr -u usb:x.y.z -c ad9361-phy voltage0 sampling_frequency 2000000
+    iio_attr -u usb:x.y.z -c ad9361-phy voltage0 gain_control_mode manual
+    iio_attr -u usb:x.y.z -c ad9361-phy voltage0 hardwaregain 60
+    iio_readdev -u usb:x.y.z -b 4194304 cf-ad9361-lpc | ./rffft -f 97400000 -s 2000000 -F int
+
+Here we use the **Adalm Pluto** transceiver with `iio_readdev`. The transceiver is connected via USB. Replace `x.y.z` by the USB bus ID of your transceiver. You can retreive the USB IDs from the output of `iio_info -s`. Connection via Ethernet is possible as well. Before receiving we have to set center frequency, samplerate, gain, ... by a bunch of `iio_attr` commands.
+
 The output spectrograms can be viewed and analysed using `rfplot`. 
