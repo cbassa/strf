@@ -148,10 +148,13 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   }
 
   // Scale last subint
-  s.mjd[i]/=(float) nadd;
+  if(nadd>0)
+  {
+    s.mjd[i]/=(float) nadd;
 
-  for (j=0;j<s.nchan;j++) 
-    s.z[i+s.nsub*j]/=(float) nadd;
+    for (j=0;j<s.nchan;j++)
+      s.z[i+s.nsub*j]/=(float) nadd;
+  }
 
   // Swap frequency range
   if (f0>0.0 && df0>0.0) {
