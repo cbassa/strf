@@ -923,7 +923,7 @@ int main(int argc,char *argv[])
     }
 
     // Invert selection
-    if (c=='I') {
+    if (c=='T') {
       for (i=0;i<d.n;i++) {
 	if (d.p[i].flag==2)
 	  d.p[i].flag=1;
@@ -1087,7 +1087,7 @@ int main(int argc,char *argv[])
       printf("A   Zoom/delete points (left mouse button)\n");
       printf("h   Highlight points in present window\n");
       printf("x   Deselect all except highlighted\n");
-      printf("I   Invert selection\n");
+      printf("T   Invert selection\n");
       printf("D   Delete highlighted points\n");
       printf("s   Save highlighted points into file\n");
       printf("U   Deselect all points\n");
