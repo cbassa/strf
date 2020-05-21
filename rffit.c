@@ -81,6 +81,8 @@ struct site get_site(int site_id)
   char *env,filename[LIM];
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(filename,"%s/data/sites.txt",env);
 
   file=fopen(filename,"r");
@@ -319,6 +321,8 @@ int main(int argc,char *argv[])
   }
   
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   // Decode options
   while ((arg=getopt(argc,argv,"d:c:i:hs:gm:"))!=-1) {
     switch(arg) {
@@ -709,6 +713,8 @@ int main(int argc,char *argv[])
     // Flux limit
     if (c=='l') {
       env=getenv("ST_DATADIR");
+      if(env==NULL||strlen(env)==0)
+        env=".";
       sprintf(freqlist,"%s/data/frequencies.txt",env);  
       fp=fopen(freqlist,"a");
       fprintf(fp,"%05d %lf\n",orb.satno,d.ffit/1000.0);
