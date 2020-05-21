@@ -1085,7 +1085,7 @@ int main(int argc,char *argv[])
       printf("z   Start box to zoom\n");
       printf("d   Start box to delete points\n");
       printf("A   Zoom/delete points (left mouse button)\n");
-      printf("h   Highlight points in present window\n");
+      printf("H   Highlight points in present window\n");
       printf("x   Deselect all except highlighted\n");
       printf("T   Invert selection\n");
       printf("D   Delete highlighted points\n");
