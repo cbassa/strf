@@ -73,4 +73,10 @@ With a Adalm Pluto:
 
 Here we use the **Adalm Pluto** transceiver with `iio_readdev`. The transceiver is connected via USB. Replace `x.y.z` by the USB bus ID of your transceiver. You can retreive the USB IDs from the output of `iio_info -s`. Connection via Ethernet is possible as well. Before receiving we have to set center frequency, samplerate, gain, ... by a bunch of `iio_attr` commands.
 
+With I/Q recordings obtained from Gqrx:
+
+    ./rffft -i gqrx_YYYYMMDD_HHMMSS_97400000_2000000_fc.raw -f 97400000 -s 2000000 -F float -T "YYYY-MM-DDTHH:MM:SS"
+
+**Gqrx** records complex samples into `raw` files. The filename contains date, time, center frequency and samplerate separated by underscores. Replace `YYYYMMDD` and `HHMMSS` by your actual time and respectively. Pay attention to insert an uppercase `T` between date and time in the time stamp parameter of the `rffft` command.
+
 The output spectrograms can be viewed and analysed using `rfplot`. 
