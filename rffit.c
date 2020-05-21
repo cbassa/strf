@@ -296,7 +296,7 @@ int main(int argc,char *argv[])
   int site_id=4171;
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
-  float x0,y0,x,y;
+  float x0=0.0,y0=0.0,x=0.0,y=0.0;
   double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
   float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
