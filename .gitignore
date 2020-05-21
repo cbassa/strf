@@ -16,3 +16,10 @@
 *.exe
 *.out
 *.app
+/rfdop
+/rfedit
+/rffft
+/rffind
+/rffit
+/rfplot
+/rfpng
