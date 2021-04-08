@@ -360,6 +360,8 @@ int main(int argc,char *argv[])
 
   // Deallocate
   free(ibuf);
+  free(cbuf);
+  free(fbuf);
   fftwf_free(c);
   fftwf_free(d);
   free(z);
