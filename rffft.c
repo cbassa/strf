@@ -23,6 +23,7 @@ void usage(void)
   printf("-F <format>     Input format char, int, float [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
+  printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
   printf("-h              This help\n");
@@ -46,10 +47,11 @@ int main(int argc,char *argv[])
   double freq,samp_rate,mjd,freqmin=-1,freqmax=-1;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
+  int sign=1;
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:I"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -115,6 +117,10 @@ int main(int argc,char *argv[])
 	realtime=0;
 	break;
 
+      case 'I':
+	sign=-1;
+	break;
+	
       case 'h':
 	usage();
 	return 0;
@@ -235,17 +241,17 @@ int main(int argc,char *argv[])
 	if (informat=='i') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) ibuf[2*i]/32768.0*zw[i];
-	    c[i][1]=(float) ibuf[2*i+1]/32768.0*zw[i];
+	    c[i][1]=(float) ibuf[2*i+1]/32768.0*zw[i]*sign;
 	  } 
 	} else if (informat=='c') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) cbuf[2*i]/256.0*zw[i];
-	    c[i][1]=(float) cbuf[2*i+1]/256.0*zw[i];
+	    c[i][1]=(float) cbuf[2*i+1]/256.0*zw[i]*sign;
 	  } 
 	} else if (informat=='f') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) fbuf[2*i]*zw[i];
-	    c[i][1]=(float) fbuf[2*i+1]*zw[i];
+	    c[i][1]=(float) fbuf[2*i+1]*zw[i]*sign;
 	  } 
 	}
 	  
