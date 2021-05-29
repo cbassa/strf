@@ -17,6 +17,10 @@ struct select {
   float x[NMAX],y[NMAX],w;
   float sigma;
 };
+struct data {
+  int n;
+  double *x, *y, *ym;
+} gd;
 
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
@@ -30,6 +34,9 @@ void quadfit(float x[],float y[],int n,float a[]);
 struct trace locate_trace(struct spectrogram s,struct trace t,int site_id,float sigmamin,float wmin,float wmax,int graves);
 void filter(struct spectrogram s,int site_id,float sigma,int graves);
 void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1);
+void versafit(int m,int n,double *a,double *da,double (*func)(double *),double dchisq,double tol,char *opt);
+double chisq_gaussian(double a[]);
+float fit_gaussian_point(struct spectrogram s,float x,float y,struct select sel,int site_id,int graves);
 
 int main(int argc,char *argv[])
 {
@@ -54,7 +61,7 @@ int main(int argc,char *argv[])
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
   float width=1500;
-  float x,y,x0,y0;
+  float x,y,x0,y0,yfit;
   char c;
   char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128];
   int sec,lsec,ssec;
@@ -83,9 +90,15 @@ int main(int argc,char *argv[])
   env=getenv("ST_TLEDIR");
   sprintf(tlefile,"%s/bulk.tle",env);  
 
+  // Set selection
+  isel=0;
+  sel.n=0;
+  sel.w=100.0;
+  sel.sigma=5.0;
+  
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -110,6 +123,14 @@ int main(int argc,char *argv[])
 	
       case 'w':
 	df0=(double) atof(optarg);
+	break;
+
+      case 'W':
+	sel.w=atof(optarg);
+	break;
+
+      case 'S':
+	sel.sigma=atof(optarg);
 	break;
 	
       case 'z':
@@ -180,12 +201,6 @@ int main(int argc,char *argv[])
   // Set trace
   tf.n=0;
   
-  // Set selection
-  isel=0;
-  sel.n=0;
-  sel.w=100.0;
-  sel.sigma=5.0;
-
   // Forever loop
   for (;;) {
     if (redraw==1) {
@@ -315,7 +330,9 @@ int main(int argc,char *argv[])
       printf("t        Locate traces\n");
       printf("s        Select track points\n");
       printf("u        Undo track point selection\n");
+      printf("S        Set track selection width and sigma\n");
       printf("f        Fits selected track points (generates out.dat)\n");
+      printf("F        Fits selected wideband track points (generates out.dat)\n");
       printf("g        Filter points above a certain sigma limit (generates filter.dat)\n");
       printf("G        Find peaks in current window (generates peakfind.dat)\n");
       printf("i        Identify selected track points\n");
@@ -324,6 +341,7 @@ int main(int argc,char *argv[])
       printf("b        Increase dynamic range\n");
       printf("Z        Provide manual dynamic range limits\n");
       printf("D/mid    Mark point (appends to mark.dat)\n");
+      printf("w        Fit wideband point (appends to mark.dat)\n");
       printf("c        Center view\n");
       printf("C        Toggle through color maps\n");
       printf("p/right  Toggle overlays\n");
@@ -396,6 +414,13 @@ int main(int argc,char *argv[])
     // Fit
     if (c=='f') {
       tf=fit_trace(s,sel,site_id,graves);
+      tf.site=site_id;
+      continue;
+    }
+
+    // Fit
+    if (c=='F') {
+      tf=fit_gaussian_trace(s,sel,site_id,graves);
       tf.site=site_id;
       continue;
     }
@@ -530,6 +555,26 @@ int main(int argc,char *argv[])
       fclose(file);
     }
 
+    // Fit single wideband point
+    if (c=='w') {
+      file=fopen("mark.dat","a");
+
+      // Fit point
+      yfit=fit_gaussian_point(s,x,y,sel,site_id,graves);
+      cpgpt1(x,yfit,17);
+      i=(int) floor(x);
+      f=s.freq-0.5*s.samp_rate+(double) yfit*s.samp_rate/(double) s.nchan;
+      if (s.mjd[i]>1.0) {
+	if (graves==0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	else 
+	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+	printf("%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
+      }
+      fclose(file);
+    }
+    
+    
     // Mark
     if (c=='m') {
       i0=(int) floor(xmin);
@@ -732,6 +777,9 @@ int main(int argc,char *argv[])
     free(t[i].freq);
     free(t[i].za);
   }
+  free(gd.x);
+  free(gd.y);
+  free(gd.ym);
 
   return 0;
 }
@@ -849,6 +897,8 @@ void usage(void)
   printf("-f <freq>    Frequency to zoom into (Hz)\n");
   printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
   printf("-o <offset>  Frequency offset to apply (Hz) [0]\n");
+  printf("-W <width>   Track selection width (in pixels) [100]\n");
+  printf("-S <sigma>   Track selection significance [5]\n");
   printf("-C <site>    Site ID\n");
   printf("-c <catalog> TLE catalog\n");
   printf("-g           GRAVES data\n");
@@ -982,6 +1032,99 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int gr
   // Close file
   fclose(file);
 
+  return t;
+}
+
+// Fit gaussian trace
+struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_id,int graves)
+{
+  int i,j,k,l,sn;
+  int i0,i1,j0,j1,jmax;
+  double f,chi2;
+  double a[4],da[4];
+  float x,y,s1,s2,z,za,zs,zm,sigma,rms;
+  struct trace t;
+  FILE *file;
+
+  // Set up trace
+  t.satno=99999;
+  t.n=(int) ceil(sel.x[sel.n-1]-sel.x[0]);
+  t.mjd=(double *) malloc(sizeof(double)*t.n);
+  t.freq=(double *) malloc(sizeof(double)*t.n);
+  t.za=(float *) malloc(sizeof(float)*t.n);
+
+  // Set up data
+  gd.n=(int) 2 * sel.w;
+  gd.x=(double *) malloc(sizeof(double) * gd.n);
+  gd.y=(double *) malloc(sizeof(double) * gd.n);
+  gd.ym=(double *) malloc(sizeof(double) * gd.n);
+  
+  // Open file
+  file=fopen("out.dat","w");
+
+  // Loop over selected regions
+  for (k=0,l=0;k<sel.n-1;k++) {
+    for (x=sel.x[k];x<=sel.x[k+1];x+=1.0) {
+      y=(x-sel.x[k])/(sel.x[k+1]-sel.x[k])*(sel.y[k+1]-sel.y[k])+sel.y[k];
+      i=(int) floor(x);
+      j0=(int) floor(y-sel.w);
+      j1=(int) floor(y+sel.w);
+
+      // Keep in range
+      if (j0<0)
+	j0=0;
+      if (j1>=s.nchan)
+	j1=s.nchan;
+
+      // Loop over points
+      for (j=j0,l=0;j<j1;j++,l++) {
+	gd.x[l] = (double) j;
+	gd.y[l] = (double) s.z[i+s.nsub*j];
+      }
+      gd.n = l;
+
+      // Parameter guess
+      a[0]=0.5*(j0+j1);
+      da[0]=10.0;
+      a[1]=10.0;
+      da[1]=1.0;
+      a[2]=1.0;
+      da[2]=1.0;
+      a[3]=1.0;
+      da[3]=1.0;
+
+      // Run fit
+      versafit(gd.n,4,a,da,chisq_gaussian,0.0,1e-3,"n");
+      
+      // Find maximum and significance
+      for (j=0,s1=0.0;j<gd.n;j++) {
+	s1+=pow(gd.y[i]-gd.ym[i],2);
+      }
+      zs=sqrt(s1/(float) gd.n);
+      sigma=a[2]/zs;
+      
+      // Store
+      if (sigma>sel.sigma && s.mjd[i]>1.0) {
+	f=s.freq-0.5*s.samp_rate+(double) a[0]*s.samp_rate/(double) s.nchan;
+	if (graves==0)
+	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
+	else
+	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
+	cpgpt1((float) i,(float) a[0], 17);
+	cpgmove((float) i,(float) a[0]-a[1]);
+	cpgdraw((float) i,(float) a[0]+a[1]);
+	t.mjd[l]=s.mjd[i];
+	t.freq[l]=f;
+	t.za[l]=0.0;
+	l++;
+      }
+    }
+  }
+  t.n=l;
+
+  // Close file
+  fclose(file);
+  
   return t;
 }
 
@@ -1284,4 +1427,72 @@ void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
   free(w);
 
   return;
+}
+
+// Gaussian point
+double chisq_gaussian(double a[])
+{
+  int i;
+  double arg,amp,chisq;
+
+  // Compute chisq
+  for (i=0,chisq=0.0;i<gd.n;i++) {
+    // Compute gaussian
+    arg=-0.5*pow((gd.x[i]-a[0])/a[1],2);
+    amp=a[2];
+    gd.ym[i]=amp*exp(arg)+a[3];
+
+    // Sum to chi-squared
+    chisq+=pow(gd.y[i]-gd.ym[i],2);
+  }
+    
+  return chisq;
+}
+
+// Fit gaussian point
+float fit_gaussian_point(struct spectrogram s,float x,float y,struct select sel,int site_id,int graves)
+{
+  int i,j,k,l,sn;
+  int i0,i1,j0,j1,jmax;
+  double f,chi2;
+  double a[4],da[4];
+
+  // Set up data
+  gd.n=(int) 2 * sel.w;
+  gd.x=(double *) malloc(sizeof(double) * gd.n);
+  gd.y=(double *) malloc(sizeof(double) * gd.n);
+  gd.ym=(double *) malloc(sizeof(double) * gd.n);
+  
+  // Set point
+  i=(int) floor(x);
+  j0=(int) floor(y-sel.w);
+  j1=(int) floor(y+sel.w);
+
+  // Keep in range
+  if (j0<0)
+    j0=0;
+  if (j1>=s.nchan)
+    j1=s.nchan;
+  
+  // Loop over points
+  for (j=j0,l=0;j<j1;j++,l++) {
+    gd.x[l] = (double) j;
+    gd.y[l] = (double) s.z[i+s.nsub*j];
+  }
+  gd.n = l;
+
+  // Parameter guess
+  a[0]=0.5*(j0+j1);
+  da[0]=10.0;
+  a[1]=10.0;
+  da[1]=1.0;
+  a[2]=1.0;
+  da[2]=1.0;
+  a[3]=1.0;
+  da[3]=1.0;
+
+  // Run fit
+  versafit(gd.n,4,a,da,chisq_gaussian,0.0,1e-3,"n");
+      
+  return a[0];
 }
