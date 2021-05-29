@@ -262,7 +262,7 @@ int identify_satellite_from_visibility(char *catalog,double altmin)
       }
     }
     frac=(float) nalt/(float) nsel;
-    if (nsel==nalt)
+    if (frac>0.95)
       printf("%5d %d/%d %.4f\n",orb.satno,nalt,nsel,frac);
   }
   rewind(fp);
@@ -736,7 +736,7 @@ int main(int argc,char *argv[])
       } else {
 	rms=fit_curve(orb,ia);
 	//printf("rms: %.3f kHz, cf: %.6f MHz, TCA: %s\n",rms,d.ffit/1000.0,nfd);
-	printf("%05d %.3f %.3f %s %04d %02d%010.6f\n",orb.satno,d.ffit/1000.0,rms,nfd,d.p[0].site_id,orb.ep_year-2000,orb.ep_day);
+	printf("%05d %.6f %.3f %s %04d %02d%010.6f\n",orb.satno,d.ffit/1000.0,rms,nfd,d.p[0].site_id,orb.ep_year-2000,orb.ep_day);
 	redraw=1;
       }
     }

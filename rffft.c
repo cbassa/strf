@@ -13,6 +13,7 @@ void usage(void)
   printf("rffft: FFT RF observations\n\n");
   printf("-i <file>       Input file (can be fifo) [stdin]\n");
   printf("-p <prefix>     Output prefix\n");
+  printf("-o <output>     Output filename [default: YYYY-MM-DDTHH:MM:SS.sss_XXXXXX.bin]\n");
   printf("-f <frequency>  Center frequency (Hz)\n");
   printf("-s <samprate>   Sample rate (Hz)\n");
   printf("-c <chansize>   Channel size [100Hz]\n");
@@ -22,6 +23,7 @@ void usage(void)
   printf("-F <format>     Input format char, int, float [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
+  printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
   printf("-h              This help\n");
@@ -31,11 +33,11 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0;
+  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0,useoutput=0;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
-  char infname[128]="",outfname[128]="",path[64]=".",prefix[32]="";
+  char infname[128]="",outfname[128]="",path[64]=".",prefix[32]="",output[128]="";
   char informat='i',outformat='f';
   int16_t *ibuf;
   char *cbuf;
@@ -45,10 +47,11 @@ int main(int argc,char *argv[])
   double freq,samp_rate,mjd,freqmin=-1,freqmax=-1;
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
+  int sign=1;
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:I"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -59,6 +62,11 @@ int main(int argc,char *argv[])
 	strcpy(path,optarg);
 	break;
 	
+      case 'o':
+	strcpy(output,optarg);
+	useoutput=1;
+	break;
+
       case 'f':
 	freq=(double) atof(optarg);
 	break;
@@ -109,6 +117,10 @@ int main(int argc,char *argv[])
 	realtime=0;
 	break;
 
+      case 'I':
+	sign=-1;
+	break;
+	
       case 'h':
 	usage();
 	return 0;
@@ -191,7 +203,11 @@ int main(int argc,char *argv[])
   // Forever loop
   for (m=0;;m++) {
     // File name
-    sprintf(outfname,"%s/%s_%06d.bin",path,prefix,m);
+    if (useoutput==0) {
+      sprintf(outfname,"%s/%s_%06d.bin",path,prefix,m);
+    } else {
+      sprintf(outfname,"%s/%s_%06d.bin",path,output,m);
+    }
     outfile=fopen(outfname,"w");
 
     // Loop over subints to dump
@@ -225,17 +241,17 @@ int main(int argc,char *argv[])
 	if (informat=='i') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) ibuf[2*i]/32768.0*zw[i];
-	    c[i][1]=(float) ibuf[2*i+1]/32768.0*zw[i];
+	    c[i][1]=(float) ibuf[2*i+1]/32768.0*zw[i]*sign;
 	  } 
 	} else if (informat=='c') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) cbuf[2*i]/256.0*zw[i];
-	    c[i][1]=(float) cbuf[2*i+1]/256.0*zw[i];
+	    c[i][1]=(float) cbuf[2*i+1]/256.0*zw[i]*sign;
 	  } 
 	} else if (informat=='f') {
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) fbuf[2*i]*zw[i];
-	    c[i][1]=(float) fbuf[2*i+1]*zw[i];
+	    c[i][1]=(float) fbuf[2*i+1]*zw[i]*sign;
 	  } 
 	}
 	  

@@ -19,7 +19,8 @@ LFLAGS = -L$(prefix)/lib -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 # NOTE: STRF will not compile or link correctly with the system gcc (which is actually clang)
 # It's best to build with gcc provided by Macports or Homebrew
 # Under Macports, this is provided as gcc-mp-7, as below, on Homebrew this may be different.
-CC = $(prefix)/bin/gcc-mp-7
+# Newer Macports releases use gcc-mp-10, therefor changed the default to gcc-mp-10
+CC = $(prefix)/bin/gcc-mp-10
 
 # Installation
 INSTALL_PROGRAM = install -m 557
@@ -44,8 +45,8 @@ rffind: rffind.o rfio.o rftime.o
 rftrack: rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 	$(CC) -o rftrack rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o -lm
 
-rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o 
-	$(CC) -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o $(LFLAGS)
+rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o
+	$(CC) -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o $(LFLAGS)
 
 rffft: rffft.o rftime.o
 	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm $(LFLAGS)

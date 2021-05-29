@@ -157,6 +157,10 @@ int main(int argc,char *argv[])
       case 's':
 	isub=atoi(optarg);
 	break;
+
+      case 'C':
+	site_id=atoi(optarg);
+	break;
 	
       case 'l':
 	nsub=atoi(optarg);
@@ -180,10 +184,6 @@ int main(int argc,char *argv[])
 
       case 'w':
 	df0=(double) atof(optarg);
-	break;
-
-      case 'C':
-	site_id=atoi(optarg);
 	break;
 	
       case 'h':
