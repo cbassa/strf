@@ -384,11 +384,15 @@ int main(int argc,char *argv[])
 
     // Select start
     if (c=='s') {
-      sel.x[isel]=x;
-      sel.y[isel]=y;
-      isel++;
-      sel.n=isel;
-      redraw=1;
+      if (sel.n < NMAX) {
+        sel.x[isel]=x;
+        sel.y[isel]=y;
+        isel++;
+        sel.n=isel;
+        redraw=1;
+      } else {
+        printf("Maximum number of %i selection point reached.\n", NMAX);
+      }
       continue;
     }
 
@@ -457,9 +461,11 @@ int main(int argc,char *argv[])
 
     // Undo
     if (c=='u') {
-      isel--;
-      sel.n=isel;
-      redraw=1;
+      if (sel.n > 0) {
+        isel--;
+        sel.n=isel;
+        redraw=1;
+      }
     }
 
     // Increase
