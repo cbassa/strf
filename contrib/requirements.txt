@@ -1,0 +1,8 @@
+astropy
+ephem
+matplotlib
+numpy
+Pillow
+python-decouple
+requests
+git+https://gitlab.com/librespacefoundation/satnogs/python-satnogs-api.git@e20a7d3c
