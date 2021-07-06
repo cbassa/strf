@@ -311,6 +311,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
   // Free
   free(p);
   free(v);
+  free(vg);
 
   return;
 }
