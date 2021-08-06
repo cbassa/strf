@@ -263,7 +263,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
     rms=sqrt(rms/(double) t.n);
 
     // Find TCA
-    for (i=0,mjd0=0.0;i<t.n-1;i++) 
+    for (i=1,mjd0=0.0;i<t.n;i++)
       if (v[i]*v[i-1]<0.0)
 	mjd0=t.mjd[i];
     
@@ -396,7 +396,7 @@ void identify_trace(char *tlefile,struct trace t,int satno)
     rms=sqrt(rms/(double) t.n);
 
     // Find TCA
-    for (i=0,mjd0=0.0;i<t.n-1;i++) 
+    for (i=1,mjd0=0.0;i<t.n;i++)
       if (v[i]*v[i-1]<0.0)
 	mjd0=t.mjd[i];
     
