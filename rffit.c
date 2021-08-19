@@ -1095,7 +1095,7 @@ int main(int argc,char *argv[])
       printf("s   Select all points in present window\n");
       printf("H   Deselect all points in present window\n");
       printf("U   Deselect all points\n");
-      printf("I   Invert selection of all points\n");
+      printf("T   Invert selection of all points\n");
       printf("\n");
       printf("D   Delete selected points\n");
       printf("X   Delete nearest point (alternatively right mouse button)\n");
