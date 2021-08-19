@@ -9,6 +9,7 @@ int ERRCOMP=0; // Set reduced Chi-Squared to unity (1 = yes; 0 = no)
 
 int dsmin(double **,double *,int,double,double (*func)(double *));
 double **simplex(int,double *,double *);
+void simplex_free(double **,int);
 double parabolic_root(double,double,double,double);
 
 // Versafit fitting routine
@@ -50,6 +51,8 @@ void versafit(int m,int n,double *a,double *da,double (*func)(double *),double d
 	a[i]+=p[j][i];
       a[i]/=(double) (n+1);
     }
+
+    simplex_free(p,n);
 
     // Compute minimum
     chisqmin=func(a);
@@ -109,6 +112,8 @@ void versafit(int m,int n,double *a,double *da,double (*func)(double *),double d
 	  }
 	  d[0]=parabolic_root(d[0],func(b),chisqmin,dchisq);
 
+          simplex_free(p,n);
+
 	  if (fabs(chisqmin+dchisq-func(b))<tol) break;
 	}
 
@@ -131,6 +136,8 @@ void versafit(int m,int n,double *a,double *da,double (*func)(double *),double d
 	  }
 	  d[1]=parabolic_root(d[1],func(b),chisqmin,dchisq);
 
+          simplex_free(p,n);
+
 	  if (fabs(chisqmin+dchisq-func(b))<tol) break;
 	}
 	da[i]=0.5*(fabs(d[0])+fabs(d[1]));
@@ -138,16 +145,16 @@ void versafit(int m,int n,double *a,double *da,double (*func)(double *),double d
       }
     }
 
+    free(b);
+    free(db);
+
     if (OUTPUT) 
       for (i=0;i<n;i++) 
 	printf(" a(%i): %12.5f +- %9.5f\n",i+1,a[i],da[i]);
   }
   if (OUTPUT) printf("\nTotal number of iterations: %i\n",nfunk);
 
-  //  free(p);
-  //  free(y);
-  //  free(b);
-  //  free(db);
+  free(y);
 
   return;
 }

@@ -82,6 +82,8 @@ struct site get_site(int site_id)
   char *env,filename[LIM];
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(filename,"%s/data/sites.txt",env);
 
   file=fopen(filename,"r");
@@ -143,6 +145,7 @@ void format_tle(orbit_t orb,char *line1,char *line2)
 {
   int i,csum;
   char sbstar[]=" 00000-0",bstar[13];
+  char csumstr[2];
 
   // Format Bstar term
   if (fabs(orb.bstar)>1e-9) {
@@ -161,14 +164,16 @@ void format_tle(orbit_t orb,char *line1,char *line2)
     else if (line1[i]=='-')
       csum++;
   }
-  sprintf(line1,"%s%d",line1,csum%10);
+  sprintf(csumstr,"%d",csum%10);
+  strcat(line1,csumstr);
   for (i=0,csum=0;i<strlen(line2);i++) {
     if (isdigit(line2[i]))
       csum+=line2[i]-'0';
     else if (line2[i]=='-')
       csum++;
   }
-  sprintf(line2,"%s%d",line2,csum%10);
+  sprintf(csumstr,"%d",csum%10);
+  strcat(line2,csumstr);
 
   return;
 }
@@ -292,7 +297,7 @@ int main(int argc,char *argv[])
   int site_id=4171;
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
-  float x0,y0,x,y;
+  float x0=0.0,y0=0.0,x=0.0,y=0.0;
   double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
   float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
@@ -317,6 +322,8 @@ int main(int argc,char *argv[])
   }
   
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   // Decode options
   while ((arg=getopt(argc,argv,"d:c:i:hs:gm:"))!=-1) {
     switch(arg) {
@@ -707,6 +714,8 @@ int main(int argc,char *argv[])
     // Flux limit
     if (c=='l') {
       env=getenv("ST_DATADIR");
+      if(env==NULL||strlen(env)==0)
+        env=".";
       sprintf(freqlist,"%s/data/frequencies.txt",env);  
       fp=fopen(freqlist,"a");
       fprintf(fp,"%05d %lf\n",orb.satno,d.ffit/1000.0);
@@ -915,7 +924,7 @@ int main(int argc,char *argv[])
     }
 
     // Invert selection
-    if (c=='I') {
+    if (c=='T') {
       for (i=0;i<d.n;i++) {
 	if (d.p[i].flag==2)
 	  d.p[i].flag=1;
@@ -1056,6 +1065,7 @@ int main(int argc,char *argv[])
     if (c=='h') {
       printf("Interactive Usage:\n");
       printf("================================================================================\n");
+      printf("q   Quit\n");
       printf("p   Toggle curve plotting\n");
       printf("1   Toggle fitting parameter (Inclination)\n");
       printf("2   Toggle fitting parameter (RA of ascending node)\n");
@@ -1096,10 +1106,7 @@ int main(int argc,char *argv[])
       printf("S   Save selected points into file\n");
       printf("w   Write present TLE\n");
       printf("\n");
-      printf("h   This help\n");
-      printf("q   Quit\n");
       printf("================================================================================\n");
-      printf("\n");
     }
 
 

@@ -124,6 +124,8 @@ struct site get_site(int site_id)
   char *env,filename[LIM];
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(filename,"%s/data/sites.txt",env);
 
   file=fopen(filename,"r");
@@ -181,6 +183,8 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
   char *env,freqlist[LIM];
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Reloop stderr
@@ -331,6 +335,8 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   char tbuf[30];
   
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Reloop stderr
@@ -448,6 +454,8 @@ int is_classified(int satno)
   
   // Get classfd.tle path
   env=getenv("ST_TLEDIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(tlefile,"%s/classfd.tle",env);  
 
   // Does it exist
@@ -464,8 +472,8 @@ int is_classified(int satno)
 	if (no==satno) flag=1;
       }
     }
+    fclose(file);
   }
-  fclose(file);
   
   return flag;
 }
@@ -488,6 +496,8 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   double ra,de,azi,alt;
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Frequency limits
@@ -502,11 +512,14 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   infile=fopen(freqlist,"r");
   if (infile==NULL) {
     printf("%s not found\n",freqlist);
-    return t;
+    *nsat=0;
+    return NULL;
   } else {
     for (i=0;;) {
       if (fgetline(infile,line,LIM)<=0)
 	break;
+      if (line[0]=='#')
+	continue;
       status=sscanf(line,"%d %lf",&satno,&freq0);
 
       if (graves==1 && fabs(freq0-143.050)<1e-3)
@@ -520,7 +533,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   }
   // Break out
   if (i==0)
-    return t;
+  {
+    *nsat=0;
+    return NULL;
+  }
 
   // Valid MJDs
   for (i=0;i<n;i++)

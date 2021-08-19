@@ -213,6 +213,9 @@ int main(int argc,char *argv[])
     
       // Filter
       filter(s,site_id,sigma,filename,graves);
+
+      // Free
+      free_spectrogram(s);
     }
   } else {
     // Read data
@@ -225,14 +228,10 @@ int main(int argc,char *argv[])
       // Filter
       filter(s,site_id,sigma,filename,graves);
     }
-  }
 
-  // Free
-  free(s.z);
-  free(s.mjd);
-  //  free(s.zavg);
-  //  free(s.zstd);
-  //  free(s.length);
+    // Free
+    free_spectrogram(s);
+  }
 
   return 0;
 }

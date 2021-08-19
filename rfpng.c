@@ -23,8 +23,8 @@ struct point {
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-void plot_traces(struct trace *t,int nsat,float foff);
-void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
+void plot_traces(struct trace *t,int nsat,float foff,int type,int isci);
+  void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
 
 int main(int argc,char *argv[])
 {
@@ -172,7 +172,8 @@ int main(int argc,char *argv[])
 
   cpgopen(pngfile);
   //    cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
-  cpgsch(0.8);
+  cpgpap(14.0, 1.0);
+  cpgsch(0.6);
   cpgask(1);
     
   // Default limits
@@ -223,9 +224,10 @@ int main(int argc,char *argv[])
   
   // Plot traces
   cpgswin(xmin,xmax,fmin,fmax);
-  cpgsch(0.8);
-  plot_traces(t,nsat,0.0);
-  cpgsch(0.8);
+  cpgsch(0.5);
+  plot_traces(t,nsat,0.0,0,3);
+  plot_traces(t,nsat,0.0,1,8);
+  cpgsch(0.6);
   
   // Human readable frequency axis
   fcen=0.5*(fmax+fmin);
@@ -254,9 +256,6 @@ int main(int argc,char *argv[])
     free(t[i].freq);
     free(t[i].za);
   }
-  //    free(tf.mjd);
-  //    free(tf.freq);
-  //    free(tf.za);
 
   return 0;
 }
@@ -382,31 +381,41 @@ void usage(void)
   return;
 }
 
-void plot_traces(struct trace *t,int nsat,float foff)
+void plot_traces(struct trace *t,int nsat,float foff,int type,int isci)
 {
   int i,j,flag,textflag;
   char text[8];
 
   // Loop over objects
   for (i=0;i<nsat;i++) {
-    // Select color
-    if (t[i].classfd==1)
-      cpgsci(8);
-    else
-      cpgsci(3);
+    // Skip satellites of wrong type
+    if (t[i].classfd!=type)
+      continue;
 
-    sprintf(text," %d",t[i].satno);
 
     // Plot label at start of trace
-    if (t[i].za[0]<=90.0)
-	cpgtext(0.0,(float) t[i].freq[0],text);
+    sprintf(text," %d",t[i].satno);
+    if (t[i].za[0]<=90.0) {
+      cpgslw(5);
+      cpgsci(0);
+      cpgtext(0.0,(float) t[i].freq[0],text);
+      cpgslw(1);
+      cpgsci(isci);
+      cpgtext(0.0,(float) t[i].freq[0],text);
+    }
 
     // Loop over trace
     for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
       // Plot label for rising sources
-      if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
+      if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0) {
+	cpgslw(5);
+	cpgsci(0);
 	cpgtext((float) j,(float) (t[i].freq[j]+foff),text);
-
+	cpgslw(1);
+	cpgsci(isci);
+	cpgtext((float) j,(float) (t[i].freq[j]+foff),text);
+      }
+	
       // Plot line
       if (flag==0) {
 	cpgmove((float) j,(float) (t[i].freq[j]+foff));
