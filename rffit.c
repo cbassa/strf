@@ -1083,6 +1083,7 @@ int main(int argc,char *argv[])
       printf("i   Identify satellite from catalog based on Doppler curve\n");
       printf("I   Identify satellite from catalog based on visibility\n");
       printf("\n");
+      printf("Highlighting / Selecting / Deleting points:\n");
       printf("z   Start box to zoom\n");
       printf("A   End box to zoom/delete points (alternatively left mouse button)\n");
       printf("r   Reset zoom\n");
@@ -1090,7 +1091,6 @@ int main(int argc,char *argv[])
       printf("d   Start box to delete points\n");
       printf("A/left mouse button   End box to zoom/delete points\n");
       printf("\n");
-      printf("Highlighting / Selecting points:\n");
       printf("l   Select points on flux limit\n");
       printf("s   Select all points in present window\n");
       printf("H   Deselect all points in present window\n");
