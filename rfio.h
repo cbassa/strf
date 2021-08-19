@@ -9,3 +9,4 @@ struct spectrogram {
 };
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff);
 void write_spectrogram(struct spectrogram s,char *prefix);
+void free_spectrogram(struct spectrogram s);

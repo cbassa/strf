@@ -61,7 +61,7 @@ int main(int argc,char *argv[])
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
   float width=1500;
-  float x,y,x0,y0,yfit;
+  float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
   char c;
   char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128];
   int sec,lsec,ssec;
@@ -767,6 +767,7 @@ int main(int argc,char *argv[])
   free(s.zavg);
   free(s.zstd);
   free(s.mjd);
+  free(s.length);
   if (tf.n>0) {
     free(tf.mjd);
     free(tf.freq);

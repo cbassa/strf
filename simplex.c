@@ -26,3 +26,13 @@ double **simplex(int n,double *a,double *da)
   return p;
 }
 
+void simplex_free(double **p,int n)
+{
+  int i;
+
+  if(p==NULL)
+    return;
+  for(i=0;i<=n;i++)
+    free(p[i]);
+  free(p);
+}

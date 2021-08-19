@@ -256,9 +256,6 @@ int main(int argc,char *argv[])
     free(t[i].freq);
     free(t[i].za);
   }
-  //    free(tf.mjd);
-  //    free(tf.freq);
-  //    free(tf.za);
 
   return 0;
 }

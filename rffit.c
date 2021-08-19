@@ -81,6 +81,8 @@ struct site get_site(int site_id)
   char *env,filename[LIM];
 
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(filename,"%s/data/sites.txt",env);
 
   file=fopen(filename,"r");
@@ -142,6 +144,7 @@ void format_tle(orbit_t orb,char *line1,char *line2)
 {
   int i,csum;
   char sbstar[]=" 00000-0",bstar[13];
+  char csumstr[2];
 
   // Format Bstar term
   if (fabs(orb.bstar)>1e-9) {
@@ -160,14 +163,16 @@ void format_tle(orbit_t orb,char *line1,char *line2)
     else if (line1[i]=='-')
       csum++;
   }
-  sprintf(line1,"%s%d",line1,csum%10);
+  sprintf(csumstr,"%d",csum%10);
+  strcat(line1,csumstr);
   for (i=0,csum=0;i<strlen(line2);i++) {
     if (isdigit(line2[i]))
       csum+=line2[i]-'0';
     else if (line2[i]=='-')
       csum++;
   }
-  sprintf(line2,"%s%d",line2,csum%10);
+  sprintf(csumstr,"%d",csum%10);
+  strcat(line2,csumstr);
 
   return;
 }
@@ -291,7 +296,7 @@ int main(int argc,char *argv[])
   int site_id=4171;
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
-  float x0,y0,x,y;
+  float x0=0.0,y0=0.0,x=0.0,y=0.0;
   double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
   float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
@@ -316,6 +321,8 @@ int main(int argc,char *argv[])
   }
   
   env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   // Decode options
   while ((arg=getopt(argc,argv,"d:c:i:hs:gm:"))!=-1) {
     switch(arg) {
@@ -706,6 +713,8 @@ int main(int argc,char *argv[])
     // Flux limit
     if (c=='l') {
       env=getenv("ST_DATADIR");
+      if(env==NULL||strlen(env)==0)
+        env=".";
       sprintf(freqlist,"%s/data/frequencies.txt",env);  
       fp=fopen(freqlist,"a");
       fprintf(fp,"%05d %lf\n",orb.satno,d.ffit/1000.0);
@@ -914,7 +923,7 @@ int main(int argc,char *argv[])
     }
 
     // Invert selection
-    if (c=='I') {
+    if (c=='T') {
       for (i=0;i<d.n;i++) {
 	if (d.p[i].flag==2)
 	  d.p[i].flag=1;
@@ -1053,7 +1062,40 @@ int main(int argc,char *argv[])
 
     // Help
     if (c=='h') {
-      printf("Usage:\n================================================================================\nq   Quit\np   Toggle curve plotting\n1   Toggle fitting parameter (Inclination)\n2   Toggle fitting parameter (RA of ascending node)\n3   Toggle fitting parameter (Eccentricity)\n4   Toggle fitting parameter (Argyment of perigee)\n5   Toggle fitting parameter (Mean anomaly)\n6   Toggle fitting parameter (Mean motion)\nc   Change parameter\nm   Move highlighted points in frequency\nl   Select points on flux limit\nf   Fit highlighted points\ng   Get TLE from catalog\ni   Identify satellite from catalog based on Doppler curve\nI   Identify satellite from catalog based on visibility\nw   Write present TLE\nR   Reread TLE from catalog\nX   Delete nearest point (right mouse button)\nz   Start box to zoom\nd   Start box to delete points\nA   Zoom/delete points (left mouse button)\nh   Highlight points in present window\nx   Deselect all except highlighted\nI   Invert selection\nD   Delete highlighted points\ns   Save highlighted points into file\nU   Deselect all points\nu   Deselect highlighted points\nt   Load template tle\nr   Reset zoom\nh   This help\n================================================================================\n\n");
+      printf("Usage:\n");
+      printf("================================================================================\n");
+      printf("q   Quit\n");
+      printf("p   Toggle curve plotting\n");
+      printf("1   Toggle fitting parameter (Inclination)\n");
+      printf("2   Toggle fitting parameter (RA of ascending node)\n");
+      printf("3   Toggle fitting parameter (Eccentricity)\n");
+      printf("4   Toggle fitting parameter (Argyment of perigee)\n");
+      printf("5   Toggle fitting parameter (Mean anomaly)\n");
+      printf("6   Toggle fitting parameter (Mean motion)\n");
+      printf("c   Change parameter\n");
+      printf("m   Move highlighted points in frequency\n");
+      printf("l   Select points on flux limit\n");
+      printf("f   Fit highlighted points\n");
+      printf("g   Get TLE from catalog\n");
+      printf("i   Identify satellite from catalog based on Doppler curve\n");
+      printf("I   Identify satellite from catalog based on visibility\n");
+      printf("w   Write present TLE\n");
+      printf("R   Reread TLE from catalog\n");
+      printf("X   Delete nearest point (right mouse button)\n");
+      printf("z   Start box to zoom\n");
+      printf("d   Start box to delete points\n");
+      printf("A   Zoom/delete points (left mouse button)\n");
+      printf("H   Highlight points in present window\n");
+      printf("x   Deselect all except highlighted\n");
+      printf("T   Invert selection\n");
+      printf("D   Delete highlighted points\n");
+      printf("s   Save highlighted points into file\n");
+      printf("U   Deselect all points\n");
+      printf("u   Deselect highlighted points\n");
+      printf("t   Load template tle\n");
+      printf("r   Reset zoom\n");
+      printf("h   This help\n");
+      printf("================================================================================\n\n");
     }
 
 
