@@ -55,7 +55,7 @@ int main(int argc,char *argv[])
   float heat_g[] = {0.0, 0.0, 0.5, 1.0, 1.0};
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
-  int i,j,k,flag=0,isel=0,sn;
+  int i,j,k,flag=0,sn;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix=0,iy=0,isub=0;
@@ -91,7 +91,6 @@ int main(int argc,char *argv[])
   sprintf(tlefile,"%s/bulk.tle",env);  
 
   // Set selection
-  isel=0;
   sel.n=0;
   sel.w=100.0;
   sel.sigma=5.0;
@@ -384,11 +383,14 @@ int main(int argc,char *argv[])
 
     // Select start
     if (c=='s') {
-      sel.x[isel]=x;
-      sel.y[isel]=y;
-      isel++;
-      sel.n=isel;
-      redraw=1;
+      if (sel.n < NMAX) {
+        sel.x[sel.n]=x;
+        sel.y[sel.n]=y;
+        sel.n++;
+        redraw=1;
+      } else {
+        printf("Maximum number of %i selection point reached.\n", NMAX);
+      }
       continue;
     }
 
@@ -457,9 +459,10 @@ int main(int argc,char *argv[])
 
     // Undo
     if (c=='u') {
-      isel--;
-      sel.n=isel;
-      redraw=1;
+      if (sel.n > 0) {
+        sel.n--;
+        redraw=1;
+      }
     }
 
     // Increase
@@ -698,7 +701,6 @@ int main(int argc,char *argv[])
       xmax=(float) s.nsub;
       ymin=0.0;
       ymax=(float) s.nchan;
-      isel=0;
       sel.n=0;
       redraw=1;
       continue;
