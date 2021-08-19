@@ -27,7 +27,8 @@ struct point {
   double mjd,freq,v,freq0;
   float t,f,res;
   float flux;
-  int flag,site_id,rsite_id;
+  int flag; // 0 - deleted ("unselected"), 1 - not highlighted; 2 - highlighted
+  int site_id,rsite_id;
   struct site s,r;
 };
 struct data {
@@ -1053,9 +1054,8 @@ int main(int argc,char *argv[])
 
     // Help
     if (c=='h') {
-      printf("Usage:\n");
+      printf("Interactive Usage:\n");
       printf("================================================================================\n");
-      printf("q   Quit\n");
       printf("p   Toggle curve plotting\n");
       printf("1   Toggle fitting parameter (Inclination)\n");
       printf("2   Toggle fitting parameter (RA of ascending node)\n");
@@ -1063,29 +1063,41 @@ int main(int argc,char *argv[])
       printf("4   Toggle fitting parameter (Argyment of perigee)\n");
       printf("5   Toggle fitting parameter (Mean anomaly)\n");
       printf("6   Toggle fitting parameter (Mean motion)\n");
-      printf("c   Change parameter\n");
-      printf("m   Move highlighted points in frequency\n");
-      printf("l   Select points on flux limit\n");
-      printf("f   Fit highlighted points\n");
+      printf("\n");
+      printf("t   Load template TLE\n");
       printf("g   Get TLE from catalog\n");
+      printf("R   Reread TLE from catalog\n");
+      printf("\n");
+      printf("c   Change parameter\n");
+      printf("f   Fit highlighted points\n");
       printf("i   Identify satellite from catalog based on Doppler curve\n");
       printf("I   Identify satellite from catalog based on visibility\n");
-      printf("w   Write present TLE\n");
-      printf("R   Reread TLE from catalog\n");
-      printf("X   Delete nearest point (right mouse button)\n");
+      printf("\n");
       printf("z   Start box to zoom\n");
-      printf("d   Start box to delete points\n");
-      printf("A   Zoom/delete points (left mouse button)\n");
-      printf("h   Highlight points in present window\n");
-      printf("x   Deselect all except highlighted\n");
-      printf("I   Invert selection\n");
-      printf("D   Delete highlighted points\n");
-      printf("s   Save highlighted points into file\n");
-      printf("U   Deselect all points\n");
-      printf("u   Deselect highlighted points\n");
-      printf("t   Load template tle\n");
+      printf("A   End box to zoom/delete points (alternatively left mouse button)\n");
       printf("r   Reset zoom\n");
+      printf("\n");
+      printf("d   Start box to delete points\n");
+      printf("A/left mouse button   End box to zoom/delete points\n");
+      printf("\n");
+      printf("Highlighting / Selecting points:\n");
+      printf("l   Select points on flux limit\n");
+      printf("s   Select all points in present window\n");
+      printf("H   Deselect all points in present window\n");
+      printf("U   Deselect all points\n");
+      printf("I   Invert selection of all points\n");
+      printf("\n");
+      printf("D   Delete selected points\n");
+      printf("X   Delete nearest point (alternatively right mouse button)\n");
+      printf("x   Delete all unselected points in present window\n");
+      printf("m   Move selected points in frequency\n");
+      printf("u   Reload deleted points and Deselect all points\n");
+      printf("\n");
+      printf("S   Save selected points into file\n");
+      printf("w   Write present TLE\n");
+      printf("\n");
       printf("h   This help\n");
+      printf("q   Quit\n");
       printf("================================================================================\n");
       printf("\n");
     }
