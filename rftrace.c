@@ -507,6 +507,8 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     for (i=0;;) {
       if (fgetline(infile,line,LIM)<=0)
 	break;
+      if (line[0]=='#')
+	continue;
       status=sscanf(line,"%d %lf",&satno,&freq0);
 
       if (graves==1 && fabs(freq0-143.050)<1e-3)
