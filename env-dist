@@ -6,3 +6,9 @@ SATNOGS_DIR=/my/path/to/satnogs/data
 SATNOGS_TLE_DIR=$SATNOGS_DIR/tles
 SATNOGS_OBS_DIR=$SATNOGS_DIR/doppler_obs
 SATNOGS_SITES_TXT=$SATNOGS_DIR/sites.txt
+
+
+# SatNOGS Artifacts Helpers
+SATNOGS_NETWORK_API_URL=https://network.satnogs.org/api/
+SATNOGS_DB_API_URL=https://db.satnogs.org/api/
+SATNOGS_DB_API_TOKEN=your-db-api-token
