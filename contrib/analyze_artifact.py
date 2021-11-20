@@ -9,6 +9,7 @@ import ephem
 import h5py
 import json
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,32 +53,40 @@ def extract_peaks(data):
             continue
         rows.append(i)
 
-    # Select only maximum values in masked channels
-    points = []
+    points_all = []
+    points_filtered = []
     for i,x in enumerate(np.argmax(data, axis=1)):
-        if not x in rows:
-            continue
-        points.append([i, x])
-    points = np.array(points)
-    measurements = np.vstack((wf['relative_time'][points[:,0]],
-                             [wf['frequency'][x] for x in points[:,1]]))
-    return snr, measurements, points
+        points_all.append([i, x])
+        if x in rows:
+            points_filtered.append([i, x])
 
-def plot_measurements(wf, data, measurements, snr):
+    points_all = np.array(points_all)
+    points_filtered = np.array(points_filtered)
+
+    if len(points_filtered) == 0:
+        print("WARNING: No measurement passed filter, loosening requirements now.")
+        points_filtered = points_all
+        measurements = None
+
+    measurements = np.vstack((wf['relative_time'][points_filtered[:,0]],
+                             [wf['frequency'][x] for x in points_filtered[:,1]]))
+    return snr, measurements, points_filtered
+
+def plot_measurements_all(wf, data):
     plt.plot(wf['relative_time'][:],
              [wf['frequency'][x] for x in np.argmax(data[:], axis=1)],
              '.',
              label='all')
-    plt.plot(measurements[:,0],
-             measurements[:,1],
+
+def plot_measurements_selected(measurements):
+    plt.plot(measurements[0,:],
+             measurements[1,:],
              '.',
-             label='automatic channel mask')
-    plt.plot(wf['relative_time'][2.4 < snr],
-             [wf['frequency'][x] for x in np.argmax(data[2.4 < snr], axis=1)],
-             '.',
-             label="SNR > 2.4")
+             label='filtered')
+
+def plot_legend(observation_id):
     plt.legend()
-    plt.title("Observation #4991792 - Maximum Values")
+    plt.title("Observation #{} - Maximum Values".format(observation_id))
     plt.grid()
     plt.xlabel('Elapsed Time / s')
     plt.ylabel('rel. Frequency / kHz')
@@ -152,7 +161,10 @@ if __name__ == '__main__':
 
     print('Extract measurements...')
     snr, measurements, points = extract_peaks(data)
-    # plot_measurements(wf, data, measurements, snr)
+    plot_measurements_all(wf, data)
+    plot_measurements_selected(measurements)
+    plot_legend(args.observation_id)
+
     m2 = dedoppler(measurements, metadata)
     save_rffit_data(output_file, m2, site_id=args.site_id)
     print('Data written in {}'.format(output_file))
