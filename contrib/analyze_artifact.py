@@ -76,17 +76,17 @@ def plot_measurements_all(wf, data):
     plt.plot(wf['relative_time'][:],
              [wf['frequency'][x] for x in np.argmax(data[:], axis=1)],
              '.',
-             label='all')
+             label='Maximum Values')
 
-def plot_measurements_selected(measurements):
+def plot_measurements_selected(measurements, label):
     plt.plot(measurements[0,:],
              measurements[1,:],
              '.',
-             label='filtered')
+             label=label)
 
 def plot_legend(observation_id):
     plt.legend()
-    plt.title("Observation #{} - Maximum Values".format(observation_id))
+    plt.title("Observation #{} - Centroids".format(observation_id))
     plt.grid()
     plt.xlabel('Elapsed Time / s')
     plt.ylabel('rel. Frequency / kHz')
