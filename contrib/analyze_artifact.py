@@ -3,6 +3,7 @@
 from astropy.time import Time
 
 from datetime import datetime, timedelta
+from scipy.interpolate import interp1d
 
 import argparse
 import ephem
@@ -71,6 +72,43 @@ def extract_peaks(data):
     measurements = np.vstack((wf['relative_time'][points_filtered[:,0]],
                              [wf['frequency'][x] for x in points_filtered[:,1]]))
     return snr, measurements, points_filtered
+
+def extract_peaks_method2(data):
+    points = []
+    for i, row in enumerate(data):
+        #xx = (row - np.mean(row)) / np.std(row)
+        # Low pass filter to get rid of narrow spurs
+        row2 = pd.Series(row).rolling(60, min_periods=1).sum().to_numpy() - 60 * row.mean()
+        # centroid = np.sum((np.arange(row2.shape[0]) * row2)[row2 / np.std(row) > 4]) / np.sum(row2)
+        # snr.append(row2.sum() / (len(row) * row2.std()))
+        # print(type(m), m)
+        NOISE = 25
+        MIN_SNR = 6
+        MIN_CHANNEL = 400
+        MAX_CHANNEL = 800
+        snr = (row2 - row2.mean()) / NOISE
+        bins = np.arange(row.shape[0], dtype=int)
+
+        channel = bins[(MIN_CHANNEL < bins) & (bins < MAX_CHANNEL) & (snr > MIN_SNR)]
+        power = row2[(MIN_CHANNEL < bins) & (bins < MAX_CHANNEL) &(snr > MIN_SNR)]
+        if power.sum() == 0:
+            # No signal detected, skip timestep
+            continue
+        centroid = np.sum(channel * power) / power.sum()
+        plt.plot(channel, power / power.mean())
+        plt.plot([centroid], [power.max() / power.mean()], 'k+')
+
+        points.append((i, centroid))
+
+    plt.xlim((0,1024))
+    plt.xlabel("Frequeny Bin")
+    plt.ylabel("Relative Power")
+    plt.show()
+
+    points=np.array(points, dtype=[('i', 'i4'), ('c', 'f8')])
+    measurements = np.vstack((wf['relative_time'][points['i']],
+                             [interp1d(bins, wf['frequency'])(x) for x in points['c']]))
+    return measurements, points
 
 def plot_measurements_all(wf, data):
     plt.plot(wf['relative_time'][:],
@@ -143,6 +181,9 @@ if __name__ == '__main__':
                         help='STRF-compatible output file')
     parser.add_argument('--site_id', type=int, required=True,
                         help='STRF Site ID')
+    parser.add_argument('--method', type=str,
+                        help='Analysis method: CW or Centroids. Default: CW',
+                        default='CW')
     args = parser.parse_args()
 
     if args.observation_id:
@@ -158,11 +199,19 @@ if __name__ == '__main__':
     print('Load {}'.format(filename))
     hdf5_file, wf, data, metadata = load_artifact(filename)
 
-    print('Extract measurements...')
-    snr, measurements, points = extract_peaks(data)
-    plot_measurements_all(wf, data)
-    plot_measurements_selected(measurements)
-    plot_legend(args.observation_id)
+    if args.method == 'Centroids':
+        print('Extract measurements...')
+        measurements, points = extract_peaks_method2(data)
+        plot_measurements_all(wf, data)
+        plot_measurements_selected(measurements, label='Centroids (filtered)')
+        plot_legend(args.observation_id)
+    elif args.method == 'CW':
+        snr, measurements, points = extract_peaks(data)
+        plot_measurements_all(wf, data)
+        plot_measurements_selected(measurements, label='filtered')
+        plot_legend(args.observation_id)
+    else:
+        print("Metnod not supported")
 
     m2 = dedoppler(measurements, metadata)
     save_rffit_data(output_file, m2, site_id=args.site_id)
