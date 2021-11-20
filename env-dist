@@ -4,7 +4,7 @@ SATNOGS_DIR=/my/path/to/satnogs/data
 
 # SatNOGS Waterfall Tabulation Helper
 SATNOGS_TLE_DIR=$SATNOGS_DIR/tles
-SATNOGS_OBS_DIR=$SATNOGS_DIR/doppler_obs
+SATNOGS_DOPPLER_OBS_DIR=$SATNOGS_DIR/doppler_obs
 SATNOGS_SITES_TXT=$SATNOGS_DIR/sites.txt
 
 

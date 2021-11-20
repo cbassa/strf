@@ -25,14 +25,14 @@ Example:
 SATNOGS_TLE_DIR="./data/tles"
 
 # absulute frequency measurement storage
-# Filename convention: {OBS_DIR}/{observation_id}.txt
-SATNOGS_OBS_DIR="./data/obs"
+# Filename convention: {DOPPLER_OBS_DIR}/{observation_id}.txt
+SATNOGS_DOPPLER_OBS_DIR="./data/obs"
 
 # SATTOOLS/STRF/STVID sites.txt file
 SATNOGS_SITES_TXT="./data/sites.txt"
 
-mkdir -p $SATNOGS_TLE_DIR 
-mkdir -p $SATNOGS_OBS_DIR 
+mkdir -p $SATNOGS_TLE_DIR
+mkdir -p $SATNOGS_DOPPLER_OBS_DIR
 ```
 
 ## Usage
@@ -62,7 +62,7 @@ mkdir -p $SATNOGS_OBS_DIR
 
 2. Run rffit for orbit fitting, e.g.
    ```
-   ./rffit -d $SATNOGS_OBS_DIR/1102230.dat -i 44356 -c $SATNOGS_TLE_DIR/1102230.txt -s 7669
+   ./rffit -d $SATNOGS_DOPPLER_OBS_DIR/1102230.dat -i 44356 -c $SATNOGS_TLE_DIR/1102230.txt -s 7669
    ```
 
 ## Known issues
