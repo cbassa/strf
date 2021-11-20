@@ -118,13 +118,12 @@ def dedoppler(measurements, metadata):
         satellite.compute(observer)
         v = satellite.range_velocity
         df = f_center * v / ephem.c
-        return  f_center + freq - df*2
+        return  f_center + freq - df
 
     output = []
     for dt,df in measurements.T:
         t = start_time + timedelta(seconds=dt)
-        f = f_center + df
-        freq_recv = remove_doppler_correction(t, f)
+        freq_recv = remove_doppler_correction(t, df)
         output.append((t, freq_recv))
     return output
 
