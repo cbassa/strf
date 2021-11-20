@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
-import tempfile
-import sys
 import logging
 import requests
 import settings
+import shutil
+import sys
+import tempfile
+import os
 
 from urllib.parse import urljoin
 from pprint import pprint
@@ -41,7 +43,7 @@ def fetch_artifact(url, artifact_filename):
             fname.write(chunk)
 
 
-def download_artifact(observation_id):
+def download_artifact(observation_id, filename):
     try:
         artifact_metadata = fetch_artifact_metadata(network_obs_id=observation_id)
     except requests.HTTPError:
@@ -57,8 +59,13 @@ def download_artifact(observation_id):
     try:
         artifact_file_url = artifact_metadata[0]['artifact_file']
         artifact_file = tempfile.NamedTemporaryFile(delete=False)
+
         fetch_artifact(artifact_file_url, artifact_file.name)
-        print("Artifact for Observation #{} saved in '{}'".format(observation_id, artifact_file.name))
+
+        artifact_file.close()
+        shutil.copy(artifact_file.name, filename)
+        os.remove(artifact_file.name)
+        print("Artifact saved in {}".format(filename))
     except requests.HTTPError:
         print('Download failed for {}'.format(artifact_file_url))
         return
@@ -74,4 +81,5 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     for observation_id in args.observation_ids:
-        download_artifact(observation_id)
+        download_artifact(observation_id,
+                          '{}/{}.h5'.format(os.getenv('SATNOGS_ARTIFACTS_DIR'), observation_id))
