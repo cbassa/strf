@@ -40,7 +40,10 @@ TLE saved in /home/pi/data/tles/satnogs/4950356.txt
 This can be done using [spectranalysis](https://github.com/kerel-fs/spectranalysis).
 
 ## Ultra-Short Analysis Guide
+
 ```
+source .env
+
 OBSERVATION_ID=4950356
 ./contrib/download_satnogs_tle.py $OBSERVATION_ID
 ./contrib/download_satnogs_artifact.py $OBSERVATION_ID
