@@ -1,0 +1,17 @@
+# "New" Python STRF environment variables
+
+# SATNOGS_DIR is used by config.sh for STRF configuration
+SATNOGS_DIR=/home/pi/satnogs_data
+
+# SatNOGS Waterfall Tabulation Helper
+export SATNOGS_TLE_DIR=/home/pi/satnogs_data/tles/satnogs
+export SATNOGS_ARTIFACTS_DIR=/home/pi/satnogs_data/artifacts
+export SATNOGS_DOPPLER_OBS_DIR=/home/pi/satnogs_data/doppler_obs
+SATNOGS_SITES_TXT=$SATNOGS_DIR/sites.txt
+
+
+# SatNOGS Artifacts Helpers
+SATNOGS_NETWORK_API_URL=https://network.satnogs.org/api/
+SATNOGS_DB_API_URL=https://db.satnogs.org/api/
+
+SATNOGS_DB_API_TOKEN=your-db-api-token
