@@ -197,9 +197,10 @@ int identify_satellite_from_doppler(char *catalog,double rmsmax)
   while (read_twoline(fp,0,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
-    if (imode==SGDP4_ERROR)
-      printf("Error\n");
-
+    if (imode==SGDP4_ERROR) {
+      printf("Error with %d, skipping\n",orb.satno);
+      continue;
+    } 
     //    velocity(orb,d.p[d.n/2].mjd,d.p[d.n/2].s,&v,&azi,&alt);
     //    if (alt<0.0)
     //      printf("Continue?\n");
@@ -247,8 +248,10 @@ int identify_satellite_from_visibility(char *catalog,double altmin)
   while (read_twoline(fp,0,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
-    if (imode==SGDP4_ERROR)
-      printf("Error\n");
+    if (imode==SGDP4_ERROR) {
+      printf("Error with %d, skipping\n",orb.satno);
+      continue;
+    } 
 
     if (orb.rev<10.0)
       continue;
@@ -468,8 +471,10 @@ int main(int argc,char *argv[])
       if (satno>0 && plot_curve==1) {
 	// Initialize
 	imode=init_sgdp4(&orb);
-	if (imode==SGDP4_ERROR)
+	if (imode==SGDP4_ERROR) {
+	  printf("Error with %d, skipping\n",orb.satno);
 	  break;
+	} 
 	
 	cpgsci(15);
 	//	for (mjd=d.mjd0,i=0;mjd<d.mjd0+xmax;mjd+=1.0/1440.0,i++) {
@@ -570,8 +575,10 @@ int main(int argc,char *argv[])
 
 	// Initialize
 	imode=init_sgdp4(&orb);
-	if (imode==SGDP4_ERROR)
+	if (imode==SGDP4_ERROR) {
+	  printf("Error with %d, skipping\n",orb.satno);
 	  break;
+	} 
 	
 	// Loop over sites for plotting model
 	for (j=0;j<nsite;j++) {
@@ -775,6 +782,7 @@ int main(int argc,char *argv[])
       }
       satno=identify_satellite_from_doppler(catalog,rms);
       if (satno>0) {
+	rms=fit_curve(orb,ia);
 	redraw=1;
 	plot_curve=1;
       }
@@ -1547,8 +1555,8 @@ double chisq(double a[])
 
   // Initialize
   imode=init_sgdp4(&orb);
-  if (imode==SGDP4_ERROR)
-    printf("Error\n");
+  if (imode==SGDP4_ERROR) 
+    printf("Error with %d\n",orb.satno);
 
   // Loop over highlighted points
   for (i=0,sum1=0.0,sum2=0.0;i<d.n;i++) {
@@ -1596,8 +1604,8 @@ double compute_rms(void)
 
   // Initialize
   imode=init_sgdp4(&orb);
-  if (imode==SGDP4_ERROR)
-    printf("Error\n");
+  if (imode==SGDP4_ERROR) 
+    printf("Error with %d\n",orb.satno);
 
   // Compute rms
   for (i=0,n=0,rms=0.0;i<d.n;i++) {

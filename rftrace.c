@@ -219,8 +219,10 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
   while (read_twoline(file,satno,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
-    if (imode==SGDP4_ERROR)
-      printf("SGDP4 Error\n");
+    if (imode==SGDP4_ERROR) {
+      printf("Error with %d, skipping\n",orb.satno);
+      continue;
+    } 
 
     // Loop over points
     for (i=0,sum1=0.0,sum2=0.0;i<t.n;i++) {
@@ -366,8 +368,10 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   while (read_twoline(file,satno,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
-    if (imode==SGDP4_ERROR)
-      printf("SGDP4 Error\n");
+    if (imode==SGDP4_ERROR) {
+      printf("Error with %d, skipping\n",orb.satno);
+      continue;
+    } 
 
     // Loop over points
     for (i=0,sum1=0.0,sum2=0.0;i<t.n;i++) {
@@ -597,8 +601,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     while (read_twoline(file,satno,&orb)==0) {
       // Initialize
       imode=init_sgdp4(&orb);
-      if (imode==SGDP4_ERROR)
-	printf("Error\n");
+      if (imode==SGDP4_ERROR) {
+	printf("Error with %d, skipping\n",orb.satno);
+	continue;
+      } 
       
       // Loop over points
       for (i=0,flag=0,tflag=0;i<m;i++) {
@@ -706,8 +712,10 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   while (read_twoline(file,satno,&orb)==0) {
     // Initialize
     imode=init_sgdp4(&orb);
-    if (imode==SGDP4_ERROR)
-      printf("Error\n");
+    if (imode==SGDP4_ERROR) {
+      printf("Error with %d, skipping\n",orb.satno);
+      continue;
+    } 
 
     // Skip high satellites
     if (skiphigh==1 && orb.rev<10.0)
