@@ -720,7 +720,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
     // Skip high satellites
     if (skiphigh==1 && orb.rev<10.0)
           continue;
-    
+
     // Loop over points
     for (i=0,flag=0,tflag=0;i<n;i++) {
       // Get satellite position
@@ -736,7 +736,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
       v=(dvx*dx+dvy*dy+dvz*dz)/r;
       ra=modulo(atan2(dy,dx)*R2D,360.0);
       de=asin(dz/r)*R2D;
-      equatorial2horizontal(mjd[i],ra,de,sg.lng,sg.lat,&azi,&alt);
+      equatorial2horizontal(mjd[i],ra,de,s.lng,s.lat,&azi,&alt);
       
       // Compute Graves velocity/frequency
       if (graves==1) {
