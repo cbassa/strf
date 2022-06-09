@@ -287,6 +287,7 @@ void usage()
   printf("-s <site>       Site ID\n");
   printf("-g              GRAVES data\n");
   printf("-m <offset>     Frequency offset to apply [Hz]\n");
+  printf("-F <freqlist>   List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
   printf("-h              This help\n");
   
   return;
@@ -323,12 +324,15 @@ int main(int argc,char *argv[])
   } else {
     printf("ST_COSPAR environment variable not found.\n");
   }
-  
+
+  // Get frequency list
   env=getenv("ST_DATADIR");
   if(env==NULL||strlen(env)==0)
     env=".";
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
+  
   // Decode options
-  while ((arg=getopt(argc,argv,"d:c:i:hs:gm:"))!=-1) {
+  while ((arg=getopt(argc,argv,"d:c:i:hs:gm:F:"))!=-1) {
     switch(arg) {
     case 'd':
       datafile=optarg;
@@ -342,6 +346,10 @@ int main(int argc,char *argv[])
       satno=atoi(optarg);
       break;
 
+    case 'F':
+      strcpy(freqlist,optarg);
+      break;
+      
     case 'h':
       usage();
       return 0;
@@ -364,7 +372,7 @@ int main(int argc,char *argv[])
       return 0;
     }
   }
-  
+
   // Read data
   d=read_data(datafile,graves,foffset);
   d.fitfreq=1;
@@ -720,10 +728,6 @@ int main(int argc,char *argv[])
 
     // Flux limit
     if (c=='l') {
-      env=getenv("ST_DATADIR");
-      if(env==NULL||strlen(env)==0)
-        env=".";
-      sprintf(freqlist,"%s/data/frequencies.txt",env);  
       fp=fopen(freqlist,"a");
       fprintf(fp,"%05d %lf\n",orb.satno,d.ffit/1000.0);
       fclose(fp);
