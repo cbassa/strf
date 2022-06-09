@@ -63,7 +63,7 @@ int main(int argc,char *argv[])
   float width=1500;
   float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
   char c;
-  char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128];
+  char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128],freqlist[128];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -88,7 +88,13 @@ int main(int argc,char *argv[])
     printf("ST_COSPAR environment variable not found.\n");
   }
   env=getenv("ST_TLEDIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
   sprintf(tlefile,"%s/bulk.tle",env);  
+  env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Set selection
   sel.n=0;
@@ -97,7 +103,7 @@ int main(int argc,char *argv[])
   
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:F:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -124,6 +130,10 @@ int main(int argc,char *argv[])
 	df0=(double) atof(optarg);
 	break;
 
+      case 'F':
+	strcpy(freqlist,optarg);
+	break;
+	
       case 'W':
 	sel.w=atof(optarg);
 	break;
@@ -182,7 +192,7 @@ int main(int argc,char *argv[])
     return 0;
   
   // Compute traces
-  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
+  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves,freqlist);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
   cpgopen("/xs");
@@ -430,9 +440,9 @@ int main(int argc,char *argv[])
     // Identify
     if (c=='i') {
       if (graves==0)
-	identify_trace(tlefile,tf,0);
+	identify_trace(tlefile,tf,0,freqlist);
       else
-	identify_trace_graves(tlefile,tf,0);
+	identify_trace_graves(tlefile,tf,0,freqlist);
       redraw=1;
       continue;
     }
@@ -452,7 +462,7 @@ int main(int argc,char *argv[])
     if (c=='I') {
       printf("Provide satno: ");
       status=scanf("%d",&satno);
-      identify_trace(tlefile,tf,satno);
+      identify_trace(tlefile,tf,satno,freqlist);
       redraw=1;
       continue;
     }
@@ -690,7 +700,7 @@ int main(int argc,char *argv[])
 
     // Recompute traces
     if (c=='R') {
-      t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
+      t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves,freqlist);
       redraw=1;
       continue;
     }
@@ -892,20 +902,21 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 void usage(void)
 {
   printf("rfplot: plot RF observations\n\n");
-  printf("-p <path>    Input path to file /a/b/c_??????.bin\n");
-  printf("-s <start>   Number of starting subintegration [0]\n");
-  printf("-l <length>  Number of subintegrations to plot [3600]\n");
-  printf("-b <nbin>    Number of subintegrations to bin [1]\n");
-  printf("-z <zmax>    Image scaling upper limit [8.0]\n");
-  printf("-f <freq>    Frequency to zoom into (Hz)\n");
-  printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
-  printf("-o <offset>  Frequency offset to apply (Hz) [0]\n");
-  printf("-W <width>   Track selection width (in pixels) [100]\n");
-  printf("-S <sigma>   Track selection significance [5]\n");
-  printf("-C <site>    Site ID\n");
-  printf("-c <catalog> TLE catalog\n");
-  printf("-g           GRAVES data\n");
-  printf("-h           This help\n");
+  printf("-p <path>     Input path to file /a/b/c_??????.bin\n");
+  printf("-s <start>    Number of starting subintegration [0]\n");
+  printf("-l <length>   Number of subintegrations to plot [3600]\n");
+  printf("-b <nbin>     Number of subintegrations to bin [1]\n");
+  printf("-z <zmax>     Image scaling upper limit [8.0]\n");
+  printf("-f <freq>     Frequency to zoom into (Hz)\n");
+  printf("-w <bw>       Bandwidth to zoom into (Hz)\n");
+  printf("-o <offset>   Frequency offset to apply (Hz) [0]\n");
+  printf("-W <width>    Track selection width (in pixels) [100]\n");
+  printf("-S <sigma>    Track selection significance [5]\n");
+  printf("-C <site>     Site ID\n");
+  printf("-c <catalog>  TLE catalog\n");
+  printf("-F <freqlist> List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
+  printf("-g            GRAVES data\n");
+  printf("-h            This help\n");
 
   return;
 }

@@ -165,7 +165,7 @@ struct site get_site(int site_id)
 }
 
 // Identify trace
-void identify_trace_graves(char *tlefile,struct trace t,int satno)
+void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist)
 {
   int i,imode,flag=0,status,imid;
   struct point *p;
@@ -180,12 +180,6 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
   int satnomin;
   double rmsmin,freqmin,altmin,azimin;
   double ra,de,azi,alt;
-  char *env,freqlist[LIM];
-
-  env=getenv("ST_DATADIR");
-  if(env==NULL||strlen(env)==0)
-    env=".";
-  sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Reloop stderr
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
@@ -319,7 +313,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno)
 }
 
 // Identify trace
-void identify_trace(char *tlefile,struct trace t,int satno)
+void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
 {
   int i,imode,flag=0,status;
   struct point *p;
@@ -333,15 +327,9 @@ void identify_trace(char *tlefile,struct trace t,int satno)
   char nfd[32],nfdmin[32],text[16];
   int satnomin;
   double rmsmin,freqmin;
-  char *env,freqlist[LIM];
   struct timeval tv;
   char tbuf[30];
   
-  env=getenv("ST_DATADIR");
-  if(env==NULL||strlen(env)==0)
-    env=".";
-  sprintf(freqlist,"%s/data/frequencies.txt",env);  
-
   // Reloop stderr
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
     fprintf(stderr,"Failed to redirect stderr\n");
@@ -484,7 +472,7 @@ int is_classified(int satno)
 }
 
 // Compute trace
-struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat,int graves)
+struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat,int graves,char *freqlist)
 {
   int i,j,imode,flag,satno,tflag,m,status;
   struct point *p;
@@ -497,13 +485,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   char line[LIM],text[8];
   struct trace *t;
   float fmin,fmax;
-  char *env,freqlist[LIM];
   double ra,de,azi,alt;
-
-  env=getenv("ST_DATADIR");
-  if(env==NULL||strlen(env)==0)
-    env=".";
-  sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Frequency limits
   fmin=freq-0.5*bw;
@@ -673,7 +655,6 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   char line[LIM],text[8];
   struct trace *t;
   float fmin,fmax;
-  char *env,freqlist[LIM];
   double ra,de,azi,alt;
   double rag,deg,azig,altg;
 
