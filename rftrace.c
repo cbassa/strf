@@ -503,7 +503,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     return NULL;
   } else {
     for (i=0;;) {
-      if (fgetline(infile,line,LIM)<=0)
+      if (fgetline(infile,line,LIM)<=0) 
 	break;
       if (line[0]=='#')
 	continue;

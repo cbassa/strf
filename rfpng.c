@@ -24,7 +24,7 @@ void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat,float foff,int type,int isci);
-  void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
+void filter(struct spectrogram s,int site_id,float sigma,char *filename,int graves);
 
 int main(int argc,char *argv[])
 {
@@ -50,7 +50,7 @@ int main(int argc,char *argv[])
   float width=1500,sigma=5.0,foff=0.0;
   float x,y,x0,y0;
   char c;
-  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128],datfile[128];
+  char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128],datfile[128],freqlist[128];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -72,11 +72,17 @@ int main(int argc,char *argv[])
     printf("ST_COSPAR environment variable not found.\n");
   }
   env=getenv("ST_TLEDIR");
-  sprintf(tlefile,"%s/bulk.tle",env); 
+  if(env==NULL||strlen(env)==0)
+    env=".";
+  sprintf(tlefile,"%s/bulk.tle",env);  
+  env=getenv("ST_DATADIR");
+  if(env==NULL||strlen(env)==0)
+    env=".";
+  sprintf(freqlist,"%s/data/frequencies.txt",env);  
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:qo:O:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:qo:O:F:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -103,7 +109,11 @@ int main(int argc,char *argv[])
       case 'l':
 	nsub=atoi(optarg);
 	break;
-	
+
+      case 'F':
+	strcpy(freqlist,optarg);
+	break;
+
       case 'w':
 	df0=(double) atof(optarg);
 	break;
@@ -167,7 +177,7 @@ int main(int argc,char *argv[])
   printf("Read spectrogram\n%d channels, %d subints\nFrequency: %g MHz\nBandwidth: %g MHz\n",s.nchan,s.nsub,s.freq*1e-6,s.samp_rate*1e-6);
 
   // Compute traces
-  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves);
+  t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves,freqlist);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
   cpgopen(pngfile);
@@ -368,15 +378,16 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 void usage(void)
 {
   printf("rfplot: plot RF observations\n\n");
-  printf("-p <path>    Input path to file /a/b/c_??????.bin\n");
-  printf("-s <start>   Number of starting subintegration [0]\n");
-  printf("-l <length>  Number of subintegrations to plot [3600]\n");
-  printf("-b <nbin>    Number of subintegrations to bin [1]\n");
-  printf("-z <zmax>    Image scaling upper limit [8.0]\n");
-  printf("-f <freq>    Frequency to zoom into (Hz)\n");
-  printf("-w <bw>      Bandwidth to zoom into (Hz)\n");
-  printf("-O <offset>  Frequency offset to apply (Hz) [0]\n");
-  printf("-h           This help\n");
+  printf("-p <path>     Input path to file /a/b/c_??????.bin\n");
+  printf("-s <start>    Number of starting subintegration [0]\n");
+  printf("-l <length>   Number of subintegrations to plot [3600]\n");
+  printf("-b <nbin>     Number of subintegrations to bin [1]\n");
+  printf("-z <zmax>     Image scaling upper limit [8.0]\n");
+  printf("-f <freq>     Frequency to zoom into (Hz)\n");
+  printf("-w <bw>       Bandwidth to zoom into (Hz)\n");
+  printf("-O <offset>   Frequency offset to apply (Hz) [0]\n");
+  printf("-F <freqlist> List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
+  printf("-h            This help\n");
 
   return;
 }
