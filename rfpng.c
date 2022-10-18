@@ -47,7 +47,7 @@ int main(int argc,char *argv[])
   float dt,zzmax,s1,s2;
   int ix=0,iy=0,isub=0;
   int i0,j0,i1,j1,jmax;
-  float width=1500,sigma=5.0,foff=0.0;
+  float width=14.0,sigma=5.0,foff=0.0,aspect=1.0;
   float x,y,x0,y0;
   char c;
   char path[128],xlabel[64],ylabel[64],filename[32],tlefile[128],pngfile[128],datfile[128],freqlist[128];
@@ -82,7 +82,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:qo:O:F:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:m:gS:qo:O:F:W:A:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -141,10 +141,18 @@ int main(int argc,char *argv[])
       case 'C':
 	site_id=atoi(optarg);
 	break;
+
+      case 'W':
+	width=atof(optarg);
+	break;
+
+      case 'A':
+	aspect=atof(optarg);
+	break;
 	
       case 'm':
 	cmap=atoi(optarg);
-	if (cmap>2)
+	if (cmap>3)
 	  cmap=0;
 	break;
 
@@ -182,7 +190,7 @@ int main(int argc,char *argv[])
 
   cpgopen(pngfile);
   //    cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
-  cpgpap(14.0, 1.0);
+  cpgpap(width, aspect);
   cpgsch(0.6);
   cpgask(1);
     
@@ -379,14 +387,23 @@ void usage(void)
 {
   printf("rfplot: plot RF observations\n\n");
   printf("-p <path>     Input path to file /a/b/c_??????.bin\n");
+  printf("-o <output>   Output PGPLOT device [<time>_<freq>.png/png]\n");
+  printf("-O <offset>   Frequency offset to apply (Hz) [0]\n");
   printf("-s <start>    Number of starting subintegration [0]\n");
-  printf("-l <length>   Number of subintegrations to plot [3600]\n");
-  printf("-b <nbin>     Number of subintegrations to bin [1]\n");
-  printf("-z <zmax>     Image scaling upper limit [8.0]\n");
   printf("-f <freq>     Frequency to zoom into (Hz)\n");
   printf("-w <bw>       Bandwidth to zoom into (Hz)\n");
-  printf("-O <offset>   Frequency offset to apply (Hz) [0]\n");
+  printf("-l <length>   Number of subintegrations to plot [3600]\n");
   printf("-F <freqlist> List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
+  printf("-b <nbin>     Number of subintegrations to bin [1]\n");
+  printf("-z <zmax>     Image scaling upper limit [8.0]\n");
+  printf("-c <tlefile>  File with TLEs [$ST_DATADIR/data/bulk.tle]\n");
+  printf("-g            Compute GRAVES reflections\n");
+  printf("-S <sigma>    Significance for peak detection [5.0]\n");
+  printf("-q            Detect and plot peaks\n");
+  printf("-C <site>     Compute predictions for site [$ST_COSPAR]\n");
+  printf("-W <width>    PGPLOT window width [14.0]\n");
+  printf("-A <aspect>   PGPLOT aspect ratio [1.0]\n");
+  printf("-m <cmap>     Colormap index [0: cool, 1: heat, 2: viridis, 3: gray; default: viridis]\n");
   printf("-h            This help\n");
 
   return;

@@ -474,7 +474,7 @@ int is_classified(int satno)
 // Compute trace
 struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float freq,float bw,int *nsat,int graves,char *freqlist)
 {
-  int i,j,imode,flag,satno,tflag,m,status;
+  int i,j,imode,flag,satno,tflag,m,status,hastle;
   struct point *p;
   struct site s,sg;
   FILE *file,*infile;
@@ -482,7 +482,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,za,vg;
   double freq0;
-  char line[LIM],text[8];
+  char line[LIM];
   struct trace *t;
   float fmin,fmax;
   double ra,de,azi,alt;
@@ -577,10 +577,13 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].classfd=is_classified(t[j].satno);
     t[j].graves=graves;
     
-    sprintf(text," %d",satno);
     // Loop over TLEs
+    hastle=0;
     file=fopen(tlefile,"r");
     while (read_twoline(file,satno,&orb)==0) {
+      if (orb.satno==satno)
+	hastle=1;
+
       // Initialize
       imode=init_sgdp4(&orb);
       if (imode==SGDP4_ERROR) {
@@ -630,7 +633,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     }
     fclose(file);
 
-    j++;
+    // Increment
+    if (hastle==1)
+      j++;
   }
   fclose(infile);
   fclose(stderr);
@@ -638,6 +643,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   // Free
   free(p);
 
+  // Update counter
+  *nsat=j;
+  
   return t;
 }
 
