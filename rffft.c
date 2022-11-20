@@ -23,6 +23,7 @@ void usage(void)
   printf("-F <format>     Input format char, int, float [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
+  printf("-S <index>      Starting index [int]\n");
   printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
@@ -33,7 +34,7 @@ void usage(void)
 
 int main(int argc,char *argv[])
 {
-  int i,j,k,l,m,nchan,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0,useoutput=0;
+  int i,j,k,l,nchan,m=0,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0,useoutput=0;
   fftwf_complex *c,*d;
   fftwf_plan fft;
   FILE *infile,*outfile;
@@ -51,7 +52,7 @@ int main(int argc,char *argv[])
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:I"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:I:S:"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -98,6 +99,10 @@ int main(int argc,char *argv[])
 
       case 'n':
 	nsub=atoi(optarg);
+	break;
+
+      case 'S':
+	m=atoi(optarg);
 	break;
 
       case 'q':
@@ -165,6 +170,7 @@ int main(int argc,char *argv[])
   printf("Integration time: %f s\n",tint);
   printf("Number of averaged spectra: %d\n",nint);
   printf("Number of subints per file: %d\n",nsub);
+  printf("Starting index: %d\n",m);
 
   // Allocate
   c=fftwf_malloc(sizeof(fftwf_complex)*nchan);
@@ -201,7 +207,7 @@ int main(int argc,char *argv[])
   }
 
   // Forever loop
-  for (m=0;;m++) {
+  for (;;m++) {
     // File name
     if (useoutput==0) {
       sprintf(outfname,"%s/%s_%06d.bin",path,prefix,m);
