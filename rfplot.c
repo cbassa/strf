@@ -25,7 +25,7 @@ struct data {
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-void plot_traces(struct trace *t,int nsat,float fcen);
+void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax);
 struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 void convolve(float *y,int n,float *w,int m,float *z);
@@ -262,7 +262,7 @@ int main(int argc,char *argv[])
       fcen=0.5*(fmax+fmin);
       cpgswin(xmin,xmax,fmin-fcen,fmax-fcen);
       if (foverlay==1) 
-	plot_traces(t,nsat,fcen);
+	plot_traces(t,nsat,fcen,xmin,xmax);
 
       fcen=floor(1000*fcen)/1000.0;
       sprintf(ylabel,"Frequency - %.3f MHz",fcen);
@@ -922,7 +922,7 @@ void usage(void)
 }
 
 
-void plot_traces(struct trace *t,int nsat,float fcen)
+void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
 {
   int i,j,flag,textflag;
   char text[8];
@@ -943,6 +943,11 @@ void plot_traces(struct trace *t,int nsat,float fcen)
 
     // Loop over trace
     for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
+      if ((float) j < xmin)
+	continue;
+      if ((float) j > xmax)
+	continue;
+      
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
 	cpgtext((float) j,(float) t[i].freq[j]-fcen,text);
