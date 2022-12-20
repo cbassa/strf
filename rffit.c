@@ -68,6 +68,27 @@ double mjd2doy(double mjd,int *yr);
 double doy2mjd(int year,double doy);
 int identify_satellite_from_visibility(char *catalog,double altmin);
 
+double compute_mean_mjd(void)
+{
+  int i,flag,nsel;
+  double mjdmid,sum;
+
+  // Return midpoint of dataset if no points selected
+  for (i=0,nsel=0;i<d.n;i++) 
+    if (d.p[i].flag==2) 
+      nsel++;
+  if (nsel==0)
+    return 0.5*(d.mjdmin+d.mjdmax);
+
+  // Compute midpoint of selected points
+  for (i=0,sum=0.0;i<d.n;i++) 
+    if (d.p[i].flag==2) 
+	sum+=d.p[i].mjd;
+  mjdmid=sum/(float) nsel;
+  
+  return mjdmid;
+}
+  
 // Get observing site
 struct site get_site(int site_id)
 {
@@ -302,7 +323,7 @@ int main(int argc,char *argv[])
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
   float x0=0.0,y0=0.0,x=0.0,y=0.0;
-  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0;
+  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0,mjdmid;
   float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
@@ -986,11 +1007,12 @@ int main(int argc,char *argv[])
     if (c=='t') {
       orb.satno=99999;
       strcpy(orb.desig,"13900A");
-      orb.ep_day=mjd2doy(0.5*(d.mjdmin+d.mjdmax),&orb.ep_year);
+      mjdmid=compute_mean_mjd();
+      orb.ep_day=mjd2doy(mjdmid,&orb.ep_year);
       satno=orb.satno;
       if (elset==0) {
 	orb.eqinc=0.5*M_PI;
-	orb.ascn=modulo(gmst(0.5*(d.mjdmin+d.mjdmax))+site.lng,360.0)*D2R;
+	orb.ascn=modulo(gmst(mjdmid)+site.lng,360.0)*D2R;
 	orb.ecc=0.0001;
 	orb.argp=0.0;
 	orb.mnan=site.lat*D2R;
