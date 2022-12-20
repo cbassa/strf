@@ -299,7 +299,7 @@ int identify_satellite_from_visibility(char *catalog,double altmin)
 
 void usage()
 {
-  printf("dpplot -d <data file> -c [tle catalog] -i [satno] -h\n\ndata file:    Tabulated doppler curve\ntle catalog:  Catalog with TLE's (optional)\nsatno:        Satellite to load from TLE catalog (optional)\n\n");
+  printf("rffit -d <data file> -c [tle catalog] -i [satno] -h\n\ndata file:    Tabulated doppler curve\ntle catalog:  Catalog with TLE's (optional)\nsatno:        Satellite to load from TLE catalog (optional)\n\n");
 
   printf("rffit: fit RF observations\n\n");
   printf("-d <datafile>   Input data file with RF measurements\n");
