@@ -1,1 +1,0 @@
-../sattools/config.sh
