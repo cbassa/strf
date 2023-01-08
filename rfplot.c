@@ -55,7 +55,7 @@ int main(int argc,char *argv[])
   float heat_g[] = {0.0, 0.0, 0.5, 1.0, 1.0};
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
-  int i,j,k,flag=0,sn;
+  int i,j,k,flag=0,sn,maxflag=0;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix=0,iy=0,isub=0;
@@ -144,6 +144,7 @@ int main(int argc,char *argv[])
 	
       case 'z':
 	zmax=atof(optarg);
+	maxflag=1;
 	break;
 
       case 'g':
@@ -206,7 +207,9 @@ int main(int argc,char *argv[])
   ymin=0.0;
   ymax=(float) s.nchan;
   zmin=0.0;
-
+  if (maxflag==0)
+    zmax=s.zmax;
+  
   // Set trace
   tf.n=0;
   

@@ -195,7 +195,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   free(z);
   free(cz);
 
-  return s;
+ return s;
 }
 
 void write_spectrogram(struct spectrogram s,char *prefix)
