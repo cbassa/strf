@@ -5,7 +5,7 @@
 - Create Pyhton virtual environment and install dependencies via pip:
   ```
   mkvirtualenv strf
-  pip insatll -r contrib/requirements.txt
+  pip install -r contrib/requirements.txt
   ```
 
 - Create initial configuration from `env-dist`
