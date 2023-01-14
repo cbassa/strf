@@ -5,7 +5,9 @@
 #include <math.h>
 #include <cpgplot.h>
 #include <getopt.h>
+
 #include "sgdp4h.h"
+#include "rfsites.h"
 
 #define LIM 80
 #define NMAX 1024
@@ -16,12 +18,7 @@
 #define C 299792.458 // km/s
 #define FLAT (1.0/298.257)
 
-struct site {
-  int id;
-  double lat,lng;
-  float alt;
-  char observer[64];
-} site;
+
 struct point {
   char timestamp[24];
   double mjd,freq,v,freq0;
@@ -29,7 +26,7 @@ struct point {
   float flux;
   int flag; // 0 - deleted ("unselected"), 1 - not highlighted; 2 - highlighted
   int site_id,rsite_id;
-  struct site s,r;
+  site_t s,r;
 };
 struct data {
   int n;
@@ -48,15 +45,15 @@ struct point decode_line(char *line);
 double modulo(double,double);
 double gmst(double);
 double dgmst(double);
-void obspos_xyz(double,struct site,xyz_t *,xyz_t *);
-int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *alt);
-double altitude(orbit_t orb,double mjd,struct site s);
+void obspos_xyz(double,site_t site,xyz_t *,xyz_t *);
+int velocity(orbit_t orb,double mjd,site_t s,double *v,double *azi,double *alt);
+double altitude(orbit_t orb,double mjd,site_t s);
 void deselect_inside(float x0,float y0,float x,float y);
 void highlight(float x0,float y0,float x,float y,int flag);
 void deselect_outside(float xmin,float ymin,float xmax,float ymax);
 void deselect_nearest(float x,float y,float xmin,float ymin,float xmax,float ymax);
 void save_data(float xmin,float ymin,float xmax,float ymax,char *filename);
-void equatorial2horizontal(double mjd,struct site s,double ra,double de,double *azi,double *alt);
+void equatorial2horizontal(double mjd,site_t s,double ra,double de,double *azi,double *alt);
 double chisq(double a[]);
 void versafit(int m,int n,double *a,double *da,double (*func)(double *),double dchisq,double tol,char *opt);
 double compute_rms(void);
@@ -88,60 +85,7 @@ double compute_mean_mjd(void)
   
   return mjdmid;
 }
-  
-// Get observing site
-struct site get_site(int site_id)
-{
-  int i=0,status;
-  char line[LIM];
-  FILE *file;
-  int id;
-  double lat,lng;
-  float alt;
-  char abbrev[3],observer[64];
-  struct site s;
-  char *env,filename[LIM];
 
-  env=getenv("ST_DATADIR");
-  if(env==NULL||strlen(env)==0)
-    env=".";
-  sprintf(filename,"%s/data/sites.txt",env);
-
-  file=fopen(filename,"r");
-  if (file==NULL) {
-    printf("File with site information not found!\n");
-    exit(0);
-  }
-  while (fgets(line,LIM,file)!=NULL) {
-    // Skip
-    if (strstr(line,"#")!=NULL)
-      continue;
-
-    // Strip newline
-    line[strlen(line)-1]='\0';
-
-    // Read data
-    status=sscanf(line,"%4d %2s %lf %lf %f",
-	   &id,abbrev,&lat,&lng,&alt);
-    strcpy(observer,line+38);
-
-    // Change to km
-    alt/=1000.0;
-    
-    // Copy site
-    if (id==site_id) {
-      s.lat=lat;
-      s.lng=lng;
-      s.alt=alt;
-      s.id=id;
-      strcpy(s.observer,observer);
-    }
-
-  }
-  fclose(file);
-
-  return s;
-}
 
 // Select diagonal
 void diagonal_select(float x0,float y0,float x1,float y1,int flag)
@@ -334,7 +278,7 @@ int main(int argc,char *argv[])
   int ia[]={0,0,0,0,0,0,0};
   float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0};
   int satno=-1,status;
-  struct site s0,s1;
+  site_t site,s0,s1;
   int site_number[16],nsite=0,graves=0;
   char *env;
 
@@ -423,7 +367,7 @@ int main(int argc,char *argv[])
   }
 
   // Set default observing site
-  site=get_site(site_id);
+  site = get_site(site_id);
 
   // Read TLE
   if (satno>=0) {
@@ -1231,7 +1175,7 @@ struct data read_data(char *filename,int graves,float offset)
   // Open file
   file=fopen(filename,"r");
   if (file==NULL) {
-    fprintf(stderr,"Failed to open %s\n",filename);
+    fprintf(stderr,"Failed to open data file %s\n",filename);
     exit(1);
   }
 
@@ -1321,7 +1265,7 @@ double date2mjd(int year,int month,double day)
 }
 
 // SGDP4 line-of-sight velocity
-int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *alt)
+int velocity(orbit_t orb,double mjd,site_t s,double *v,double *azi,double *alt)
 {
   double dx,dy,dz,dvx,dvy,dvz,r;
   double ra,de;
@@ -1350,7 +1294,7 @@ int velocity(orbit_t orb,double mjd,struct site s,double *v,double *azi,double *
 }
 
 // SGDP4 algitude
-double altitude(orbit_t orb,double mjd,struct site s)
+double altitude(orbit_t orb,double mjd,site_t s)
 {
   double dx,dy,dz,dvx,dvy,dvz,r;
   double ra,de,azi,alt;
@@ -1374,7 +1318,7 @@ double altitude(orbit_t orb,double mjd,struct site s)
 }
 
 // Observer position
-void obspos_xyz(double mjd,struct site s,xyz_t *pos,xyz_t *vel)
+void obspos_xyz(double mjd,site_t s,xyz_t *pos,xyz_t *vel)
 {
   double ff,gc,gs,theta,sl,dtheta;
 
@@ -1530,7 +1474,7 @@ void save_data(float xmin,float ymin,float xmax,float ymax,char *filename)
 }
 
 // Convert equatorial into horizontal coordinates
-void equatorial2horizontal(double mjd,struct site s,double ra,double de,double *azi,double *alt)
+void equatorial2horizontal(double mjd,site_t s,double ra,double de,double *azi,double *alt)
 {
   double h;
 
