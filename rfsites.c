@@ -16,12 +16,19 @@ site_t get_site(int site_id) {
   float alt;
   char abbrev[3],observer[64];
   site_t s;
-  char *env,filename[LIM];
+  char *env_datadir,*env_sites_txt,filename[LIM];
 
-  env=getenv("ST_DATADIR");
-  if(env==NULL||strlen(env)==0)
-    env=".";
-  sprintf(filename,"%s/data/sites.txt",env);
+  env_datadir = getenv("ST_DATADIR");
+  if (env_datadir == NULL || strlen(env_datadir) == 0) {
+    env_datadir = ".";
+  }
+
+  env_sites_txt = getenv("ST_SITES_TXT");
+  if (env_sites_txt == NULL || strlen(env_sites_txt) == 0) {
+    sprintf(filename, "%s/data/sites.txt", env_datadir);
+  } else {
+    sprintf(filename, "%s", env_datadir);
+  }
 
   file=fopen(filename,"r");
   if (file==NULL) {
