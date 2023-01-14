@@ -9,6 +9,7 @@
 // Get observing site
 site_t get_site(int site_id) {
   int i=0,status;
+  int count = 0;
   char line[LIM];
   FILE *file;
   int id;
@@ -27,12 +28,12 @@ site_t get_site(int site_id) {
   if (env_sites_txt == NULL || strlen(env_sites_txt) == 0) {
     sprintf(filename, "%s/data/sites.txt", env_datadir);
   } else {
-    sprintf(filename, "%s", env_datadir);
+    sprintf(filename, "%s", env_sites_txt);
   }
 
   file=fopen(filename,"r");
   if (file==NULL) {
-    printf("File with site information not found!\n");
+    printf("File with site information not count!\n");
     exit(0);
   }
   while (fgets(line,LIM,file)!=NULL) {
@@ -53,6 +54,7 @@ site_t get_site(int site_id) {
     
     // Copy site
     if (id==site_id) {
+      count += 1;
       s.lat=lat;
       s.lng=lng;
       s.alt=alt;
@@ -62,6 +64,13 @@ site_t get_site(int site_id) {
 
   }
   fclose(file);
+
+  if (count == 0) {
+    printf("Error: Site %d was not found in sites.txt!", site_id);
+    exit(-1);
+  } else if (count > 1) {
+    printf("Site %d was found multiple times in sites.txt, use last occurence.", site_id);
+  }
 
   return s;
 }
