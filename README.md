@@ -16,10 +16,11 @@ Install
 Configure
 ---------
 * You will need to set the following environment variables in your login file to run **strf**.
-	* `ST_DATADIR` path to **strf** directory (e.g. `$HOME/software/strf`)
+	* `ST_DATADIR` path to **strf** directory (e.g. `$HOME/software/strf`, default: './')
 	* `ST_TLEDIR` path to TLE directory (e.g. `$HOME/tle`)
 	* `ST_COSPAR` COSPAR site number (add to site location to `$ST_DATADIR/data/sites.txt`)
 	* `ST_LOGIN` space-track.org login info (of the form `ST_LOGIN="identity=username&password=password"`)
+    * `ST_SITES_TXT` path to sites.txt (optional, default: `$ST_DATADIR/data/sites.txt`)
 * Run `tleupdate` to download latest TLEs.
 * You should install NTP support on the system and configure time/date to automatically
   synchronize to time servers.
