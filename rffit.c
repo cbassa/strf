@@ -555,14 +555,16 @@ int main(int argc,char *argv[])
 	
 	// Loop over sites for plotting model
 	for (j=0;j<nsite;j++) {
-	  s0=get_site(site_number[j]);
-	  s1=get_site(d.p[0].rsite_id);
+	  s0 = get_site(site_number[j]);
+	  if (d.p[0].rsite_id != 0) {
+	    s1 = get_site(d.p[0].rsite_id);
+      }
 	  color=j+2;
 
 	  for (i=0;i<NMAX;i++) {
 	    mjd=xmin+d.mjd0+(xmax-xmin)*(float) i/(float) (NMAX-1);
 	    t=(float) (mjd-d.mjd0);
-	    if (d.p[0].rsite_id!=0) {
+	    if (d.p[0].rsite_id != 0) {
 	      velocity(orb,mjd,s1,&v1,&azi,&alt);
 	      velocity(orb,mjd,s0,&v,&azi,&alt);
 	      f=(float) ((1.0-v/C)*(1.0-v1/C)*d.ffit-d.f0);
