@@ -271,7 +271,7 @@ int main(int argc,char *argv[])
   float t,f,vtca,foffset=0.0;
   char c,nfd[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
-  char *catalog,*datafile,filename[64],string[64],bstar[10]=" 00000-0";
+  char *catalog=NULL,*datafile=NULL,filename[64],string[64],bstar[10]=" 00000-0";
   int arg=0,nobs=0;
   FILE *fp,*std,*fpres;
   char line0[72],line1[72],line2[72];
@@ -751,11 +751,15 @@ int main(int argc,char *argv[])
 	printf("Using 0.1 kHz rms limit\n");
 	rms=0.1;
       }
-      satno=identify_satellite_from_doppler(catalog,rms);
-      if (satno>0) {
-	rms=fit_curve(orb,ia);
-	redraw=1;
-	plot_curve=1;
+      if (catalog!=NULL) {
+	satno=identify_satellite_from_doppler(catalog,rms);
+	if (satno>0) {
+	  rms=fit_curve(orb,ia);
+	  redraw=1;
+	  plot_curve=1;
+	}
+      } else {
+	printf("No TLE catalog loaded\n");
       }
       printf("\n================================================================================\n");
     }
