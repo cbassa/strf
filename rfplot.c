@@ -823,6 +823,8 @@ void dec2sex(double x,char *s,int f,int len)
   if (len==5) sprintf(s,"%c%02i%c%02i%c%05.2f%c",sign,(int) deg,form[f][0],(int) min,form[f][1],sec,form[f][2]);
   if (len==4) sprintf(s,"%c%02i%c%02i%c%04.1f%c",sign,(int) deg,form[f][0],(int) min,form[f][1],sec,form[f][2]);
   if (len==2) sprintf(s,"%c%02i%c%02i%c%02i%c",sign,(int) deg,form[f][0],(int) min,form[f][1],(int) floor(sec),form[f][2]);
+  if (len==1) sprintf(s,"%02i%c%02i%c%02i",(int) deg,form[f][0],(int) min,form[f][1],(int) floor(sec));
+  if (len==0) sprintf(s,"%02i%c%02i",(int) deg,form[f][0],(int) min,form[f][1]);  
 
   return;
 }
@@ -836,14 +838,14 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
   char stime[16];
 
   // Find extrema
-  for (i=0;i<n;i++) {
-    if (i==0) {
-      mjdmin=mjd[i];
-      mjdmax=mjd[i];
-    } else {
-      if (mjd[i]>mjdmax) mjdmax=mjd[i];
-    }
-  }
+  imin=(int) xmin;
+  if (imin<0)
+    imin=0;
+  imax=(int) xmax;
+  if (imax>=n)
+    imax=n-1;
+  mjdmin=mjd[imin];
+  mjdmax=mjd[imax];
   dt=(float) 86400*(mjdmax-mjdmin);
 
   // Choose tickmarks
@@ -862,11 +864,14 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
   } else if (dt>900) {
     lsec=300;
     ssec=60;
+  } else if (dt>300) {
+    lsec=120;
+    ssec=60;
   } else {
-    lsec=60;
-    ssec=10;
+    lsec=20;
+    ssec=5;
   }
-
+  
   // Extrema
   tmin=86400.0*(mjdmin-floor(mjdmin));
   tmax=tmin+dt;
@@ -881,8 +886,10 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
 	  break;
       sec=(int) floor(fmod(t,86400.0));
-      dec2sex(((float) sec+0.1)/3600.0,stime,0,2);
-      stime[6]='\0';
+      if (dt < 300)
+	dec2sex(((float) sec+0.1)/3600.0,stime,0,1);
+      else
+	dec2sex(((float) sec+0.1)/3600.0,stime,0,0);
       cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.5,0.5,0.3,0.0,stime);
     }
   }
