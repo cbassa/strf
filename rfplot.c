@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include <cpgplot.h>
 #include <getopt.h>
+#include <giza.h>
 #include "rftime.h"
 #include "rfio.h"
 #include "rftrace.h"
@@ -79,6 +79,7 @@ int main(int argc,char *argv[])
   int cmap=2;
   double foff=0.0,mjdgrid=0.0;
   int jj0,jj1;
+  float affine[6];
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -196,10 +197,10 @@ int main(int argc,char *argv[])
   t=compute_trace(tlefile,s.mjd,s.nsub,site_id,s.freq*1e-6,s.samp_rate*1e-6,&nsat,graves,freqlist);
   printf("Traces for %d objects for location %d\n",nsat,site_id);
 
-  cpgopen("/xs");
-  cpgsch(0.8);
+  giza_open_device("/xs", "rfplot");
+  //  giza_set_character_height_float(0.8);
   //  cpgpap(12.5,0.55);
-  cpgask(0);
+  //  giza_stop_prompting();
 
   // Default limits
   xmin=0.0;
@@ -212,47 +213,60 @@ int main(int argc,char *argv[])
   
   // Set trace
   tf.n=0;
-  
+
   // Forever loop
   for (;;) {
     if (redraw==1) {
-      //      cpgeras();
-      cpgpage();
-      cpgsci(1);
+      giza_draw_background();
+
+	
+      //      giza_change_page();
+      //      giza_set_colour_index(1);
       /*
-      cpgsvp(0.1,0.95,0.9,0.95);
+      giza_set_viewport_float(0.1,0.95,0.9,0.95);
       cpgswin(xmin,xmax,s.zmin,s.zmax);
-      cpgbox("BCTS",0.,0,"BCTSN",0.,0);
+      giza_box("BCTS",0.,0,"BCTSN",0.,0);
 
       for (i=0;i<s.nsub;i++) {
 	if (i==0)
-	  cpgmove((float) i,s.zavg[i]);
+	  giza_move_float((float) i,s.zavg[i]);
 	else
-	  cpgdraw((float) i,s.zavg[i]);
+	  giza_draw_float((float) i,s.zavg[i]);
       }
 
-      cpgsvp(0.1,0.95,0.1,0.85);
+      giza_set_viewport_float(0.1,0.95,0.1,0.85);
       */
-      cpgsvp(0.1,0.95,0.1,0.95);
-      cpgswin(xmin,xmax,ymin,ymax);
-      
+      giza_set_viewport_float(0.1,0.95,0.1,0.95);
+      giza_set_window_float(xmin,xmax,ymin,ymax);
+
+      // Affine transformation from tr
+      affine[0] = tr[1];
+      affine[1] = tr[4];
+      affine[2] = tr[2];
+      affine[3] = tr[5];
+      affine[4] = tr[0] + 0.5f*(tr[1]);
+      affine[5] = tr[3] + 0.5f*(tr[5]);
+      printf("%d %f %f %f %f %f %f %f %f\n",cmap,tr[0],tr[1],tr[2],tr[3],tr[4],tr[5],zmin,zmax);
       if (cmap==3) {
-	cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
+	//	cpggray(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmax,zmin,tr);
+
+	giza_render_gray_float(s.nsub,s.nchan,s.z,0,s.nsub-1,0,s.nchan-1,zmin,zmax,GIZA_EXTEND_NONE,affine);	
       } else {
 	if (cmap==0)
-	  cpgctab(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
+	  giza_set_colour_table_float(cool_l,cool_r,cool_g,cool_b,9,1.0,0.5);
 	else if (cmap==1)
-	  cpgctab(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
+	  giza_set_colour_table_float(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
 	else if (cmap==2)
-	  cpgctab(viridis_l,viridis_r,viridis_g,viridis_b,256,1.0,0.5);
-	cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+	  giza_set_colour_table_float(viridis_l,viridis_r,viridis_g,viridis_b,256,1.0,0.5);
+	//	cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+	giza_render_float(s.nsub,s.nchan,s.z,0,s.nsub-1,0,s.nchan-1,zmin,zmax,GIZA_EXTEND_NONE,affine);
       }
 
       // Pixel axis
-      cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
+      giza_box("CTSM1",0.,0,"CTSM1",0.,0);
 
       // Time axis
-      cpgbox("B",0.,0,"",0.,0);
+      giza_box("B",0.,0,"",0.,0);
       time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
 
       // Freq axis
@@ -263,7 +277,7 @@ int main(int argc,char *argv[])
       
       // Human readable frequency axis
       fcen=0.5*(fmax+fmin);
-      cpgswin(xmin,xmax,fmin-fcen,fmax-fcen);
+      giza_set_window_float(xmin,xmax,fmin-fcen,fmax-fcen);
       if (foverlay==1) 
 	plot_traces(t,nsat,fcen,xmin,xmax);
 
@@ -271,41 +285,41 @@ int main(int argc,char *argv[])
       sprintf(ylabel,"Frequency - %.3f MHz",fcen);
       fmin-=fcen;
       fmax-=fcen;
-      cpgswin(xmin,xmax,fmin,fmax);
-      cpgbox("",0.,0,"BTSN",0.,0);
+      giza_set_window_float(xmin,xmax,fmin,fmax);
+      giza_box("",0.,0,"BTSN",0.,0);
 
       sprintf(xlabel,"UT Date: %.10s",s.nfd0);
-      cpglab(xlabel,ylabel," ");
+      giza_label(xlabel,ylabel," ");
 
-      cpgswin(xmin,xmax,ymin,ymax);
+      giza_set_window_float(xmin,xmax,ymin,ymax);
 
       // Plot selection
       if (sel.n>0) {
-	cpgsci(7);
+	giza_set_colour_index(7);
 	// Plot points
 	for (i=0;i<sel.n;i++) 
-	  cpgpt1(sel.x[i],sel.y[i],4);
+	  giza_single_point_float(sel.x[i],sel.y[i],4);
 	// Plot upper bound
 	for (i=0;i<sel.n;i++) {
 	  if (i==0)
-	    cpgmove(sel.x[i],sel.y[i]+sel.w);
+	    giza_move_float(sel.x[i],sel.y[i]+sel.w);
 	  else
-	    cpgdraw(sel.x[i],sel.y[i]+sel.w);
+	    giza_draw_float(sel.x[i],sel.y[i]+sel.w);
 	}
 	// Plot lower bound
 	for (i=0;i<sel.n;i++) {
 	  if (i==0)
-	    cpgmove(sel.x[i],sel.y[i]-sel.w);
+	    giza_move_float(sel.x[i],sel.y[i]-sel.w);
 	  else
-	    cpgdraw(sel.x[i],sel.y[i]-sel.w);
+	    giza_draw_float(sel.x[i],sel.y[i]-sel.w);
 	}
 
-	cpgsci(1);
+	giza_set_colour_index(1);
       }
 
       // Plot grid
       if (grid==1) {
-	cpgsci(2);
+	giza_set_colour_index(2);
 	for (i=0,flag=0;i<s.nsub-1;i++) {
 	  dt=86400.0*(s.mjd[i]-mjdgrid);
 	  jj1=(int) (floor) (dt/2.4);
@@ -316,24 +330,24 @@ int main(int argc,char *argv[])
 	    jj0=jj1;
 	  }
 	  if (jj0%2==0)
-	    cpgsls(1);
+	    giza_set_line_style(1);
 	  else
-	    cpgsls(2);
+	    giza_set_line_style(2);
 	  if (flag==0) {
-	    cpgmove((float) i,ymin);
-	    cpgdraw((float) i,ymax);
+	    giza_move_float((float) i,ymin);
+	    giza_draw_float((float) i,ymax);
 	    flag=1;
 	  }
 	}
-	cpgsci(1);
-	cpgsls(1);
+	giza_set_colour_index(1);
+	giza_set_line_style(1);
 
       }
       redraw=0;
     }
 
     // Get cursor
-    cpgband(mode,posn,x0,y0,&x,&y,&c);
+    giza_band_float(mode,posn,x0,y0,&x,&y,&c);
 
     // Help
     if (c=='h') {
@@ -525,7 +539,7 @@ int main(int argc,char *argv[])
 	  }
 	}
 	printf("%d\n",jmax);
-	cpgpt1((float) i,(float) jmax,17);
+	giza_single_point_float((float) i,(float) jmax,17);
       }
       i0=(int) x;
       jmax=(int) y;
@@ -550,7 +564,7 @@ int main(int argc,char *argv[])
 	  }
 	}
 	printf("%d\n",jmax);
-	cpgpt1((float) i,(float) jmax,17);
+	giza_single_point_float((float) i,(float) jmax,17);
       }
       continue;
     }
@@ -577,7 +591,7 @@ int main(int argc,char *argv[])
 
       // Fit point
       yfit=fit_gaussian_point(s,x,y,sel,site_id,graves);
-      cpgpt1(x,yfit,17);
+      giza_single_point_float(x,yfit,17);
       i=(int) floor(x);
       f=s.freq-0.5*s.samp_rate+(double) yfit*s.samp_rate/(double) s.nchan;
       if (s.mjd[i]>1.0) {
@@ -634,7 +648,7 @@ int main(int argc,char *argv[])
 	    fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,zzmax,site_id);
 	  else
 	    fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,zzmax,site_id);
-	  cpgpt1((float) i,(float) jmax,17);
+	  giza_single_point_float((float) i,(float) jmax,17);
 	}
       }
       fclose(file);
@@ -775,7 +789,8 @@ int main(int argc,char *argv[])
     y0=y;
   }
 
-  cpgend();
+  giza_stop_prompting();
+  giza_close_device();
 
   // Free
   free(s.z);
@@ -901,7 +916,7 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 	dec2sex(((float) sec+0.1)/3600.0,stime,0,1);
       else
 	dec2sex(((float) sec+0.1)/3600.0,stime,0,0);
-      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.5,0.5,0.3,0.0,stime);
+      giza_tick_float(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.5,0.5,0.3,0.0,stime);
     }
   }
 
@@ -913,7 +928,7 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
 	if (mjdt>=mjd[i] && mjdt<mjd[i+1])
 	  break;
       sec=(int) floor(t);
-      cpgtick(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.25,0.25,1.0,1.0,"");
+      giza_tick_float(xmin,ymin,xmax,ymin,((float) i-xmin)/(xmax-xmin),0.25,0.25,1.0,1.0,"");
     }
   }
 
@@ -952,15 +967,15 @@ void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
   for (i=0;i<nsat;i++) {
     // Select color
     if (t[i].classfd==1)
-      cpgsci(8);
+      giza_set_colour_index(8);
     else
-      cpgsci(3);
+      giza_set_colour_index(3);
     
     sprintf(text," %d",t[i].satno);
 
     // Plot label at start of trace
     if (t[i].za[0]<=90.0)
-	cpgtext(0.0,(float) t[i].freq[0]-fcen,text);
+	giza_text_float(0.0,(float) t[i].freq[0]-fcen,text);
 
     // Loop over trace
     for (j=0,flag=0,textflag=0;j<t[i].n;j++) {
@@ -971,14 +986,14 @@ void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
       
       // Plot label for rising sources
       if (j>0 && t[i].za[j-1]>90.0 && t[i].za[j]<=90.0)
-	cpgtext((float) j,(float) t[i].freq[j]-fcen,text);
+	giza_text_float((float) j,(float) t[i].freq[j]-fcen,text);
 
       // Plot line
       if (flag==0) {
-	cpgmove((float) j,t[i].freq[j]-fcen);
+	giza_move_float((float) j,t[i].freq[j]-fcen);
 	flag=1;
       } else {
-	cpgdraw((float) j,t[i].freq[j]-fcen);
+	giza_draw_float((float) j,t[i].freq[j]-fcen);
       }
 
       // Below horizon
@@ -988,7 +1003,7 @@ void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
 	flag=1;
     }	  
   }
-  cpgsci(1);
+  giza_set_colour_index(1);
 
   return;
 }
@@ -1059,7 +1074,7 @@ struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int gr
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
 	else
 	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
-	cpgpt1((float) i,(float) jmax,17);
+	giza_single_point_float((float) i,(float) jmax,17);
 	t.mjd[l]=s.mjd[i];
 	t.freq[l]=f;
 	t.za[l]=0.0;
@@ -1150,9 +1165,9 @@ struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
 	else
 	  fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
-	cpgpt1((float) i,(float) a[0], 17);
-	cpgmove((float) i,(float) a[0]-a[1]);
-	cpgdraw((float) i,(float) a[0]+a[1]);
+	giza_single_point_float((float) i,(float) a[0], 17);
+	giza_move_float((float) i,(float) a[0]-a[1]);
+	giza_draw_float((float) i,(float) a[0]+a[1]);
 	t.mjd[l]=s.mjd[i];
 	t.freq[l]=f;
 	t.za[l]=0.0;
@@ -1288,7 +1303,7 @@ struct trace locate_trace(struct spectrogram s,struct trace t,int site_id,float 
 	fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,sigma,site_id);
       else
 	fprintf(file,"%lf %lf %f %d 9999\n",s.mjd[i],f,sigma,site_id);
-      cpgpt1((float) i,(float) jmax,17);
+      giza_single_point_float((float) i,(float) jmax,17);
     }
   }
 
@@ -1384,7 +1399,7 @@ void filter(struct spectrogram s,int site_id,float sigma,int graves)
 	  else
 	    fprintf(file,"%lf %lf %f %d 9999 %d %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id,i,j);
 	}
-	cpgpt1((float) i+0.5,(float) j+0.5,17);
+	giza_single_point_float((float) i+0.5,(float) j+0.5,17);
       }
     }
   }
@@ -1450,7 +1465,7 @@ void peakfind(struct spectrogram s,int site_id,int i0,int i1,int j0,int j1)
 	f=s.freq-0.5*s.samp_rate+(double) x0*s.samp_rate/(double) s.nchan;
 	if (s.mjd[i]>1.0)
 	  fprintf(file,"%lf %lf %f %d\n",s.mjd[i],f,s.z[i+s.nsub*j],site_id);
-	cpgpt1((float) i+0.5,x0+0.5,17);
+	giza_single_point_float((float) i+0.5,x0+0.5,17);
       }
     }
   }

@@ -2,7 +2,8 @@
 CFLAGS = -O3
 
 # Linking flags
-LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
+#LFLAGS = -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
+LFLAGS = -lm -lgsl -lgslcblas -L/usr/local/lib -lgiza
 
 # Compiler
 CC = gcc
