@@ -846,6 +846,17 @@ void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax)
     imax=n-1;
   mjdmin=mjd[imin];
   mjdmax=mjd[imax];
+
+  // Do not plot axis if no data is available
+  if (mjdmin==0.0 && mjdmax==0.0)
+    return;
+
+  // Correct maximum
+  if (mjdmax==0.0) {
+    for (i=0;i<n;i++)
+      if (mjd[i]>mjdmax)
+	mjdmax=mjd[i];
+  }
   dt=(float) 86400*(mjdmax-mjdmin);
 
   // Choose tickmarks
