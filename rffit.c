@@ -634,6 +634,16 @@ int main(int argc,char *argv[])
       redraw=1;
     }
 
+    // Mirror curve
+    if (c=='M') {
+      // Loop over points
+      for (i=0;i<d.n;i++) {
+	d.p[i].f=-d.p[i].f;
+	d.p[i].freq=d.f0-(d.p[i].freq-d.f0);
+      }
+      redraw=1;
+    }
+    
     // Toggles
     if (isdigit(c) && c-'0'>=1 && c-'0'<8) {
       if (ia[c-49]==0) 
@@ -1066,6 +1076,7 @@ int main(int argc,char *argv[])
       printf("f   Fit highlighted points\n");
       printf("i   Identify satellite from catalog based on Doppler curve\n");
       printf("I   Identify satellite from catalog based on visibility\n");
+      printf("M   Mirror doppler curve in frequency\n");
       printf("\n");
       printf("Highlighting / Selecting / Deleting points:\n");
       printf("z   Start box to zoom\n");
