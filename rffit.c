@@ -263,7 +263,7 @@ int main(int argc,char *argv[])
   int i,j,flag,redraw=1,plot_curve=1,plot_type=1,residuals=0,elset=0;
   int imode,year,style,color;
   char xlabel[64],ylabel[32],text[64],freqlist[128];
-  int site_id=4171;
+  int site_id=0;
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
   float x0=0.0,y0=0.0,x=0.0,y=0.0;
@@ -283,11 +283,9 @@ int main(int argc,char *argv[])
   char *env;
 
   // Get site
-  env=getenv("ST_COSPAR");
-  if (env!=NULL) {
-    site_id=atoi(env);
-  } else {
-    printf("ST_COSPAR environment variable not found.\n");
+  env = getenv("ST_COSPAR");
+  if (env != NULL) {
+    site_id = atoi(env);
   }
 
   // Get frequency list
@@ -325,7 +323,7 @@ int main(int argc,char *argv[])
       break;
       
     case 's':
-      site_id=atoi(optarg);
+      site_id = atoi(optarg);
       break;
 
     case 'g':
@@ -352,11 +350,11 @@ int main(int argc,char *argv[])
   for (i=0;i<d.n;i++) {
     // Check if site is assigned
     for (j=0,flag=0;j<nsite;j++) 
-      if (site_number[j]==d.p[i].site_id)
-	flag=1;
+      if (site_number[j] == d.p[i].site_id)
+	    flag = 1;
     
     // Not assigned
-    if (flag==0) {
+    if (flag == 0) {
       site_number[nsite]=d.p[i].site_id;
       nsite++;
     }
@@ -365,6 +363,17 @@ int main(int argc,char *argv[])
       return 0;
     }
   }
+
+  if (site_id == 0) {
+      // No default site selected.
+      // Select first site from datafile
+      if (nsite > 0) {
+        site_id = site_number[0];
+      } else {
+        printf("No default site given and no site in datafile found, abort.");
+      }
+  }
+  printf("%d\n", site_id);
 
   // Set default observing site
   site = get_site(site_id);
