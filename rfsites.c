@@ -66,10 +66,10 @@ site_t get_site(int site_id) {
   fclose(file);
 
   if (count == 0) {
-    printf("Error: Site %d was not found in sites.txt!", site_id);
+    printf("Error: Site %d was not found in %s!\n", site_id, filename);
     exit(-1);
   } else if (count > 1) {
-    printf("Site %d was found multiple times in sites.txt, use last occurence.", site_id);
+    printf("Site %d was found multiple times in %s, use last occurence.\n", site_id, filename);
   }
 
   return s;
