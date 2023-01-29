@@ -69,7 +69,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   // Number of subints
   s.nsub=nsub/nbin;
 
-  printf("Allocating %.2f MB of memory\n",(float) (4*s.nchan*s.nsub)/(1024 * 1024));
+  printf("Allocating %.2f MB of memory\n",(4* (float) s.nchan * (float) s.nsub)/(1024 * 1024));
   
   // Allocate
   s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
