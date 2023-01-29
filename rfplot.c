@@ -58,7 +58,7 @@ int main(int argc,char *argv[])
   int i,j,k,flag=0,sn,maxflag=0;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
-  int ix=0,iy=0,isub=0;
+  int ix=0,iy=0,isub=0,nx,ny,jx=0,jy=0;
   int i0,j0,i1,j1,jmax;
   float width=1500;
   float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
@@ -362,7 +362,11 @@ int main(int argc,char *argv[])
       printf("R        Recompute traces\n");
       printf("r        Reset view\n");
       printf("z        Select part to zoom into\n");
-      printf("TAB      Pan through view\n");
+      printf("TAB/>    Pan up through view\n");
+      printf("BKSP/<   Pan down through view\n");
+      printf(".        Pan right through view\n");
+      printf(",        Pan left through view\n");
+      printf("1-9      Zoom level\n");
       
       continue;
     }
@@ -670,6 +674,8 @@ int main(int argc,char *argv[])
 
     // Width
     if (isdigit(c)) {
+      if (c=='0')
+	continue;
       width=1000.0/(c-'0');
       xmin=x-width;
       xmax=x+width;
@@ -715,6 +721,8 @@ int main(int argc,char *argv[])
       ymin=0.0;
       ymax=(float) s.nchan;
       sel.n=0;
+      ix=0;
+      iy=0;
       redraw=1;
       continue;
     }
@@ -726,7 +734,10 @@ int main(int argc,char *argv[])
     }
 
     // Pan
-    if (c=='\t') {
+    if (c==',' || c=='.' || c=='<' || c=='>' || c=='\t' || c=='\b') {
+      // Image width
+      nx = (int) ceil(s.nsub / width);
+      ny = (int) ceil(s.nchan / width);
 
       // Set area
       x=width*(ix+0.5);
@@ -736,21 +747,45 @@ int main(int argc,char *argv[])
       ymin=y-0.75*width;
       ymax=y+0.75*width;
 
-      // Increment
-      iy++;
-      if (width*ix>(float) s.nsub) {
-	ix=0;
-	iy=0;
+      // Pan left
+      if (c==',') {
+	jx--;
+      // Pan right
+      } else if (c=='.') {
+	jx++;
+      // Pan down
+      } else if (c=='<' || c=='\b') {
+	jy--;
+      // Pan up
+      } else if (c=='>' || c=='\t') {
+	jy++;
       }
-      if (width*iy>(float) s.nchan) {
-	ix++;
-	iy=0;
+
+      // Keep in range
+      if (jx>=nx*ny)
+	jx=0;
+      if (jx<0)
+	jx=nx*ny-1;
+      if (jy>=nx*ny)
+	jy=0;
+      if (jy<0)
+	jy=nx*ny-1;
+      
+      // Get indices from counters
+      if (c==',' || c=='.') {
+	iy = (int) floor(jx / nx);
+	ix = jx - iy * nx;
       }
+      if (c=='<' || c=='>' || c=='\t' || c=='\b') {
+	ix = (int) floor(jy / ny);
+	iy = jy - ix * ny;
+      }
+	
       redraw=1;
       continue;
     }
-
-        // Execute zoom, or box delete
+    
+    // Execute zoom, or box delete
     if (c=='A') {
       if (click==0) {
 	click=1;
