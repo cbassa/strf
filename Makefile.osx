@@ -23,7 +23,7 @@ LFLAGS = -L$(prefix)/lib -lcpgplot -lpgplot -lX11 -lpng -lm -lgsl -lgslcblas
 CC = $(prefix)/bin/gcc-mp-10
 
 # Installation
-INSTALL_PROGRAM = install -m 557
+INSTALL_PROGRAM = install -m 755
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 
