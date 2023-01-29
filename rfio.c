@@ -65,7 +65,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   // Read whole file if not specified
   if (nsub==0 && msub>0)
     nsub=msub;
-  
+
   // Number of subints
   s.nsub=nsub/nbin;
 
@@ -95,7 +95,6 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     file=fopen(filename,"r");
     if (file==NULL) {
       printf("%s does not exist\n",filename);
-      s.nsub=nsub;
       break;
     }
     printf("opened %s\n",filename);
