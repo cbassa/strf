@@ -58,7 +58,7 @@ int main(int argc,char *argv[])
   int i,j,k,flag=0,sn,maxflag=0;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
-  int ix=0,iy=0,isub=0,nx,ny,jx=0,jy=0;
+  int ix,iy,isub=0,nx,ny,jx=-1,jy=-1;
   int i0,j0,i1,j1,jmax;
   float width=1500;
   float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
@@ -721,8 +721,8 @@ int main(int argc,char *argv[])
       ymin=0.0;
       ymax=(float) s.nchan;
       sel.n=0;
-      ix=0;
-      iy=0;
+      jx=-1;
+      jy=-1;
       redraw=1;
       continue;
     }
@@ -738,14 +738,6 @@ int main(int argc,char *argv[])
       // Image width
       nx = (int) ceil(s.nsub / width);
       ny = (int) ceil(s.nchan / width);
-
-      // Set area
-      x=width*(ix+0.5);
-      y=width*(iy+0.5);
-      xmin=x-0.75*width;
-      xmax=x+0.75*width;
-      ymin=y-0.75*width;
-      ymax=y+0.75*width;
 
       // Pan left
       if (c==',') {
@@ -770,17 +762,27 @@ int main(int argc,char *argv[])
 	jy=0;
       if (jy<0)
 	jy=nx*ny-1;
-      
+
       // Get indices from counters
       if (c==',' || c=='.') {
 	iy = (int) floor(jx / nx);
 	ix = jx - iy * nx;
+	jy = iy + ny * ix;
       }
       if (c=='<' || c=='>' || c=='\t' || c=='\b') {
 	ix = (int) floor(jy / ny);
 	iy = jy - ix * ny;
+	jx = ix + nx * iy;
       }
-	
+
+      // Set area
+      x=width*(ix+0.5);
+      y=width*(iy+0.5);
+      xmin=x-0.75*width;
+      xmax=x+0.75*width;
+      ymin=y-0.75*width;
+      ymax=y+0.75*width;
+
       redraw=1;
       continue;
     }
