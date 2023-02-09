@@ -37,10 +37,16 @@ rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftl
 rffft: rffft.o rftime.o
 	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm
 
-.PHONY: clean install uninstall
+tests/tests: tests/tests.o tests/tests_rftles.o rftles.o satutl.o ferror.o
+	$(CC) -Wall -o $@ $^ -lcmocka -lm
+
+tests: tests/tests
+	./tests/tests
+
+.PHONY: clean install uninstall tests
 
 clean:
-	rm -f *.o
+	rm -f *.o tests/*.o
 	rm -f *~
 
 install:
