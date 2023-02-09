@@ -47,6 +47,14 @@ tles_t load_tles(char *tlefile) {
         }
     }
 
+    // Don't allocate anything if no entry found in file
+    if (num_elements == 0) {
+      fclose(file);
+      free(line);
+
+      return tles;
+    }
+
     tles.orbits = (orbit_t *)calloc(num_elements, sizeof(orbit_t));
 
     // Rewind and parse file
@@ -72,7 +80,7 @@ void free_tles(tles_t *tles) {
 }
 
 orbit_t *get_orbit_by_index(tles_t *tles, long index) {
-    if (tles) {
+    if (tles && (index < tles->number_of_elements)) {
         return &(tles->orbits[index]);
     }
 

@@ -13,6 +13,7 @@ Install
   * Clone repository: `git clone https://github.com/cbassa/strf.git`
   * Compile: `cd strf; make`
   * Install (in `/usr/local`): `sudo make install`
+  * To build and run the unit tests, also install the cmocka dependencies: `sudo apt install libcmocka-dev libcmocka0` and then run `make tests`
 
 Configure
 ---------
