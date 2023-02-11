@@ -723,6 +723,7 @@ int main(int argc,char *argv[])
       sel.n=0;
       jx=-1;
       jy=-1;
+      width=1500;
       redraw=1;
       continue;
     }
