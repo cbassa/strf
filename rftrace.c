@@ -174,7 +174,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   struct point *p;
   struct site s,sg;
   double *v,*vg;
-  orbit_t *orb;
+  tle_t *tle;
   xyz_t satpos,satvel;
   FILE *file;
   double dx,dy,dz,dvx,dvy,dvz,r,za;
@@ -208,21 +208,21 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   imid=t.n/2;
 
   // Load TLEs
-  tles_t twolines = load_tles(tlefile);
+  tle_array_t tle_array = load_tles(tlefile);
 
-  if (twolines.number_of_elements == 0) {
+  if (tle_array.number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
-  for (long elem = 0; elem < twolines.number_of_elements; elem++) {
+  for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
     // Get TLE
-    orb = get_orbit_by_index(&twolines, elem);
+    tle = get_orbit_by_index(&tle_array, elem);
 
     // Initialize
-    imode=init_sgdp4(orb);
+    imode=init_sgdp4(&(tle->orbit));
     if (imode==SGDP4_ERROR) {
-      printf("Error with %d, skipping\n",orb->satno);
+      printf("Error with %d, skipping\n", tle->orbit.satno);
       continue;
     }
 
@@ -278,10 +278,10 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
 
     if (rms<1000) {
       if (rms<50.0)
-	printf("%05d: %s %8.1f Hz (%.1f,%.1f)\n",orb->satno,nfd,rms,modulo(azi+180.0,360.0),alt);
-      //      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",orb->satno,nfd,1e-6*freq0,1e-3*rms);
+	printf("%05d: %s %8.1f Hz (%.1f,%.1f)\n",tle->orbit.satno,nfd,rms,modulo(azi+180.0,360.0),alt);
+      //      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",tle->orbit.satno,nfd,1e-6*freq0,1e-3*rms);
       if (flag==0 || rms<rmsmin) {
-	satnomin=orb->satno;
+	satnomin=tle->orbit.satno;
 	strcpy(nfdmin,nfd);
 	freqmin=freq0;
 	rmsmin=rms;
@@ -312,7 +312,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   }
 
   // Free
-  free_tles(&twolines);
+  free_tles(&tle_array);
   free(p);
   free(v);
   free(vg);
@@ -327,7 +327,7 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   struct point *p;
   struct site s;
   double *v;
-  orbit_t *orb;
+  tle_t *tle;
   xyz_t satpos,satvel;
   FILE *file;
   double dx,dy,dz,dvx,dvy,dvz,r,za;
@@ -356,21 +356,21 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   printf("Fitting trace:\n");
 
   // Load TLEs
-  tles_t twolines = load_tles(tlefile);
+  tle_array_t tle_array = load_tles(tlefile);
 
-  if (twolines.number_of_elements == 0) {
+  if (tle_array.number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
-  for (long elem = 0; elem < twolines.number_of_elements; elem++) {
+  for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
     // Get TLE
-    orb = get_orbit_by_index(&twolines, elem);
+    tle = get_orbit_by_index(&tle_array, elem);
 
     // Initialize
-    imode=init_sgdp4(orb);
+    imode=init_sgdp4(&(tle->orbit));
     if (imode==SGDP4_ERROR) {
-      printf("Error with %d, skipping\n",orb->satno);
+      printf("Error with %d, skipping\n", tle->orbit.satno);
       continue;
     }
 
@@ -411,9 +411,9 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
       strcpy(nfd,"0000-00-00T00:00:00");
 
     if (rms<1000) {
-      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",orb->satno,nfd,1e-6*freq0,1e-3*rms);
+      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",tle->orbit.satno,nfd,1e-6*freq0,1e-3*rms);
       if (flag==0 || rms<rmsmin) {
-	satnomin=orb->satno;
+	satnomin=tle->orbit.satno;
 	strcpy(nfdmin,nfd);
 	freqmin=freq0;
 	rmsmin=rms;
@@ -444,7 +444,7 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   }
 
   // Free
-  free_tles(&twolines);
+  free_tles(&tle_array);
   free(p);
   free(v);
 
@@ -491,7 +491,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   struct point *p;
   struct site s,sg;
   FILE *file,*infile;
-  orbit_t *orb;
+  tle_t *tle;
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,za,vg;
   double freq0,dfreq;
@@ -568,9 +568,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   }
 
   // Load TLEs
-  tles_t twolines = load_tles(tlefile);
+  tle_array_t tle_array = load_tles(tlefile);
 
-  if (twolines.number_of_elements == 0) {
+  if (tle_array.number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return NULL;
   }
@@ -602,13 +602,13 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].graves=graves;
 
     // Get TLE
-    orb = get_orbit_by_catalog_id(&twolines, satno);
+    tle = get_orbit_by_catalog_id(&tle_array, satno);
 
-    if (orb) {
+    if (tle) {
       // Initialize
-      imode=init_sgdp4(orb);
+      imode=init_sgdp4(&(tle->orbit));
       if (imode==SGDP4_ERROR) {
-	printf("Error with %d, skipping\n",orb->satno);
+	printf("Error with %d, skipping\n", tle->orbit.satno);
 	continue;
       }
 
@@ -661,7 +661,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 
   // Free
 
-  free_tles(&twolines);
+  free_tles(&tle_array);
   free(p);
 
   // Update counter
@@ -677,7 +677,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   struct point *p;
   struct site s,sg;
   FILE *outfile;
-  orbit_t *orb;
+  tle_t *tle;
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,rg,vg;
   double freq0;
@@ -718,22 +718,22 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
     fprintf(outfile, "# satno mjd r v azi alt\n");
 
   // Load TLEs
-  tles_t twolines = load_tles(tlefile);
+  tle_array_t tle_array = load_tles(tlefile);
 
-  if (twolines.number_of_elements == 0) {
+  if (tle_array.number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
   // Get TLE
-  orb = get_orbit_by_catalog_id(&twolines, satno);
+  tle = get_orbit_by_catalog_id(&tle_array, satno);
 
   // Skip high satellites
-  if (orb && !(skiphigh == 1 && orb->rev < 10.0)) {
+  if (tle && !(skiphigh == 1 && tle->orbit.rev < 10.0)) {
     // Initialize
-    imode=init_sgdp4(orb);
+    imode=init_sgdp4(&(tle->orbit));
     if (imode==SGDP4_ERROR) {
-      printf("Error with %d, skipping\n",orb->satno);
+      printf("Error with %d, skipping\n", tle->orbit.satno);
     }
 
     // Loop over points
@@ -766,9 +766,9 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
 	rag=modulo(atan2(dy,dx)*R2D,360.0);
 	deg=asin(dz/rg)*R2D;
 	equatorial2horizontal(mjd[i],rag,deg,sg.lng,sg.lat,&azig,&altg);
-	fprintf(outfile,"%05d %14.8lf %f %f %f %f %f %f %f %f\n",orb->satno,mjd[i],r,v,azi,alt,rg,vg,azig,altg);
+	fprintf(outfile,"%05d %14.8lf %f %f %f %f %f %f %f %f\n", tle->orbit.satno,mjd[i],r,v,azi,alt,rg,vg,azig,altg);
       } else {
-	fprintf(outfile,"%05d %14.8lf %f %f %f %f\n",orb->satno,mjd[i],r,v,azi,alt);
+        fprintf(outfile,"%05d %14.8lf %f %f %f %f\n", tle->orbit.satno,mjd[i],r,v,azi,alt);
       }
     }
   }
@@ -777,7 +777,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   fclose(stderr);
 
   // Free
-  free_tles(&twolines);
+  free_tles(&tle_array);
   free(p);
 
   return;

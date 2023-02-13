@@ -7,15 +7,20 @@
 extern "C" {
 #endif
 
-typedef struct tles {
-    long number_of_elements;
-    orbit_t *orbits;
-} tles_t;
+typedef struct tle {
+    orbit_t orbit;
+    char *name;
+} tle_t;
 
-tles_t load_tles(char *tlefile);
-void free_tles(tles_t *tles);
-orbit_t *get_orbit_by_index(tles_t *tles, long index);
-orbit_t *get_orbit_by_catalog_id(tles_t *tles, long satno);
+typedef struct tle_array {
+    long number_of_elements;
+    tle_t *tles;
+} tle_array_t;
+
+tle_array_t load_tles(char *tlefile);
+void free_tles(tle_array_t *tle_array);
+tle_t *get_orbit_by_index(tle_array_t *tle_array, long index);
+tle_t *get_orbit_by_catalog_id(tle_array_t *tle_array, long satno);
 
 #ifdef __cplusplus
 }
