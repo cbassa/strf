@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-tles_t load_tles(char *tlefile) {
-    tles_t tles;
+tle_array_t load_tles(char *tlefile) {
+    tle_array_t tle_array;
 
-    tles.orbits = NULL;
-    tles.number_of_elements = 0;
+    tle_array.tles = NULL;
+    tle_array.number_of_elements = 0;
 
     char filename[1024];
 
@@ -31,7 +31,7 @@ tles_t load_tles(char *tlefile) {
     if (file == NULL) {
         fprintf(stderr, "TLE file %s not found\n", filename);
 
-        return tles;
+        return tle_array;
     }
 
     size_t linesize = 256;
@@ -52,46 +52,52 @@ tles_t load_tles(char *tlefile) {
       fclose(file);
       free(line);
 
-      return tles;
+      return tle_array;
     }
 
-    tles.orbits = (orbit_t *)calloc(num_elements, sizeof(orbit_t));
+    tle_array.tles = (tle_t *)calloc(num_elements, sizeof(tle_t));
 
     // Rewind and parse file
     rewind(file);
 
-    while (read_twoline(file, 0, &(tles.orbits[tles.number_of_elements])) == 0) {
-        tles.number_of_elements++;
+    while (read_twoline(file, 0, &(tle_array.tles[tle_array.number_of_elements].orbit)) == 0) {
+        tle_array.number_of_elements++;
     }
 
     free(line);
     fclose(file);
 
-    printf("Loaded %ld orbits\n", tles.number_of_elements);
+    printf("Loaded %ld orbits\n", tle_array.number_of_elements);
 
-    return tles;
+    return tle_array;
 }
 
-void free_tles(tles_t *tles) {
-    if (tles) {
-        free(tles->orbits);
-        tles->number_of_elements = 0;
+void free_tles(tle_array_t *tle_array) {
+    if (tle_array) {
+        for (long i = 0; i < tle_array->number_of_elements; i++) {
+            if (tle_array->tles[i].name != NULL) {
+                free(tle_array->tles[i].name);
+            }
+        }
+
+        free(tle_array->tles);
+        tle_array->number_of_elements = 0;
     }
 }
 
-orbit_t *get_orbit_by_index(tles_t *tles, long index) {
-    if (tles && (index < tles->number_of_elements)) {
-        return &(tles->orbits[index]);
+tle_t *get_orbit_by_index(tle_array_t *tle_array, long index) {
+    if (tle_array && (index < tle_array->number_of_elements)) {
+        return &(tle_array->tles[index]);
     }
 
     return NULL;
 }
 
-orbit_t *get_orbit_by_catalog_id(tles_t *tles, long satno) {
-    if (tles) {
-        for (long i = 0; i < tles->number_of_elements; i++) {
-            if (tles->orbits[i].satno == satno) {
-                return &(tles->orbits[i]);
+tle_t *get_orbit_by_catalog_id(tle_array_t *tle_array, long satno) {
+    if (tle_array) {
+        for (long i = 0; i < tle_array->number_of_elements; i++) {
+            if (tle_array->tles[i].orbit.satno == satno) {
+                return &(tle_array->tles[i]);
             }
         }
     }
