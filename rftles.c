@@ -74,7 +74,16 @@ tle_array_t *load_tles(char *tlefile) {
     // Rewind and parse file
     rewind(file);
 
-    while (read_twoline(file, 0, &(tle_array->tles[tle_array->number_of_elements].orbit)) == 0) {
+    char satname[linesize];
+    while (read_twoline(file, 0, &(tle_array->tles[tle_array->number_of_elements].orbit), satname) == 0) {
+        if (satname[0] != '\0') {
+            int satname_len = strlen(satname) + 1;
+            tle_array->tles[tle_array->number_of_elements].name = malloc(satname_len);
+            strncpy(tle_array->tles[tle_array->number_of_elements].name, satname, satname_len);
+        } else {
+            tle_array->tles[tle_array->number_of_elements].name = NULL;
+        }
+
         tle_array->number_of_elements++;
     }
 
