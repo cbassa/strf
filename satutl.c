@@ -44,7 +44,7 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
   static char line1[ST_SIZE];
   static char line2[ST_SIZE];
   char *st1, *st2;
-  int found;
+  int found = 0;
   double bm, bx;
   
   st1 = line1;
@@ -54,17 +54,13 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
     if(fgets(line1, ST_SIZE-1, fp) == NULL) return -1;
     st1 = st_start(line1);
   } while(st1[0] != '1');
-  
-  if(search_satno > 0)
-    {
-      found = 0;
-    }
-  else
-    {
-      found = 1;
-      search_satno = atol(st1+2);
-    }
-  
+
+  if (search_satno == 0) {
+    // If no search_satno given, set it to the currently read one
+    // so next do/while loop will find it
+    search_satno = atol(st1+2);
+  }
+
   sprintf(search, "1 %05ld", search_satno);
   
   do {
