@@ -13,7 +13,8 @@ extern "C" {
 
 /** satutl.c **/
 void read_kb(char *buf);
-int  read_twoline(FILE *fp, long satno, orbit_t *orb);
+void conditional_copy_satname(char * satname, char * current_line);
+int  read_twoline(FILE *fp, long satno, orbit_t *orb, char *satname);
 void *vector(size_t num, size_t size);
 void print_orb(orbit_t *orb);
 
