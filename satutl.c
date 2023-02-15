@@ -32,27 +32,63 @@ int ii;
         }
 }
 
+// If current_line doesn't start with "1 " or "2 ", copy it to satname,
+// stripping a potential leading "0 ", leading whitespaces and trailing
+// whitespaces and newline
+void conditional_copy_satname(char * satname, char * current_line) {
+  if ((current_line[0] != '1' || current_line[1] != ' ') &&
+      (current_line[0] != '2' || current_line[1] != ' ')) {
+    // Name line found
+    // st_start will strip the leading whitespaces
+    if (current_line[0] == '0' && current_line[1] == ' ') {
+      strncpy(satname, st_start(current_line + 2), ST_SIZE);
+    } else {
+      strncpy(satname, st_start(current_line), ST_SIZE);
+    }
+  }
+
+  // Strip the trailing whitespaces and newline
+  for (int i = strlen(satname); i >= 0; i--) {
+    if (!isprint(satname[i])) {
+      satname[i] = '\0';
+    } else {
+      break;
+    }
+  }
+
+  return;
+}
+
 /* ====================================================================
    Read orbit parameters for "satno" in file "filename", return -1 if
    failed to find the corresponding data. Call with satno = 0 to get the
    next elements of whatever sort.
+
+   When calling with satno != 0 and the corresponding sat doesn't have a
+   name in the tle file, depending on the current file position, it can
+   return the name of the previous satellite. This won't happen when
+   called with satno == 0 or through the rftles wrapper which is
+   currently used everywhere, there is no direct call to read_twoline.
    ==================================================================== */
 
-int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
+int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
 {
+  char tmp_satname[ST_SIZE] = "";
   static char search[ST_SIZE];
   static char line1[ST_SIZE];
   static char line2[ST_SIZE];
   char *st1, *st2;
   int found = 0;
   double bm, bx;
-  
+
   st1 = line1;
   st2 = line2;
-  
+
   do {
     if(fgets(line1, ST_SIZE-1, fp) == NULL) return -1;
     st1 = st_start(line1);
+
+    conditional_copy_satname(tmp_satname, line1);
   } while(st1[0] != '1');
 
   if (search_satno == 0) {
@@ -62,7 +98,7 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
   }
 
   sprintf(search, "1 %05ld", search_satno);
-  
+
   do {
     st1 = st_start(line1);
     if(strncmp(st1, search, 7) == 0)
@@ -70,29 +106,31 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
 	found = 1;
 	break;
       }
+
+      conditional_copy_satname(tmp_satname, line1);
   } while(fgets(line1, ST_SIZE-1, fp) != NULL);
-  
-  
+
+
   sprintf(search, "2 %05ld", search_satno);
-  
+
   if(found)
     {
       fgets(line2, ST_SIZE-1, fp);
       st2 = st_start(line2);
     }
-  
+
   if(!found || strncmp(st2, search, 7) != 0)
     {
       return -1;
     }
-  
+
   orb->ep_year = (int)i_read(st1, 19, 20);
-  
+
   if(orb->ep_year < 57) orb->ep_year += 2000;
   else orb->ep_year += 1900;
-  
+
   orb->ep_day =       d_read(st1, 21, 32);
-  
+
   orb->ndot2 = d_read(st1, 34, 43);
   bm = d_read(st1, 45, 50) * 1.0e-5;
   bx = d_read(st1, 51, 52);
@@ -108,10 +146,14 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb)
   orb->mnan = RAD(d_read(st2, 44, 51));
   orb->rev  =     d_read(st2, 53, 63);
   orb->norb =     i_read(st2, 64, 68);
-  
+
   orb->satno = search_satno;
 
   sscanf(st1+9,"%s",orb->desig);
+
+  if (satname != NULL) {
+    strncpy(satname, tmp_satname, ST_SIZE);
+  }
 
   return 0;
 }
