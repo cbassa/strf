@@ -38,9 +38,56 @@ void versafit(int m,int n,double *a,double *da,double (*func)(double *),double d
 double chisq_gaussian(double a[]);
 float fit_gaussian_point(struct spectrogram s,float x,float y,struct select sel,int site_id,int graves);
 
+struct spectrogram dedoppler_spectrogram(struct spectrogram s,struct trace t,int nsat)
+{
+  int isub,ichan,ishift,kin,kout,jchan,isat,flag=0;
+  double dfreq,fchan;
+  struct spectrogram sd;
+
+  // Copy and allocate
+  sd.nsub=s.nsub;
+  sd.nchan=s.nchan;
+  sd.freq=s.freq;
+  sd.samp_rate=s.samp_rate;
+  sd.zmin=s.zmin;
+  sd.zmax=s.zmax;
+  strcpy(sd.nfd0,s.nfd0);
+  sd.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
+  sd.zavg=(float *) malloc(sizeof(float)*s.nsub);
+  sd.zstd=(float *) malloc(sizeof(float)*s.nsub);
+  sd.mjd=(double *) malloc(sizeof(double)*s.nsub);
+  sd.length=(float *) malloc(sizeof(float)*s.nsub);
+
+  // Copy
+  for (isub=0;isub<s.nsub;isub++) {
+    sd.zavg[isub]=s.zavg[isub];
+    sd.zstd[isub]=s.zstd[isub];
+    sd.mjd[isub]=s.mjd[isub];
+    sd.length[isub]=s.length[isub];
+  }
+  
+  // Copy with requency shifts
+  fchan=s.samp_rate/s.nchan;
+  for (isub=0;isub<s.nsub;isub++) {
+    dfreq=t.freq[isub]*1e6-s.freq;
+    ishift=(int) floor(dfreq/fchan);
+    for (ichan=0;ichan<s.nchan;ichan++) {
+      jchan=ichan+ishift;
+      if (jchan>=s.nchan)
+	jchan-=s.nchan;
+      kout=isub+s.nsub*ichan;
+      kin=isub+s.nsub*jchan;
+      sd.z[kout]=s.z[kin];
+    }
+  }
+
+  return sd;
+}
+
+
 int main(int argc,char *argv[])
 {
-  struct spectrogram s;
+  struct spectrogram s,sd;
   float tr[]={-0.5,1.0,0.0,-0.5,0.0,1.0};
   float cool_l[]={-0.5,0.0,0.17,0.33,0.50,0.67,0.83,1.0,1.7};
   float cool_r[]={0.0,0.0,0.0,0.0,0.6,1.0,1.0,1.0,1.0};
@@ -55,7 +102,7 @@ int main(int argc,char *argv[])
   float heat_g[] = {0.0, 0.0, 0.5, 1.0, 1.0};
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
-  int i,j,k,flag=0,sn,maxflag=0;
+  int i,j,k,flag=0,sn,maxflag=0,dedoppler=0;
   int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix,iy,isub=0,nx,ny,jx=-1,jy=-1;
@@ -245,7 +292,11 @@ int main(int argc,char *argv[])
 	  cpgctab(heat_l,heat_r,heat_g,heat_b,9,1.0,0.5);
 	else if (cmap==2)
 	  cpgctab(viridis_l,viridis_r,viridis_g,viridis_b,256,1.0,0.5);
-	cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+	if (dedoppler==0) {
+	  cpgimag(s.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+	} else {
+	  cpgimag(sd.z,s.nsub,s.nchan,1,s.nsub,1,s.nchan,zmin,zmax,tr);
+	}
       }
 
       // Pixel axis
@@ -398,6 +449,23 @@ int main(int argc,char *argv[])
       }
     }
 
+    // Dedoppler
+    if (c=='d') {
+      if (dedoppler==0) {
+	printf("Provide satno: ");
+	status=scanf("%d",&satno);
+	for (i=0;i<nsat;i++) {
+	  if (t[i].satno==satno) {
+	    sd=dedoppler_spectrogram(s,t[i],nsat);
+	    dedoppler=1;
+	  }
+	}
+      } else if (dedoppler==1) {
+	dedoppler=0;
+      }
+      redraw=1;
+    }
+    
     // Select start
     if (c=='s') {
       if (sel.n < NMAX) {
