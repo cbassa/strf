@@ -373,7 +373,6 @@ int main(int argc,char *argv[])
         printf("No default site given and no site in datafile found, abort.");
       }
   }
-  printf("%d\n", site_id);
 
   // Set default observing site
   site = get_site(site_id);
