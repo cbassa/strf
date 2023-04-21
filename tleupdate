@@ -27,14 +27,14 @@ if [[ ! -z "${ST_LOGIN}" ]]; then
 fi
 
 # Get classfd
-wget http://www.prismnet.com/~mmccants/tles/classfd.zip --no-check-certificate -O classfd.zip
+wget https://mmccants.org/tles/classfd.zip -O classfd.zip
 unzip -o classfd.zip
 dos2unix classfd.tle
 cp classfd.tle ${DATE}_classfd.txt
 rm classfd.zip
 
 # Get inttles
-wget http://www.prismnet.com/~mmccants/tles/inttles.zip --no-check-certificate -O inttles.zip
+wget https://mmccants.org/tles/inttles.zip -O inttles.zip
 unzip -o inttles.zip
 dos2unix inttles.tle
 cp inttles.tle ${DATE}_inttles.txt
