@@ -27,7 +27,6 @@ void usage(void)
   printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
-\n");
   printf("-h              This help\n");
 
   return;
