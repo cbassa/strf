@@ -27,6 +27,7 @@ void usage(void)
   printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
+\n");
   printf("-h              This help\n");
 
   return;
@@ -260,7 +261,7 @@ int main(int argc,char *argv[])
 	    c[i][1]=(float) fbuf[2*i+1]*zw[i]*sign;
 	  } 
 	}
-	  
+
 	// Execute
 	fftwf_execute(fft);
 	

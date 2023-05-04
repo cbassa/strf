@@ -494,15 +494,18 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   orbit_t *orb;
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,za,vg;
-  double freq0;
+  double freq0,dfreq;
   char line[LIM];
   struct trace *t;
   float fmin,fmax;
   double ra,de,azi,alt;
 
+  // Maximum doppler offset (assumes max 20km/s velocity)
+  dfreq=20.0/299792.458*freq;
+
   // Frequency limits
-  fmin=freq-0.5*bw;
-  fmax=freq+0.5*bw;
+  fmin=freq-0.5*bw-dfreq;
+  fmax=freq+0.5*bw+dfreq;
 
   // Reloop stderr
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
