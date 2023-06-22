@@ -85,7 +85,7 @@ void free_tles(tle_array_t *tle_array) {
     }
 }
 
-tle_t *get_orbit_by_index(tle_array_t *tle_array, long index) {
+tle_t *get_tle_by_index(tle_array_t *tle_array, long index) {
     if (tle_array && (index < tle_array->number_of_elements)) {
         return &(tle_array->tles[index]);
     }
@@ -93,7 +93,7 @@ tle_t *get_orbit_by_index(tle_array_t *tle_array, long index) {
     return NULL;
 }
 
-tle_t *get_orbit_by_catalog_id(tle_array_t *tle_array, long satno) {
+tle_t *get_tle_by_catalog_id(tle_array_t *tle_array, long satno) {
     if (tle_array) {
         for (long i = 0; i < tle_array->number_of_elements; i++) {
             if (tle_array->tles[i].orbit.satno == satno) {
