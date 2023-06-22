@@ -217,7 +217,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
 
   for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
     // Get TLE
-    tle = get_orbit_by_index(&tle_array, elem);
+    tle = get_tle_by_index(&tle_array, elem);
 
     // Initialize
     imode=init_sgdp4(&(tle->orbit));
@@ -365,7 +365,7 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
 
   for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
     // Get TLE
-    tle = get_orbit_by_index(&tle_array, elem);
+    tle = get_tle_by_index(&tle_array, elem);
 
     // Initialize
     imode=init_sgdp4(&(tle->orbit));
@@ -602,7 +602,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].graves=graves;
 
     // Get TLE
-    tle = get_orbit_by_catalog_id(&tle_array, satno);
+    tle = get_tle_by_catalog_id(&tle_array, satno);
 
     if (tle) {
       // Initialize
@@ -726,7 +726,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   }
 
   // Get TLE
-  tle = get_orbit_by_catalog_id(&tle_array, satno);
+  tle = get_tle_by_catalog_id(&tle_array, satno);
 
   // Skip high satellites
   if (tle && !(skiphigh == 1 && tle->orbit.rev < 10.0)) {
