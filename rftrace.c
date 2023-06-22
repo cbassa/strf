@@ -208,16 +208,16 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   imid=t.n/2;
 
   // Load TLEs
-  tle_array_t tle_array = load_tles(tlefile);
+  tle_array_t *tle_array = load_tles(tlefile);
 
-  if (tle_array.number_of_elements == 0) {
+  if (tle_array->number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
-  for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
+  for (long elem = 0; elem < tle_array->number_of_elements; elem++) {
     // Get TLE
-    tle = get_tle_by_index(&tle_array, elem);
+    tle = get_tle_by_index(tle_array, elem);
 
     // Initialize
     imode=init_sgdp4(&(tle->orbit));
@@ -312,7 +312,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   }
 
   // Free
-  free_tles(&tle_array);
+  free_tles(tle_array);
   free(p);
   free(v);
   free(vg);
@@ -356,16 +356,16 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   printf("Fitting trace:\n");
 
   // Load TLEs
-  tle_array_t tle_array = load_tles(tlefile);
+  tle_array_t *tle_array = load_tles(tlefile);
 
-  if (tle_array.number_of_elements == 0) {
+  if (tle_array->number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
-  for (long elem = 0; elem < tle_array.number_of_elements; elem++) {
+  for (long elem = 0; elem < tle_array->number_of_elements; elem++) {
     // Get TLE
-    tle = get_tle_by_index(&tle_array, elem);
+    tle = get_tle_by_index(tle_array, elem);
 
     // Initialize
     imode=init_sgdp4(&(tle->orbit));
@@ -444,7 +444,7 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   }
 
   // Free
-  free_tles(&tle_array);
+  free_tles(tle_array);
   free(p);
   free(v);
 
@@ -568,9 +568,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   }
 
   // Load TLEs
-  tle_array_t tle_array = load_tles(tlefile);
+  tle_array_t *tle_array = load_tles(tlefile);
 
-  if (tle_array.number_of_elements == 0) {
+  if (tle_array->number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return NULL;
   }
@@ -602,7 +602,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     t[j].graves=graves;
 
     // Get TLE
-    tle = get_tle_by_catalog_id(&tle_array, satno);
+    tle = get_tle_by_catalog_id(tle_array, satno);
 
     if (tle) {
       // Initialize
@@ -661,7 +661,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 
   // Free
 
-  free_tles(&tle_array);
+  free_tles(tle_array);
   free(p);
 
   // Update counter
@@ -718,15 +718,15 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
     fprintf(outfile, "# satno mjd r v azi alt\n");
 
   // Load TLEs
-  tle_array_t tle_array = load_tles(tlefile);
+  tle_array_t *tle_array = load_tles(tlefile);
 
-  if (tle_array.number_of_elements == 0) {
+  if (tle_array->number_of_elements == 0) {
     fprintf(stderr,"TLE file %s not found or empty\n", tlefile);
     return;
   }
 
   // Get TLE
-  tle = get_tle_by_catalog_id(&tle_array, satno);
+  tle = get_tle_by_catalog_id(tle_array, satno);
 
   // Skip high satellites
   if (tle && !(skiphigh == 1 && tle->orbit.rev < 10.0)) {
@@ -777,7 +777,7 @@ void compute_doppler(char *tlefile,double *mjd,int n,int site_id,int satno,int g
   fclose(stderr);
 
   // Free
-  free_tles(&tle_array);
+  free_tles(tle_array);
   free(p);
 
   return;

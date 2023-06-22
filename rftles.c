@@ -6,11 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-tle_array_t load_tles(char *tlefile) {
-    tle_array_t tle_array;
+tle_array_t *load_tles(char *tlefile) {
+    tle_array_t *tle_array;
 
-    tle_array.tles = NULL;
-    tle_array.number_of_elements = 0;
+    tle_array = (tle_array_t *)malloc(sizeof(tle_array_t));
+
+    if (tle_array == NULL) {
+      return NULL;
+    }
+
+    tle_array->tles = NULL;
+    tle_array->number_of_elements = 0;
 
     char filename[1024];
 
@@ -55,19 +61,27 @@ tle_array_t load_tles(char *tlefile) {
       return tle_array;
     }
 
-    tle_array.tles = (tle_t *)calloc(num_elements, sizeof(tle_t));
+    tle_array->tles = (tle_t *)calloc(num_elements, sizeof(tle_t));
+
+    if (tle_array->tles == NULL) {
+      fclose(file);
+      free(line);
+      free(tle_array);
+
+      return NULL;
+    }
 
     // Rewind and parse file
     rewind(file);
 
-    while (read_twoline(file, 0, &(tle_array.tles[tle_array.number_of_elements].orbit)) == 0) {
-        tle_array.number_of_elements++;
+    while (read_twoline(file, 0, &(tle_array->tles[tle_array->number_of_elements].orbit)) == 0) {
+        tle_array->number_of_elements++;
     }
 
     free(line);
     fclose(file);
 
-    printf("Loaded %ld orbits\n", tle_array.number_of_elements);
+    printf("Loaded %ld orbits\n", tle_array->number_of_elements);
 
     return tle_array;
 }
@@ -81,7 +95,7 @@ void free_tles(tle_array_t *tle_array) {
         }
 
         free(tle_array->tles);
-        tle_array->number_of_elements = 0;
+        free(tle_array);
     }
 }
 

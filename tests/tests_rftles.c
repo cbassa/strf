@@ -8,27 +8,9 @@
 
 #include "../rftles.h"
 
-// Helpers functions for setup/teardown
-void *tle_load(char *filename) {
-  tle_array_t *tle_array = malloc(sizeof(tle_array_t));
-
-  if (tle_array == NULL) {
-    return NULL;
-  }
-
-  *tle_array = load_tles(filename);
-
-  return tle_array;
-}
-
-void tle_free(void *tle_array) {
-  free_tles(tle_array);
-  free(tle_array);
-}
-
 // Setup and teardown functions for tests
 int setup_nonexistent(void **state) {
-  tle_array_t * tle_array = tle_load("tests/data/nonexistent.tle");
+  tle_array_t * tle_array = load_tles("tests/data/nonexistent.tle");
 
   if (tle_array == NULL) {
     return -1;
@@ -40,7 +22,7 @@ int setup_nonexistent(void **state) {
 }
 
 int setup_empty(void **state) {
-  tle_array_t * tle_array = tle_load("tests/data/empty.tle");
+  tle_array_t * tle_array = load_tles("tests/data/empty.tle");
 
   if (tle_array == NULL) {
     return -1;
@@ -52,7 +34,7 @@ int setup_empty(void **state) {
 }
 
 int setup(void **state) {
-  tle_array_t * tle_array = tle_load("tests/data/catalog.tle");
+  tle_array_t * tle_array = load_tles("tests/data/catalog.tle");
 
   if (tle_array == NULL) {
     return -1;
@@ -64,7 +46,7 @@ int setup(void **state) {
 }
 
 int teardown(void **state) {
-  tle_free(*state);
+  free_tles(*state);
 
   return 0;
 }
