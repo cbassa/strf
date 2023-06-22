@@ -90,7 +90,7 @@ void TLE_load_invalid_index_from_file(void **state) {
   assert_non_null(tle_array.tles);
   assert_int_equal(tle_array.number_of_elements, 45);
 
-  tle_t * tle = get_orbit_by_index(&tle_array, 46);
+  tle_t * tle = get_tle_by_index(&tle_array, 46);
   assert_null(tle);
 }
 
@@ -101,7 +101,7 @@ void TLE_load_index_from_file(void **state) {
   assert_int_equal(tle_array.number_of_elements, 45);
 
   // AMS
-  tle_t * tle = get_orbit_by_index(&tle_array, 9);
+  tle_t * tle = get_tle_by_index(&tle_array, 9);
   assert_int_equal(tle->orbit.ep_year, 2023);
   assert_float_equal(tle->orbit.ep_day, 36.90397027, 1e-9);
   assert_float_equal(tle->orbit.rev, 15.27525761, 1e-9);
@@ -126,7 +126,7 @@ void TLE_load_invalid_catalog_id_from_file(void **state) {
   assert_non_null(tle_array.tles);
   assert_int_equal(tle_array.number_of_elements, 45);
 
-  tle_t * tle = get_orbit_by_catalog_id(&tle_array, 12000);
+  tle_t * tle = get_tle_by_catalog_id(&tle_array, 12000);
   assert_null(tle);
 }
 
@@ -137,7 +137,7 @@ void TLE_load_catalog_id_from_file(void **state) {
   assert_int_equal(tle_array.number_of_elements, 45);
 
   // ICEYE-X18
-  tle_t * tle = get_orbit_by_catalog_id(&tle_array, 52749);
+  tle_t * tle = get_tle_by_catalog_id(&tle_array, 52749);
   assert_int_equal(tle->orbit.ep_year, 2023);
   assert_float_equal(tle->orbit.ep_day, 37.11421501, 1e-9);
   assert_float_equal(tle->orbit.rev, 15.15861349, 1e-9);
