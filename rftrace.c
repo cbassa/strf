@@ -180,6 +180,7 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
   double dx,dy,dz,dvx,dvy,dvz,r,za;
   double sum1,sum2,beta,freq0,rms,mjd0;
   char nfd[32],nfdmin[32],text[16];
+  char * satnamemin = NULL;
   int satnomin;
   double rmsmin,freqmin,altmin,azimin;
   double ra,de,azi,alt;
@@ -277,11 +278,17 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
       strcpy(nfd,"0000-00-00T00:00:00");
 
     if (rms<1000) {
-      if (rms<50.0)
-	printf("%05d: %s %8.1f Hz (%.1f,%.1f)\n",tle->orbit.satno,nfd,rms,modulo(azi+180.0,360.0),alt);
+      if (rms<50.0) {
+        if (tle->name) {
+          printf("%05d - %s:\t%s %8.1f Hz (%.1f,%.1f)\n", tle->orbit.satno, tle->name, nfd, rms, modulo(azi+180.0,360.0), alt);
+        } else {
+          printf("%05d:\t%s %8.1f Hz (%.1f,%.1f)\n", tle->orbit.satno, nfd, rms, modulo(azi+180.0,360.0), alt);
+        }
+      }
       //      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",tle->orbit.satno,nfd,1e-6*freq0,1e-3*rms);
       if (flag==0 || rms<rmsmin) {
 	satnomin=tle->orbit.satno;
+	satnamemin = tle->name;
 	strcpy(nfdmin,nfd);
 	freqmin=freq0;
 	rmsmin=rms;
@@ -295,7 +302,11 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
 
   if (flag==1) {
     printf("\nBest fitting object:\n");
-    printf("%05d: %s  %8.1f Hz (%.1f,%.1f)\n",satnomin,nfdmin,rmsmin,modulo(azimin+180.0,360.0),altmin);
+    if (satnamemin) {
+      printf("%05d - %s: %s  %8.1f Hz (%.1f,%.1f)\n", satnomin, satnamemin, nfdmin, rmsmin, modulo(azimin+180.0,360.0), altmin);
+    } else {
+      printf("%05d: %s  %8.1f Hz (%.1f,%.1f)\n", satnomin, nfdmin, rmsmin, modulo(azimin+180.0,360.0), altmin);
+    }
     printf("Store frequency? [y/n]\n");
     status=scanf("%s",text);
     if (text[0]=='y') {
@@ -333,6 +344,7 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   double dx,dy,dz,dvx,dvy,dvz,r,za;
   double sum1,sum2,beta,freq0,rms,mjd0;
   char nfd[32],nfdmin[32],text[16];
+  char * satnamemin = NULL;
   int satnomin;
   double rmsmin,freqmin;
   struct timeval tv;
@@ -411,9 +423,14 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
       strcpy(nfd,"0000-00-00T00:00:00");
 
     if (rms<1000) {
-      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",tle->orbit.satno,nfd,1e-6*freq0,1e-3*rms);
+      if (tle->name) {
+        printf("%05d - %s:\t%s  %8.3f MHz %8.3f kHz\n", tle->orbit.satno, tle->name, nfd, 1e-6*freq0, 1e-3*rms);
+      } else {
+        printf("%05d:\t%s  %8.3f MHz %8.3f kHz\n", tle->orbit.satno, nfd, 1e-6*freq0, 1e-3*rms);
+      }
       if (flag==0 || rms<rmsmin) {
 	satnomin=tle->orbit.satno;
+	satnamemin = tle->name;
 	strcpy(nfdmin,nfd);
 	freqmin=freq0;
 	rmsmin=rms;
@@ -425,7 +442,11 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
 
   if (flag==1) {
     printf("\nBest fitting object:\n");
-    printf("%05d: %s  %8.3f MHz %8.3f kHz\n",satnomin,nfdmin,1e-6*freqmin,1e-3*rmsmin);
+    if (satnamemin) {
+      printf("%05d - %s: %s  %8.3f MHz %8.3f kHz\n", satnomin, satnamemin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin);
+    } else {
+      printf("%05d: %s  %8.3f MHz %8.3f kHz\n", satnomin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin);
+    }
     printf("Store frequency? [y/n]\n");
     status=scanf("%s",text);
     if (text[0]=='y') {
