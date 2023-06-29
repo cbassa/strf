@@ -25,7 +25,7 @@ struct data {
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
-void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax);
+void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax, int show_names);
 struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 struct trace fit_gaussian_trace(struct spectrogram s,struct select sel,int site_id,int graves);
 void convolve(float *y,int n,float *w,int m,float *z);
@@ -79,6 +79,7 @@ int main(int argc,char *argv[])
   int cmap=2;
   double foff=0.0,mjdgrid=0.0;
   int jj0,jj1;
+  int show_names = 0;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -103,7 +104,7 @@ int main(int argc,char *argv[])
   
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:F:"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:F:n"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -172,6 +173,10 @@ int main(int argc,char *argv[])
       case 'C':
 	site_id=atoi(optarg);
 	break;
+
+      case 'n':
+        show_names = 1;
+        break;
 
       default:
 	usage();
@@ -264,8 +269,8 @@ int main(int argc,char *argv[])
       // Human readable frequency axis
       fcen=0.5*(fmax+fmin);
       cpgswin(xmin,xmax,fmin-fcen,fmax-fcen);
-      if (foverlay==1) 
-	plot_traces(t,nsat,fcen,xmin,xmax);
+      if (foverlay==1)
+	plot_traces(t,nsat,fcen,xmin,xmax, show_names);
 
       fcen=floor(1000*fcen)/1000.0;
       sprintf(ylabel,"Frequency - %.3f MHz",fcen);
@@ -357,6 +362,7 @@ int main(int argc,char *argv[])
       printf("c        Center view\n");
       printf("C        Toggle through color maps\n");
       printf("p/right  Toggle overlays\n");
+      printf("n        Toggle display of satellite names in overlay\n");
       printf("+        Zoom\n");
       printf("-/x      Unzoom\n");
       printf("R        Recompute traces\n");
@@ -672,6 +678,17 @@ int main(int argc,char *argv[])
       redraw=1;
     }
 
+    // Toggle display of satellite names in overlay
+    if (c == 'n') {
+      if (show_names == 0) {
+        show_names = 1;
+      } else if (show_names == 1) {
+        show_names = 0;
+      }
+
+      redraw=1;
+    }
+
     // Width
     if (isdigit(c)) {
       if (c=='0')
@@ -975,16 +992,17 @@ void usage(void)
   printf("-c <catalog>  TLE catalog\n");
   printf("-F <freqlist> List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
   printf("-g            GRAVES data\n");
+  printf("-n            Display satellite names\n");
   printf("-h            This help\n");
 
   return;
 }
 
 
-void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
+void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax, int show_names)
 {
   int i,j,flag,textflag;
-  char text[8];
+  char text[34]; // 34: 6 digits + " - " + max 24 name + "\0"
 
   // Loop over objects
   for (i=0;i<nsat;i++) {
@@ -993,8 +1011,12 @@ void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax)
       cpgsci(8);
     else
       cpgsci(3);
-    
-    sprintf(text," %d",t[i].satno);
+
+    if (show_names && (t[i].satname[0] != '\0')) {
+      sprintf(text,"%d - %s", t[i].satno, t[i].satname);
+    } else {
+      sprintf(text,"%d", t[i].satno);
+    }
 
     // Plot label at start of trace
     if (t[i].za[0]<=90.0)
