@@ -1,4 +1,5 @@
 struct trace {
+  char satname[25];
   int satno,n,site,classfd,graves;
   double *mjd;
   double *freq,freq0;
