@@ -612,6 +612,7 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
       continue;
 
     // Allocate
+    t[j].satname[0] = '\0';
     t[j].satno=satno;
     t[j].site=site_id;
     t[j].n=m;
@@ -631,6 +632,11 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
       if (imode==SGDP4_ERROR) {
 	printf("Error with %d, skipping\n", tle->orbit.satno);
 	continue;
+      }
+
+      // Copy sat name into trace
+      if (tle->name != NULL) {
+        strncpy(t[j].satname, tle->name, 25);
       }
 
       // Loop over points
