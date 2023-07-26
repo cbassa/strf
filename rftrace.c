@@ -145,7 +145,7 @@ struct site get_site(int site_id)
     line[strlen(line)-1]='\0';
 
     // Read data
-    status=sscanf(line,"%4d %2s %lf %lf %f",
+    status=sscanf(line,"%d %2s %lf %lf %f",
 	   &id,abbrev,&lat,&lng,&alt);
     strcpy(observer,line+38);
 
