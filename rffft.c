@@ -8,6 +8,8 @@
 #include <sys/time.h>
 #include "rftime.h"
 
+#include "rffft_internal.h"
+
 void usage(void)
 {
   printf("rffft: FFT RF observations\n\n");
@@ -27,6 +29,7 @@ void usage(void)
   printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
+  printf("-P              Parse frequency, samplerate, format and start time from filename\n");
   printf("-h              This help\n");
 
   return;
@@ -49,10 +52,11 @@ int main(int argc,char *argv[])
   struct timeval start,end;
   char tbuf[30],nfd[32],header[256]="";
   int sign=1;
+  int parse_params_from_filename = 0;
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:IS:"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:IS:P"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -125,7 +129,12 @@ int main(int argc,char *argv[])
       case 'I':
 	sign=-1;
 	break;
-	
+
+      case 'P':
+        parse_params_from_filename = 1;
+        realtime=0;
+        break;
+
       case 'h':
 	usage();
 	return 0;
@@ -140,9 +149,16 @@ int main(int argc,char *argv[])
     return 0;
   }
 
+  if (parse_params_from_filename != 0) {
+    if (rffft_params_from_filename(infname, &samp_rate, &freq, &informat, nfd) != 0) {
+      fprintf(stderr, "Error parsing parameters from filename\n");
+      exit(-1);
+    };
+  }
+
   // Ensure integer number of spectra per subintegration
   tint=ceil(fchan*tint)/fchan;
-  
+
   // Number of channels
   nchan=(int) (samp_rate/fchan);
 
