@@ -34,10 +34,10 @@ rftrack: rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o
 rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftles.o
 	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftles.o $(LFLAGS)
 
-rffft: rffft.o rftime.o
-	$(CC) -o rffft rffft.o rftime.o -lfftw3f -lm
+rffft: rffft.o rffft_internal.o rftime.o
+	$(CC) -o rffft rffft.o rffft_internal.o rftime.o -lfftw3f -lm
 
-tests/tests: tests/tests.o tests/tests_rftles.o rftles.o satutl.o ferror.o
+tests/tests: tests/tests.o tests/tests_rffft_internal.o tests/tests_rftles.o rffft_internal.o rftles.o satutl.o ferror.o
 	$(CC) -Wall -o $@ $^ -lcmocka -lm
 
 tests: tests/tests
