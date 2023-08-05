@@ -152,6 +152,7 @@ int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
   int ia[]={0,0,0,0,0,0};
   int satno=0,imode;
   double v,alt,azi,mjdmid;
+  char * satname = NULL;
 
   // Loop over TLEs
   for (long elem = 0; elem < tle_array->number_of_elements; elem++) {
@@ -177,17 +178,26 @@ int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
     if (flag==0 || rms<rmsmin) {
       rmsmin=rms;
       satno=orb.satno;
+      satname = tle->name;
       flag=1;
     }
     if (rms<rmsmax) {
-      printf("%05d %.3f kHz %.6f MHz\n",orb.satno,rms,d.ffit/1000.0);
+      if (tle->name) {
+        printf("%05d - %s: %.3f kHz %.6f MHz\n", orb.satno, tle->name, rms, d.ffit/1000.0);
+      } else {
+        printf("%05d: %.3f kHz %.6f MHz\n", orb.satno, rms, d.ffit/1000.0);
+      }
       i++;
     }
   }
 
   // Plot results
   if (i>0) {
-    printf("Identified %d candidate(s), best fitting satellite is %05d.\n",i,satno);
+    if (satname) {
+      printf("Identified %d candidate(s), best fitting satellite is %05d - %s.\n", i, satno, satname);
+    } else {
+      printf("Identified %d candidate(s), best fitting satellite is %05d.\n", i, satno);
+    }
     tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
     orb = tle->orbit;
     rms=fit_curve(orb,ia);
@@ -235,8 +245,13 @@ int identify_satellite_from_visibility(tle_array_t *tle_array, double altmin)
       }
     }
     frac=(float) nalt/(float) nsel;
-    if (frac>0.95)
-      printf("%5d %d/%d %.4f\n",orb.satno,nalt,nsel,frac);
+    if (frac>0.95) {
+      if (tle->name) {
+        printf("%5d - %s: %d/%d %.4f\n", orb.satno, tle->name, nalt, nsel, frac);
+      } else {
+        printf("%5d: %d/%d %.4f\n", orb.satno, nalt, nsel, frac);
+      }
+    }
   }
 
   return satno;
