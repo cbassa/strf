@@ -82,4 +82,8 @@ With I/Q recordings obtained from Gqrx:
 
 **Gqrx** records complex samples into `raw` files. The filename contains date, time, center frequency and samplerate separated by underscores. Replace `YYYYMMDD` and `HHMMSS` by your actual time and respectively. Pay attention to insert an uppercase `T` between date and time in the time stamp parameter of the `rffft` command.
 
+Alternatively, with I/Q recordings from GQRX and SatDump, the `-P` option can be used to automatically extract the timestamp, format, frequency and samplerate from the filename:
+
+    ./rffft -P -i gqrx_YYYYMMDD_HHMMSS_97400000_2000000_fc.raw
+
 The output spectrograms can be viewed and analysed using `rfplot`.
