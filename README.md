@@ -8,7 +8,7 @@ Install
 ------
 
 * For Ubuntu systems or similar.
-  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev dos2unix`
+  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev dos2unix`
     * On recent systems (starting with Debian 13 Trixie and Ubuntu 24.10 Oracular), you'll need to install `sudo apt install pgplot5-dev`
   * Clone repository: `git clone https://github.com/cbassa/strf.git`
   * Compile: `cd strf; make`
@@ -85,5 +85,11 @@ With I/Q recordings obtained from Gqrx:
 Alternatively, with I/Q recordings from GQRX and SatDump, the `-P` option can be used to automatically extract the timestamp, format, frequency and samplerate from the filename:
 
     ./rffft -P -i gqrx_YYYYMMDD_HHMMSS_97400000_2000000_fc.raw
+
+Reading WAV files:
+
+It is also possible to read WAV files. This is compatible with any WAV file, 16 bit int or 32 bit float for example as well as RF64 (WAV64) files.
+
+    ./rffft -i recording.wav -f 97400000 -s 48000 -F wav -T "YYYY-MM-DDTHH:MM:SS"
 
 The output spectrograms can be viewed and analysed using `rfplot`.
