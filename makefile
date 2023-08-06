@@ -38,7 +38,7 @@ rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o vers
 	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o rftles.o $(LFLAGS)
 
 rffft: rffft.o rffft_internal.o rftime.o
-	$(CC) -o rffft rffft.o rffft_internal.o rftime.o -lfftw3f -lm
+	$(CC) -o rffft rffft.o rffft_internal.o rftime.o -lfftw3f -lm -lsox
 
 tests/tests: tests/tests.o tests/tests_rffft_internal.o tests/tests_rftles.o rffft_internal.o rftles.o satutl.o ferror.o
 	$(CC) -Wall -o $@ $^ -lcmocka -lm
