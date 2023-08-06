@@ -8,6 +8,8 @@
 #include <sys/time.h>
 #include "rftime.h"
 
+#include <sox.h>
+
 #include "rffft_internal.h"
 
 void usage(void)
@@ -22,7 +24,7 @@ void usage(void)
   printf("-t <tint>       Integration time [1s]\n");
   printf("-n <nsub>       Number of integrations per file [60]\n");
   printf("-m <use>        Use every mth integration [1]\n");
-  printf("-F <format>     Input format char, int, float [int]\n");
+  printf("-F <format>     Input format char, int, float, wav [int]\n");
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
   printf("-S <index>      Starting index [int]\n");
@@ -46,6 +48,7 @@ int main(int argc,char *argv[])
   int16_t *ibuf;
   char *cbuf;
   float *fbuf;
+  int32_t *wbuf;
   float *z,length,fchan=100.0,tint=1.0,zavg,zstd,*zw;
   char *cz;
   double freq,samp_rate,mjd,freqmin=-1,freqmax=-1;
@@ -53,6 +56,7 @@ int main(int argc,char *argv[])
   char tbuf[30],nfd[32],header[256]="";
   int sign=1;
   int parse_params_from_filename = 0;
+  sox_format_t * wav_reader = NULL;
 
   // Read arguments
   if (argc>1) {
@@ -91,6 +95,8 @@ int main(int argc,char *argv[])
 	  informat='i';
 	else if (strcmp(optarg,"float")==0)
 	  informat='f';
+	else if (strcmp(optarg, "wav") == 0)
+	  informat='w';
 	break;
 
       case 'R':
@@ -156,6 +162,31 @@ int main(int argc,char *argv[])
     };
   }
 
+  if (informat == 'w') {
+    if (sox_init() != SOX_SUCCESS) {
+      fprintf(stderr, "Error initalizing sox");
+      exit(-1);
+    }
+    if (sox_format_init() != SOX_SUCCESS) {
+      fprintf(stderr, "Error initalizing sox");
+      exit(-1);
+    }
+
+    wav_reader = sox_open_read(infname, NULL, NULL, NULL);
+
+    if (wav_reader == NULL) {
+      fprintf(stderr, "Error opening file %s", infile);
+      exit(-1);
+    }
+
+    if (wav_reader->signal.channels != 2) {
+      fprintf(stderr, "Error: Only wav files with 2 channels supported.");
+      exit(-1);
+    }
+
+    samp_rate = wav_reader->signal.rate;
+  }
+
   // Ensure integer number of spectra per subintegration
   tint=ceil(fchan*tint)/fchan;
 
@@ -194,6 +225,7 @@ int main(int argc,char *argv[])
   ibuf=(int16_t *) malloc(sizeof(int16_t)*2*nchan);
   cbuf=(char *) malloc(sizeof(char)*2*nchan);
   fbuf=(float *) malloc(sizeof(float)*2*nchan);
+  wbuf = (int32_t *)malloc(sizeof(int32_t) * 2 * nchan);
   z=(float *) malloc(sizeof(float)*nchan);
   cz=(char *) malloc(sizeof(char)*nchan);
   zw=(float *) malloc(sizeof(float)*nchan);
@@ -214,12 +246,14 @@ int main(int argc,char *argv[])
     sprintf(prefix,"%.19s",nfd);
     mjd=nfd2mjd(nfd);
   }
-  
+
   // Open file
-  if (strlen(infname)) {
-      infile = fopen(infname, "r");
-  } else {
-      infile = stdin;
+  if (informat != 'w') {
+    if (strlen(infname)) {
+        infile = fopen(infname, "r");
+    } else {
+        infile = stdin;
+    }
   }
 
   // Forever loop
@@ -250,6 +284,8 @@ int main(int argc,char *argv[])
 	  nbytes=fread(cbuf,sizeof(char),2*nchan,infile);
 	else if (informat=='f')
 	  nbytes=fread(fbuf,sizeof(float),2*nchan,infile);
+	else if (informat == 'w')
+	  nbytes = sox_read(wav_reader, wbuf, 2 * nchan);
 
 	// End on empty buffer
 	if (nbytes==0)
@@ -274,7 +310,12 @@ int main(int argc,char *argv[])
 	  for (i=0;i<nchan;i++) {
 	    c[i][0]=(float) fbuf[2*i]*zw[i];
 	    c[i][1]=(float) fbuf[2*i+1]*zw[i]*sign;
-	  } 
+	  }
+	} else if (informat == 'w') {
+	  for (i = 0; i < nchan; i++) {
+	    c[i][0] = (float) wbuf[2*i] / 2147483648 * zw[i];
+	    c[i][1] = (float) wbuf[2*i+1] / 2147483648 * zw[i] * sign;
+	  }
 	}
 
 	// Execute
@@ -375,7 +416,16 @@ int main(int argc,char *argv[])
     // Close file
     fclose(outfile);
   }
-  fclose(infile);
+
+  if (informat != 'w') {
+    fclose(infile);
+  }
+
+  if (informat == 'w') {
+    sox_close(wav_reader);
+    sox_format_quit();
+    sox_quit();
+  }
 
   // Destroy plan
   fftwf_destroy_plan(fft);
@@ -384,6 +434,7 @@ int main(int argc,char *argv[])
   free(ibuf);
   free(cbuf);
   free(fbuf);
+  free(wbuf);
   fftwf_free(c);
   fftwf_free(d);
   free(z);
