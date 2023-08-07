@@ -11,8 +11,9 @@
 //   - 2023-08-05_08-02-00_16000000SPS_2274000000Hz.s8
 //   - 2023-08-05_18-02-45-534_16000000SPS_2284000000Hz.s16
 //   - 2023-08-05_18-02-45-1691258565.534000_16000000SPS_2284000000Hz.f32
+//   - 2023-08-07_16-36-47-1691426207.749000_2400000SPS_100000000Hz.wav
 //   s8: char, s16 short int, f32 float.
-//   SatDump also supports .wav and compressed versions of s8/s16/f32 with .ziq
+//   SatDump also supports a compressed versions of s8/s16/f32 with .ziq
 //   extension. Those are not yet supported
 //   timestamp can have an added milliseconds field, configurable. This feature
 //   was broken during some time so files with this convention still exists.
@@ -56,6 +57,8 @@ int rffft_params_from_filename(char * filename, double * samplerate, double * fr
       *format = 'i';
     } else if ((strlen(p_format) == 3) && (strncmp("f32", p_format, 3) == 0)) {
       *format = 'f';
+    } else if ((strlen(p_format) == 3) && (strncmp("wav", p_format, 3) == 0)) {
+      *format = 'w';
     } else {
       printf("Unsupported SatDump format %s\n", p_format);
       return -1;
@@ -91,6 +94,8 @@ int rffft_params_from_filename(char * filename, double * samplerate, double * fr
       *format = 'i';
     } else if ((strlen(p_format) == 3) && (strncmp("f32", p_format, 3) == 0)) {
       *format = 'f';
+    } else if ((strlen(p_format) == 3) && (strncmp("wav", p_format, 3) == 0)) {
+      *format = 'w';
     } else {
       printf("Unsupported SatDump format %s\n", p_format);
       return -1;
@@ -125,6 +130,8 @@ int rffft_params_from_filename(char * filename, double * samplerate, double * fr
       *format = 'i';
     } else if ((strlen(p_format) == 3) && (strncmp("f32", p_format, 3) == 0)) {
       *format = 'f';
+    } else if ((strlen(p_format) == 3) && (strncmp("wav", p_format, 3) == 0)) {
+      *format = 'w';
     } else {
       printf("Unsupported SatDump format %s\n", p_format);
       return -1;
