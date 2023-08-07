@@ -43,6 +43,14 @@ void rffft_internal_parse_satdump_filenames(void **state) {
   assert_memory_equal(&ref_format, &format, 1);
   assert_string_equal("2023-08-05T18:02:45.534", starttime);
 
+  // wav file with milliseconds
+  ref_format = 'w';
+  assert_int_equal(0, rffft_params_from_filename("2023-08-07_16-36-47-749_2400000SPS_100000000Hz.wav", &samplerate, &frequency, &format, starttime));
+  assert_float_equal(2.4e6, samplerate, 1e-12);
+  assert_float_equal(100e6, frequency, 1e-12);
+  assert_memory_equal(&ref_format, &format, 1);
+  assert_string_equal("2023-08-07T16:36:47.749", starttime);
+
   assert_int_equal(-1, rffft_params_from_filename("2023-08-05-19:59:30_16000000SPS_402000000Hz.f32", &samplerate, &frequency, &format, starttime));
 }
 
