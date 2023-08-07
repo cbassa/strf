@@ -175,7 +175,7 @@ int main(int argc,char *argv[])
     wav_reader = sox_open_read(infname, NULL, NULL, NULL);
 
     if (wav_reader == NULL) {
-      fprintf(stderr, "Error opening file %s", infile);
+      fprintf(stderr, "Error opening file %s", infname);
       exit(-1);
     }
 
