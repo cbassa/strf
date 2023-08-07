@@ -12,7 +12,7 @@ extern "C" {
 // output:
 // samplerate: parsed samplerate
 // frequency: parsed frequency
-// format: parsed sample format: char: 'c', int: 'i', float: 'f'
+// format: parsed sample format: char: 'c', int: 'i', float: 'f', wav: 'w'
 // starttime: parsed start time string formatted YYYY-MM-DDTHH:MM:SS.sss
 int rffft_params_from_filename(char * filename, double * samplerate, double * frequency, char * format, char * starttime);
 
