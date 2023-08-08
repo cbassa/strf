@@ -73,11 +73,31 @@ void rffft_internal_parse_gqrx_filenames(void **state) {
   assert_int_equal(-1, rffft_params_from_filename("gqrx_2023-08-06_15:18:38_428000000_200000_fc.raw", &samplerate, &frequency, &format, starttime));
 }
 
+// Test SDR Console filenames
+void rffft_internal_parse_sdrconsole_filenames(void **state) {
+  double samplerate = 0;
+  double frequency = 0;
+  char format = '\0';
+  char starttime[] = "YYYY-mm-ddTHH:MM:SS.sss";
+  char ref_format = '\0';
+
+  ref_format = 'w';
+  assert_int_equal(0, rffft_params_from_filename("07-Aug-2023 181711.798 401.774MHz.wav", &samplerate, &frequency, &format, starttime));
+  // assert_double_equal has been introduced in cmocka 1.1.6 not available on most distribs yet
+  assert_float_equal(0, samplerate, 1e-12);
+  assert_float_equal(401.774e6, frequency, 1e-12);
+  assert_memory_equal(&ref_format, &format, 1);
+  assert_string_equal("2023-08-07T18:17:11.798", starttime);
+
+  assert_int_equal(-1, rffft_params_from_filename("07-Yol-2023 181711.798 401.774MHz.wav", &samplerate, &frequency, &format, starttime));
+}
+
 // Entry point to run all tests
 int run_rffft_internal_tests() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(rffft_internal_parse_satdump_filenames),
     cmocka_unit_test(rffft_internal_parse_gqrx_filenames),
+    cmocka_unit_test(rffft_internal_parse_sdrconsole_filenames),
   };
 
   return cmocka_run_group_tests_name("rffft internal", tests, NULL, NULL);
