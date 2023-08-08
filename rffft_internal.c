@@ -20,12 +20,14 @@
 // - GQRX:
 //   - gqrx_20230806_151838_428000000_200000_fc.raw
 //   format always float32
+// - SDR Console:
+//   - 07-Aug-2023 181711.798 401.774MHz.wav
 int rffft_params_from_filename(char * filename, double * samplerate, double * frequency, char * format, char * starttime) {
   // Temp vars to hold parsed values
   int p_year, p_month, p_day, p_hours, p_minutes, p_seconds, p_fractal_seconds;
   int p_dummy_int;
   double p_samplerate, p_frequency;
-  char p_format[16];
+  char p_month_string[16], p_format[16];
   char p_dummy_string[128];
   int parsed_tokens;
 
@@ -162,6 +164,60 @@ int rffft_params_from_filename(char * filename, double * samplerate, double * fr
     *format = 'f';
 
     snprintf(starttime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", p_year, p_month, p_day, p_hours, p_minutes, p_seconds);
+
+    return 0;
+  }
+
+  // SDR Console
+  parsed_tokens = sscanf(
+    base_filename,
+    "%02d-%3s-%04d %02d%02d%02d.%03d %lfMHz.wav",
+    &p_day,
+    p_month_string,
+    &p_year,
+    &p_hours,
+    &p_minutes,
+    &p_seconds,
+    &p_fractal_seconds,
+    &p_frequency);
+
+  if (parsed_tokens == 8) {
+    *samplerate = 0; // Will be set when opening the wav
+    *frequency = p_frequency * 1e6;
+    *format = 'w';
+
+    int month;
+
+    if ((strlen(p_month_string) == 3) && (strncmp("Jan", p_month_string, 3) == 0)) {
+      month = 1;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Feb", p_month_string, 3) == 0)) {
+      month = 2;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Mar", p_month_string, 3) == 0)) {
+      month = 3;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Apr", p_month_string, 3) == 0)) {
+      month = 4;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("May", p_month_string, 3) == 0)) {
+      month = 5;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Jun", p_month_string, 3) == 0)) {
+      month = 6;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Jul", p_month_string, 3) == 0)) {
+      month = 7;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Aug", p_month_string, 3) == 0)) {
+      month = 8;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Sep", p_month_string, 3) == 0)) {
+      month = 9;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Oct", p_month_string, 3) == 0)) {
+      month = 10;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Nov", p_month_string, 3) == 0)) {
+      month = 11;
+    } else if ((strlen(p_month_string) == 3) && (strncmp("Dec", p_month_string, 3) == 0)) {
+      month = 12;
+    } else {
+      printf("Unparsable month in SDR Console format %s\n", p_format);
+      return -1;
+    }
+
+    snprintf(starttime, 32, "%04d-%02d-%02dT%02d:%02d:%02d.%03d", p_year, month, p_day, p_hours, p_minutes, p_seconds, p_fractal_seconds);
 
     return 0;
   }
