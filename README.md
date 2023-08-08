@@ -92,6 +92,6 @@ It is also possible to read WAV files. This is compatible with any WAV file, 16 
 
     ./rffft -i recording.wav -f 97400000 -s 48000 -F wav -T "YYYY-MM-DDTHH:MM:SS"
 
-For WAV files exported from SatDump the `-P` options will automatically extract the correct parameters from the filename.
+For WAV files exported from SatDump and SDR Console the `-P` options will automatically extract the correct parameters from the filename.
 
 The output spectrograms can be viewed and analysed using `rfplot`.
