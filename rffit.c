@@ -1094,7 +1094,7 @@ int main(int argc,char *argv[])
       printf("d   Start box to delete points\n");
       printf("A/left mouse button   End box to zoom/delete points\n");
       printf("\n");
-      printf("l   Select points on flux limit\n");
+      printf("l   Log object in <freqlist>\n");
       printf("s   Select all points in present window\n");
       printf("H   Deselect all points in present window\n");
       printf("U   Deselect all points\n");
