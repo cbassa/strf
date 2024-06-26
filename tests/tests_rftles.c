@@ -82,8 +82,12 @@ void TLE_load_index_from_file(void **state) {
   assert_non_null(tle_array.tles);
   assert_int_equal(tle_array.number_of_elements, 45);
 
-  // AMS
+  // 9th element, 52745 - AMS
   tle_t * tle = get_tle_by_index(&tle_array, 9);
+
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "AMS");
+
   assert_int_equal(tle->orbit.ep_year, 2023);
   assert_float_equal(tle->orbit.ep_day, 36.90397027, 1e-9);
   assert_float_equal(tle->orbit.rev, 15.27525761, 1e-9);
@@ -100,6 +104,15 @@ void TLE_load_index_from_file(void **state) {
   assert_string_equal(tle->orbit.desig, "22057P");
   assert_int_equal(tle->orbit.norb, 3890);
   assert_int_equal(tle->orbit.satno, 52745);
+
+  // 7th element, 52743 - OBJECT M, no name
+  tle = get_tle_by_index(&tle_array, 7);
+  assert_null(tle->name);
+
+  // 0th element, 52736 - LEMUR 2 KAREN_B
+  tle = get_tle_by_index(&tle_array, 0);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "LEMUR 2 KAREN_B");
 }
 
 void TLE_load_invalid_catalog_id_from_file(void **state) {
@@ -118,8 +131,12 @@ void TLE_load_catalog_id_from_file(void **state) {
   assert_non_null(tle_array.tles);
   assert_int_equal(tle_array.number_of_elements, 45);
 
-  // ICEYE-X18
+  // 13th element, 52749, - ICEYE-X18
   tle_t * tle = get_tle_by_catalog_id(&tle_array, 52749);
+
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "ICEYE-X18");
+
   assert_int_equal(tle->orbit.ep_year, 2023);
   assert_float_equal(tle->orbit.ep_day, 37.11421501, 1e-9);
   assert_float_equal(tle->orbit.rev, 15.15861349, 1e-9);
@@ -136,6 +153,15 @@ void TLE_load_catalog_id_from_file(void **state) {
   assert_string_equal(tle->orbit.desig, "22057T");
   assert_int_equal(tle->orbit.norb, 3877);
   assert_int_equal(tle->orbit.satno, 52749);
+
+  // 7th element, 52743 - OBJECT M, no name
+  tle = get_tle_by_catalog_id(&tle_array, 52743);
+  assert_null(tle->name);
+
+  // 0th element, 52736 - LEMUR 2 KAREN_B
+  tle = get_tle_by_catalog_id(&tle_array, 52736);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "LEMUR 2 KAREN_B");
 }
 
 // Entry point to run all tests
