@@ -35,7 +35,7 @@ struct data {
   int fitfreq;
   double mjdmin,mjdmax,mjd0;
   double freqmin,freqmax,fluxmin,fluxmax,f0,ffit;
-  char satname[LIM];
+  char *satname;
 } d;
 orbit_t orb;
 int fgetline(FILE *file,char *s,int lim);
@@ -163,6 +163,7 @@ int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
     // the orbit as parameter, fit_curve will call compute_rms without giving
     // an orbit and the latter will use the global orb variable.
     orb = tle->orbit;
+    d.satname = tle->name;
 
     // Initialize
     imode=init_sgdp4(&orb);
@@ -200,6 +201,7 @@ int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
     }
     tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
     orb = tle->orbit;
+    d.satname = tle->name;
     rms=fit_curve(orb,ia);
   } else {
     printf("No candidates found.\n");
@@ -224,6 +226,7 @@ int identify_satellite_from_visibility(tle_array_t *tle_array, double altmin)
     // the orbit as parameter, fit_curve will call compute_rms without giving
     // an orbit and the latter will use the global orb variable.
     orb = tle->orbit;
+    d.satname = tle->name;
 
     // Initialize
     imode=init_sgdp4(&orb);
@@ -409,6 +412,7 @@ int main(int argc,char *argv[])
       satno = -1;
     } else {
       orb = tle->orbit;
+      d.satname = tle->name;
     }
   }
 
@@ -572,6 +576,9 @@ int main(int argc,char *argv[])
       if (satno>0 && plot_curve==1 && residuals==0) {
 
 	// Plot tle
+	if (d.satname != NULL) {
+		cpgmtxt("T", 3.0, 0.0, 0.0, d.satname);
+	}
 	format_tle(orb,line1,line2);
 	cpgmtxt("T",2.0,0.0,0.0,line1);
 	cpgmtxt("T",1.0,0.0,0.0,line2);
@@ -784,6 +791,7 @@ int main(int argc,char *argv[])
         satno = -1;
       } else {
         orb = tle->orbit;
+        d.satname = tle->name;
         print_orb(&orb);
         d.ffit = d.f0;
         redraw = 1;
@@ -856,6 +864,7 @@ int main(int argc,char *argv[])
         satno = -1;
       } else {
         orb = tle->orbit;
+        d.satname = tle->name;
         print_orb(&orb);
         d.ffit = d.f0;
         redraw = 1;
