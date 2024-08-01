@@ -8,6 +8,7 @@
 
 #include "sgdp4h.h"
 #include "rfsites.h"
+#include "rftles.h"
 
 #define LIM 80
 #define NMAX 1024
@@ -34,7 +35,7 @@ struct data {
   int fitfreq;
   double mjdmin,mjdmax,mjd0;
   double freqmin,freqmax,fluxmin,fluxmax,f0,ffit;
-  char satname[LIM];
+  char *satname;
 } d;
 orbit_t orb;
 int fgetline(FILE *file,char *s,int lim);
@@ -63,7 +64,7 @@ void search(void);
 double fit_curve(orbit_t orb,int *ia);
 double mjd2doy(double mjd,int *yr);
 double doy2mjd(int year,double doy);
-int identify_satellite_from_visibility(char *catalog,double altmin);
+int identify_satellite_from_visibility(tle_array_t *tle_array, double altmin);
 
 double compute_mean_mjd(void)
 {
@@ -144,22 +145,26 @@ void format_tle(orbit_t orb,char *line1,char *line2)
 }
 
 
-int identify_satellite_from_doppler(char *catalog,double rmsmax)
+int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
 {
   int i=0,flag=0;
-  FILE *fp;
   double rms,rmsmin;
   int ia[]={0,0,0,0,0,0};
   int satno=0,imode;
   double v,alt,azi,mjdmid;
-
-  // Open catalog
-  fp=fopen(catalog,"rb");
-  if (fp==NULL)
-    fatal_error("File open failed for reading %s\n",catalog);
+  char * satname = NULL;
 
   // Loop over TLEs
-  while (read_twoline(fp,0,&orb)==0) {
+  for (long elem = 0; elem < tle_array->number_of_elements; elem++) {
+    // Get TLE
+    tle_t *tle = get_tle_by_index(tle_array, elem);
+
+    // Directly assign to global orb variable as even if the fit_curve below gets
+    // the orbit as parameter, fit_curve will call compute_rms without giving
+    // an orbit and the latter will use the global orb variable.
+    orb = tle->orbit;
+    d.satname = tle->name;
+
     // Initialize
     imode=init_sgdp4(&orb);
     if (imode==SGDP4_ERROR) {
@@ -174,43 +179,55 @@ int identify_satellite_from_doppler(char *catalog,double rmsmax)
     if (flag==0 || rms<rmsmin) {
       rmsmin=rms;
       satno=orb.satno;
+      satname = tle->name;
       flag=1;
     }
     if (rms<rmsmax) {
-      printf("%05d %.3f kHz %.6f MHz\n",orb.satno,rms,d.ffit/1000.0);
+      if (tle->name) {
+        printf("%05d - %s: %.3f kHz %.6f MHz\n", orb.satno, tle->name, rms, d.ffit/1000.0);
+      } else {
+        printf("%05d: %.3f kHz %.6f MHz\n", orb.satno, rms, d.ffit/1000.0);
+      }
       i++;
     }
   }
-  rewind(fp);
 
   // Plot results
   if (i>0) {
-    printf("Identified %d candidate(s), best fitting satellite is %05d.\n",i,satno);
-    read_twoline(fp,satno,&orb);
+    if (satname) {
+      printf("Identified %d candidate(s), best fitting satellite is %05d - %s.\n", i, satno, satname);
+    } else {
+      printf("Identified %d candidate(s), best fitting satellite is %05d.\n", i, satno);
+    }
+    tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
+    orb = tle->orbit;
+    d.satname = tle->name;
     rms=fit_curve(orb,ia);
   } else {
     printf("No candidates found.\n");
     satno=-1;
   }
-  fclose(fp);
 
   return satno;
 }
 
-int identify_satellite_from_visibility(char *catalog,double altmin)
+int identify_satellite_from_visibility(tle_array_t *tle_array, double altmin)
 {
   int i=0,flag=0,nalt,nsel;
-  FILE *fp;
   int satno=0,imode;
   double alt,frac;
 
-  // Open catalog
-  fp=fopen(catalog,"rb");
-  if (fp==NULL)
-    fatal_error("File open failed for reading %s\n",catalog);
-
   // Loop over TLEs
-  while (read_twoline(fp,0,&orb)==0) {
+  for (long elem = 0; elem < tle_array->number_of_elements; elem++) {
+    // Get TLE
+    tle_t * tle = get_tle_by_index(tle_array, elem);
+
+    // Directly assign to global orb variable as even if the fit_curve below gets
+    // the orbit as parameter, fit_curve will call compute_rms without giving
+    // an orbit and the latter will use the global orb variable.
+    orb = tle->orbit;
+    d.satname = tle->name;
+
     // Initialize
     imode=init_sgdp4(&orb);
     if (imode==SGDP4_ERROR) {
@@ -231,12 +248,14 @@ int identify_satellite_from_visibility(char *catalog,double altmin)
       }
     }
     frac=(float) nalt/(float) nsel;
-    if (frac>0.95)
-      printf("%5d %d/%d %.4f\n",orb.satno,nalt,nsel,frac);
+    if (frac>0.95) {
+      if (tle->name) {
+        printf("%5d - %s: %d/%d %.4f\n", orb.satno, tle->name, nalt, nsel, frac);
+      } else {
+        printf("%5d: %d/%d %.4f\n", orb.satno, nalt, nsel, frac);
+      }
+    }
   }
-  rewind(fp);
-
-  fclose(fp);
 
   return satno;
 }
@@ -281,6 +300,7 @@ int main(int argc,char *argv[])
   site_t site,s0,s1;
   int site_number[16],nsite=0,graves=0;
   char *env;
+  tle_array_t *tle_array = NULL;
 
   // Get site
   env = getenv("ST_COSPAR");
@@ -378,16 +398,22 @@ int main(int argc,char *argv[])
   site = get_site(site_id);
 
   // Read TLE
-  if (satno>=0) {
-    fp=fopen(catalog,"rb");
-    if (fp==NULL)
-      fatal_error("File open failed for reading %s\n",catalog);
-    status=read_twoline(fp,satno,&orb);
-    if (status==-1) {
-      printf("No elements found for %5d\n",satno);
-      satno=-1;
-    } 
-    fclose(fp);
+  tle_array = load_tles(catalog);
+
+  if (tle_array->number_of_elements == 0) {
+    fatal_error("File open failed for reading %s\n",catalog);
+  }
+
+  if (satno >= 0) {
+    tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
+
+    if (tle == NULL) {
+      printf("No elements found for %5d\n", satno);
+      satno = -1;
+    } else {
+      orb = tle->orbit;
+      d.satname = tle->name;
+    }
   }
 
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
@@ -550,6 +576,9 @@ int main(int argc,char *argv[])
       if (satno>0 && plot_curve==1 && residuals==0) {
 
 	// Plot tle
+	if (d.satname != NULL) {
+		cpgmtxt("T", 3.0, 0.0, 0.0, d.satname);
+	}
 	format_tle(orb,line1,line2);
 	cpgmtxt("T",2.0,0.0,0.0,line1);
 	cpgmtxt("T",1.0,0.0,0.0,line2);
@@ -743,19 +772,29 @@ int main(int argc,char *argv[])
       printf("Get TLE from catalog, provide satellite number: ");
       status=scanf("%d",&satno);
 
+      // Free previous TLE
+      if (tle_array != NULL) {
+        free_tles(tle_array);
+      }
+
       // Read TLE
-      fp=fopen(catalog,"rb");
-      if (fp==NULL)
-	fatal_error("File open failed for reading %s\n",catalog);
-      status=read_twoline(fp,satno,&orb);
-      fclose(fp);
-      if (status==-1) {
-	printf("No elements found for %5d\n",satno);
-	satno=-1;
+      tle_array = load_tles(catalog);
+
+      if (tle_array->number_of_elements == 0) {
+        fatal_error("File open failed for reading %s\n",catalog);
+      }
+
+      tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
+
+      if (tle == NULL) {
+        printf("No elements found for %5d\n", satno);
+        satno = -1;
       } else {
-	print_orb(&orb);
-	d.ffit=d.f0;
-	redraw=1;
+        orb = tle->orbit;
+        d.satname = tle->name;
+        print_orb(&orb);
+        d.ffit = d.f0;
+        redraw = 1;
       }
       printf("\n================================================================================\n");
     }
@@ -770,7 +809,7 @@ int main(int argc,char *argv[])
 	rms=0.1;
       }
       if (catalog!=NULL) {
-	satno=identify_satellite_from_doppler(catalog,rms);
+	satno=identify_satellite_from_doppler(tle_array, rms);
 	if (satno>0) {
 	  rms=fit_curve(orb,ia);
 	  redraw=1;
@@ -786,7 +825,7 @@ int main(int argc,char *argv[])
     if (c=='I') {
       printf("Above altitude (deg): ");
       status=scanf("%lf",&altmin);
-      satno=identify_satellite_from_visibility(catalog,altmin);
+      satno=identify_satellite_from_visibility(tle_array, altmin);
       printf("\n================================================================================\n");
     }
 
@@ -806,16 +845,31 @@ int main(int argc,char *argv[])
 
     // Reread tle
     if (c=='R') {
-        // Read TLE
-      fp=fopen(catalog,"rb");
-      if (fp==NULL)
-	fatal_error("File open failed for reading %s\n",catalog);
-      read_twoline(fp,satno,&orb);
-      print_orb(&orb);
+      // Free previous TLE
+      if (tle_array != NULL) {
+        free_tles(tle_array);
+      }
+
+      // Reread TLE
+      tle_array = load_tles(catalog);
+
+      if (tle_array->number_of_elements == 0) {
+        fatal_error("File open failed for reading %s\n", catalog);
+      }
+
+      tle_t * tle = get_tle_by_catalog_id(tle_array, satno);
+
+      if (tle == NULL) {
+        printf("No elements found for %5d\n", satno);
+        satno = -1;
+      } else {
+        orb = tle->orbit;
+        d.satname = tle->name;
+        print_orb(&orb);
+        d.ffit = d.f0;
+        redraw = 1;
+      }
       printf("\n================================================================================\n");
-      fclose(fp);
-      d.ffit=d.f0;
-      redraw=1;
     }
 
     // Diagonal select
@@ -1122,6 +1176,7 @@ int main(int argc,char *argv[])
 
   // Free
   free(d.p);
+  free_tles(tle_array);
 
   fclose(stderr);
 
