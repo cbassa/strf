@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "sgdp4h.h"
 #include "satutl.h"
@@ -516,7 +517,8 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   xyz_t satpos,satvel;
   double dx,dy,dz,dvx,dvy,dvz,r,v,za,vg;
   double freq0,dfreq;
-  char line[LIM];
+  char * line = NULL;
+  size_t line_size = 0;
   struct trace *t;
   float fmin,fmax;
   double ra,de,azi,alt;
@@ -540,10 +542,12 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     return NULL;
   } else {
     for (i=0;;) {
-      if (fgetline(infile,line,LIM)<=0)
-	break;
-      if (line[0]=='#')
-	continue;
+      if (getline(&line, &line_size, infile) < 0)
+        break;
+
+      if ((line[0] == '\n') || (line[0] == '#'))
+        continue;
+
       status=sscanf(line,"%d %lf",&satno,&freq0);
 
       if (status != 2) {
@@ -560,6 +564,12 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
     fclose(infile);
     *nsat=i;
   }
+
+  // Free allocated buffer by getline() as we might return NULL
+  // before next call to to getline()
+  free(line);
+  line = NULL;
+
   // Break out
   if (i==0)
   {
@@ -603,10 +613,10 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 
   infile=fopen(freqlist,"r");
   for (j=0;;) {
-    if (fgetline(infile,line,LIM)<=0)
+    if (getline(&line, &line_size, infile) < 0)
       break;
 
-    if (line[0] == '#')
+    if ((line[0] == '\n') || (line[0] == '#'))
       continue;
 
     status=sscanf(line,"%d %lf",&satno,&freq0);
@@ -702,6 +712,8 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
   fclose(stderr);
 
   // Free
+  free(line);
+  line = NULL;
 
   free_tles(tle_array);
   free(p);
