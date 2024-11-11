@@ -12,7 +12,7 @@ void usage(void)
 {
   printf("rffft: FFT RF observations\n\n");
   printf("-i <file>       Input file (can be fifo) [stdin]\n");
-  printf("-p <prefix>     Output prefix\n");
+  printf("-p <path>       Output path, directory into which to puth the files\n");
   printf("-o <output>     Output filename [default: YYYY-MM-DDTHH:MM:SS.sss_XXXXXX.bin]\n");
   printf("-f <frequency>  Center frequency (Hz)\n");
   printf("-s <samprate>   Sample rate (Hz)\n");
