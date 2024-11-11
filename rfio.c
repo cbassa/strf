@@ -1,10 +1,170 @@
+#define _XOPEN_SOURCE
+#include "rfio.h"
+#include "rftime.h"
+#include "zscale.h"
+#include <dirent.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <math.h>
-#include "rftime.h"
-#include "rfio.h"
-#include "zscale.h"
+
+
+// Get the first and last bin number matching the prefix. There is no
+// guarantee that the range is continous and there is no missing bin in
+// the range.
+int get_bin_range(char *prefix, int *first_bin, int *last_bin) {
+  DIR *dp;
+  struct dirent *ep;
+
+  // Both, dirname and basename, don't handle static strings and can modifiy
+  // their argument. So make a copy and use a pointer to the result.
+  char dir[256];
+  char base[256];
+  strncpy(dir, prefix, 256);
+  strncpy(base, prefix, 256);
+  char *dir_p = dirname(dir);
+  char *base_p = strcat(basename(base), "_");
+
+  dp = opendir(dir);
+
+  if (dp == NULL) {
+    printf("Unable to open %s directory\n", dir_p);
+    return -1;
+  }
+
+  while ((ep = readdir(dp)) != NULL) {
+    if (strncmp(base_p, ep->d_name, strlen(base_p)) == 0) {
+      int i = strtol(ep->d_name + strlen(base_p), NULL, 10);
+
+      if ((*first_bin < 0) || (i < *first_bin)) {
+        *first_bin = i;
+      }
+      if ((*last_bin < 0) || (i > *last_bin)) {
+        *last_bin = i;
+      }
+    }
+  }
+
+  closedir(dp);
+
+  return 0;
+}
+
+//
+// If estimated bin == initial_bin, return
+// If estimated bin == previous bin, return higher bin (in between)
+
+int get_bin_from_time(char *prefix, int initial_bin, int previous_bin,
+                      int first_bin, int last_bin, time_t target,
+                      int *number_subints_per_file) {
+  int status;
+  char filename[128], header[256], nfd[32];
+  FILE *file;
+  int nch;
+  double freq;
+  double samp_rate;
+  float length;
+  struct tm mjd_tm = {0};
+  time_t mjd;
+
+  sprintf(filename, "%s_%06i.bin", prefix, initial_bin);
+
+  file = fopen(filename, "r");
+
+  if (file == NULL) {
+    return -1;
+  }
+
+  status = fread(header, sizeof(char), 256, file);
+
+  fclose(file);
+
+  status =
+      sscanf(header,
+             "HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf "
+             "Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\n",
+             nfd, &freq, &samp_rate, &length, &nch, number_subints_per_file);
+
+  strptime(nfd, "%Y-%m-%dT%T", &mjd_tm);
+  mjd = mktime(&mjd_tm);
+
+  int estimated_bin =
+      floor(initial_bin +
+            difftime(target, mjd) / (length * *number_subints_per_file));
+
+  // Clip to file range
+  if (estimated_bin < first_bin) {
+    estimated_bin = first_bin;
+  }
+
+  if (estimated_bin > last_bin) {
+    estimated_bin = last_bin;
+  }
+
+  if (estimated_bin == initial_bin) {
+    return estimated_bin;
+  } else if (estimated_bin == previous_bin) {
+    // Prevent infinite ing poin
+    // Return higher as the target is in the gap between
+    return estimated_bin > initial_bin ? estimated_bin : initial_bin;
+  }
+
+  return get_bin_from_time(prefix, estimated_bin, initial_bin, first_bin,
+                           last_bin, target, number_subints_per_file);
+}
+
+int get_subs_from_datestrings(char *prefix, char *start, char *end,
+                              int *start_bin, int *num_integrations) {
+  int k, status;
+  char filename[128], header[256], nfd[32];
+  FILE *file;
+  int number_subints_per_file;
+  int nch;
+  double freq;
+  double samp_rate;
+  float length;
+  int first_bin = -1;
+  int last_bin = -1;
+
+  // Get avaiable file range to constrain search
+  get_bin_range(prefix, &first_bin, &last_bin);
+
+  if (start != NULL) {
+    struct tm tm = {0};
+    time_t t;
+    strptime(start, "%Y-%m-%dT%T", &tm);
+    t = mktime(&tm);
+
+    int s = get_bin_from_time(prefix, first_bin, first_bin, first_bin, last_bin,
+                              t, &number_subints_per_file);
+
+    if (s < 0) {
+      return -1;
+    }
+
+    *start_bin = s;
+  }
+
+  if (end != NULL) {
+    struct tm tm = {0};
+    time_t t;
+    strptime(end, "%Y-%m-%dT%T", &tm);
+    t = mktime(&tm);
+
+    int s = get_bin_from_time(prefix, first_bin, first_bin, first_bin, last_bin,
+                              t, &number_subints_per_file);
+
+    if (s < *start_bin) {
+      return -1;
+    }
+
+    *num_integrations = (s - *start_bin + 1) * number_subints_per_file;
+  }
+
+  return 0;
+}
 
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff)
 {
@@ -21,7 +181,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 
   // Open first file to get number of channels
   sprintf(filename,"%s_%06d.bin",prefix,isub);
-	
+
   // Open file
   file=fopen(filename,"r");
   if (file==NULL) {
@@ -39,17 +199,17 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
     nbits=8;
   }
   s.freq+=foff;
-  
+
   // Close file
   fclose(file);
 
   // Compute plotting channel
   if (f0>0.0 && df0>0.0) {
     s.nchan=(int) (df0/s.samp_rate*(float) nch);
-    
+
     j0=(int) ((f0-0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
     j1=(int) ((f0+0.5*df0-s.freq+0.5*s.samp_rate)*(float) nch/s.samp_rate);
-    
+
     if (j0<0 || j1>nch) {
       fprintf(stderr,"Requested frequency range out of limits\n");
       s.nsub=0;
@@ -70,9 +230,9 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   s.nsub=nsub/nbin;
   s.msub=msub;
   s.isub=isub;
-  
+
   printf("Allocating %.2f MB of memory\n",(4* (float) s.nchan * (float) s.nsub)/(1024 * 1024));
-  
+
   // Allocate
   s.z=(float *) malloc(sizeof(float)*s.nchan*s.nsub);
   s.zavg=(float *) malloc(sizeof(float)*s.nsub);
@@ -127,9 +287,9 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
       }
       if (status==0)
 	break;
-      
+
       // Copy
-      for (j=0;j<s.nchan;j++) 
+      for (j=0;j<s.nchan;j++)
 	s.z[i+s.nsub*j]+=z[j+j0];
 
       // Increment
@@ -137,7 +297,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 	// Scale
 	s.mjd[i]/=(float) nadd;
 
-	for (j=0;j<s.nchan;j++) 
+	for (j=0;j<s.nchan;j++)
 	  s.z[i+s.nsub*j]/=(float) nadd;
 
 	ibin=0;
@@ -168,7 +328,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   // Compute averages
   for (i=0;i<s.nsub;i++) {
     s.zavg[i]=0.0;
-    for (j=0;j<s.nchan;j++) 
+    for (j=0;j<s.nchan;j++)
       if (!isnan(s.z[i+s.nsub*j]) && !isinf(s.z[i+s.nsub*j]))
 	s.zavg[i]+=s.z[i+s.nsub*j];
     s.zavg[i]/=(float) s.nchan;
@@ -177,7 +337,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   // Compute deviations
   for (i=0;i<s.nsub;i++) {
     s.zstd[i]=0.0;
-    for (j=0;j<s.nchan;j++) 
+    for (j=0;j<s.nchan;j++)
       if (!isnan(s.z[i+s.nsub*j]) && !isinf(s.z[i+s.nsub*j]))
 	s.zstd[i]+=pow(s.zavg[i]-s.z[i+s.nsub*j],2);
     s.zstd[i]=sqrt(s.zstd[i]/(float) s.nchan);
@@ -199,7 +359,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   printf("z1 = %f, z2 = %f\n", z1, z2);
   s.zmin = z1;
   s.zmax = z2;
-  // Free 
+  // Free
   free(z);
   free(cz);
 
@@ -233,7 +393,7 @@ void write_spectrogram(struct spectrogram s,char *prefix)
     sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nEND\n",nfd,s.freq,s.samp_rate,s.length[i],s.nchan);
 
     // Copy buffer
-    for (j=0;j<s.nchan;j++) 
+    for (j=0;j<s.nchan;j++)
       z[j]=s.z[i+s.nsub*j];
 
     // Dump contents
