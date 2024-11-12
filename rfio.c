@@ -8,7 +8,7 @@
 
 struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,double df0,int nbin,double foff)
 {
-  int i,j,k,l,flag=0,status,msub,ibin,nadd,nbits=-32;
+  int i,j,k,l,status,msub,ibin,nadd,nbits=-32;
   char filename[128],header[256],nfd[32];
   FILE *file;
   struct spectrogram s;
@@ -18,7 +18,6 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   double freq,samp_rate;
   float length;
   int nchan,dummy;
-  float s1,s2;
 
   // Open first file to get number of channels
   sprintf(filename,"%s_%06d.bin",prefix,isub);
