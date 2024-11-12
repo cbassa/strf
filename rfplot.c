@@ -82,6 +82,8 @@ int main(int argc,char *argv[])
   double foff=0.0,mjdgrid=0.0;
   int jj0,jj1;
   int show_names = 0;
+  char * start_time = NULL;
+  char * end_time = NULL;
 
   // Get site
   env=getenv("ST_COSPAR");
@@ -106,7 +108,7 @@ int main(int argc,char *argv[])
   
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:F:n"))!=-1) {
+    while ((arg=getopt(argc,argv,"p:f:w:s:l:b:z:hc:C:gm:o:S:W:F:nT:E:"))!=-1) {
       switch (arg) {
 	
       case 'p':
@@ -180,6 +182,14 @@ int main(int argc,char *argv[])
         show_names = 1;
         break;
 
+        case 'T':
+          start_time = optarg;
+          break;
+
+        case 'E':
+          end_time = optarg;
+          break;
+
       default:
 	usage();
 	return 0;
@@ -188,6 +198,16 @@ int main(int argc,char *argv[])
   } else {
     usage();
     return 0;
+  }
+
+  if (start_time || end_time) {
+    status = get_subs_from_datestrings(path, start_time, end_time, &isub, &nsub);
+
+    if (status != 0) {
+      printf("Failed to read files or requested period out of bin range\n");
+
+      return -1;
+    }
   }
 
   // Read data
@@ -1043,6 +1063,10 @@ void usage(void)
   printf("-C <site>     Site ID\n");
   printf("-c <catalog>  TLE catalog\n");
   printf("-F <freqlist> List with frequencies [$ST_DATADIR/data/frequencies.txt]\n");
+  printf("-T <time>     Start time to plot, in the format YYYY-MM-DDTHH.mm.ss\n");
+  printf("              This setting overrides the -s setting\n");
+  printf("-E <time>     End time to plot, in the format YYYY-MM-DDTHH.mm.ss\n");
+  printf("              This setting overrides the -l setting\n");
   printf("-g            GRAVES data\n");
   printf("-n            Display satellite names\n");
   printf("-h            This help\n");
