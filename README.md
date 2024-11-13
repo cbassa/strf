@@ -9,6 +9,7 @@ Install
 
 * For Ubuntu systems or similar.
   * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev dos2unix`
+    * On recent systems (starting with Debian 13 Trixie and Ubuntu 24.10 Oracular), you'll need to install `sudo apt install pgplot5-dev`
   * Clone repository: `git clone https://github.com/cbassa/strf.git`
   * Compile: `cd strf; make`
   * Install (in `/usr/local`): `sudo make install`
@@ -45,7 +46,7 @@ The header keywords are mostly self explanatory, though the `NSUB` keyword speci
 	mkfifo fifo
 	rffft -i fifo -f 101e6 -s 2.5e6 &
 	airspy_rx -a 1 -f 101 -t 2 -r fifo
-	
+
 Here, we first make the fifo `mkfifo fifo`, then start `rffft` to read from the fifo (`-i` option), with a 101MHz center frequency (`-f` option) and a 2.5MHz sample rate (`-s` option). The `&` puts this command in the background. Finally, we start obtaining IQ data from the **airspy** with `airspy_rx` in the 2.5MHz sampling mode (`-a 1`) at the same frequency (`-f 101`, in MHz), with the 2.5MHz sample rate (`-t 2`) and writing the samples to the fifo (`-r fifo`). Similar scripts can be made with other SDRs, and otherwise with **gnuradio** flow graphs where the output file sink is a fifo.
 
 Alternatively, when no input filename is given (with the `-i` option), `rffft` will read from stdin so it is possible to directly pipe an SDR receiver's application into `rffft`.
@@ -80,4 +81,4 @@ With I/Q recordings obtained from Gqrx:
 
 **Gqrx** records complex samples into `raw` files. The filename contains date, time, center frequency and samplerate separated by underscores. Replace `YYYYMMDD` and `HHMMSS` by your actual time and respectively. Pay attention to insert an uppercase `T` between date and time in the time stamp parameter of the `rffft` command.
 
-The output spectrograms can be viewed and analysed using `rfplot`. 
+The output spectrograms can be viewed and analysed using `rfplot`.
