@@ -51,10 +51,19 @@ rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o vers
 rffft: rffft.o rffft_internal.o rftime.o
 	$(CC) -o rffft rffft.o rffft_internal.o rftime.o -lfftw3f -lm -lsox $(LFLAGS)
 
-tests/tests: tests/tests.o tests/tests_rffft_internal.o tests/tests_rftles.o rffft_internal.o rftles.o satutl.o ferror.o
+tests/tests: tests/tests.o tests/tests_rffft_internal.o tests/tests_rfio.o tests/tests_rftles.o rffft_internal.o rfio.o rftime.o rftles.o satutl.o ferror.o zscale.o
 	$(CC) -Wall -o $@ $^ -lcmocka -lm
 
-tests: tests/tests
+tests/random:
+	dd if=/dev/random of=tests/random bs=12288000 count=4
+
+tests/bins: rffft tests/random
+	mkdir -p tests/bin/
+	./rffft -i tests/random -p tests/bin/ -o t10_n120_32 -f 2250000000 -s 1024 -T 2016-09-28T00:20:00 -t 10 -n 120
+	./rffft -i tests/random -p tests/bin/ -o t15_n90_8 -f 2250000000 -s 1024 -T 2016-09-28T00:20:00 -t 15 -n 90 -b
+	touch tests/bins
+
+tests: tests/tests tests/bins
 	./tests/tests
 
 .PHONY: clean install uninstall tests
