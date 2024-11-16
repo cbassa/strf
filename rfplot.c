@@ -962,7 +962,7 @@ void usage(void)
 {
   printf("rfplot: plot RF observations\n\n");
   printf("-p <path>     Input path to file /a/b/c_??????.bin\n");
-  printf("-s <start>    Number of starting subintegration [0]\n");
+  printf("-s <start>    Number of starting .bin file [0]\n");
   printf("-l <length>   Number of subintegrations to plot [3600]\n");
   printf("-b <nbin>     Number of subintegrations to bin [1]\n");
   printf("-z <zmax>     Image scaling upper limit [8.0]\n");
