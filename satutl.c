@@ -32,12 +32,13 @@ int ii;
         }
 }
 
-// If current_line doesn't start with "1 " or "2 ", copy it to satname,
-// stripping a potential leading "0 ", leading whitespaces and trailing
-// whitespaces and newline
-void conditional_copy_satname(char * satname, char * current_line) {
-  if ((current_line[0] != '1' || current_line[1] != ' ') &&
-      (current_line[0] != '2' || current_line[1] != ' ')) {
+// If current_line not lenght of 70 or doesn't start with "1 " or "2 ",copy it
+// to satname, stripping a potential leading "0 ", leading whitespaces and
+// trailing whitespaces and newline
+void conditional_copy_satname(char *satname, char *current_line) {
+  if ((strlen(current_line) != 70) ||
+      ((current_line[0] != '1' || current_line[1] != ' ') &&
+       (current_line[0] != '2' || current_line[1] != ' '))) {
     // Name line found
     // st_start will strip the leading whitespaces
     if (current_line[0] == '0' && current_line[1] == ' ') {
@@ -89,15 +90,17 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
     st1 = st_start(line1);
 
     conditional_copy_satname(tmp_satname, line1);
-  } while(st1[0] != '1');
+  } while((st1[0] != '1') || (st1[1] != ' '));
 
-  if (search_satno == 0) {
+  if (search_satno != 0) {
+    sprintf(search, "1 %05ld", search_satno);
+  } else {
     // If no search_satno given, set it to the currently read one
     // so next do/while loop will find it
     search_satno = atol(st1+2);
+    strncpy(search, line1, 7);
+    search[7] = '\0';
   }
-
-  sprintf(search, "1 %05ld", search_satno);
 
   do {
     st1 = st_start(line1);
@@ -110,8 +113,7 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
       conditional_copy_satname(tmp_satname, line1);
   } while(fgets(line1, ST_SIZE-1, fp) != NULL);
 
-
-  sprintf(search, "2 %05ld", search_satno);
+  search[0] = '2';
 
   if(found)
     {
