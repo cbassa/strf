@@ -70,9 +70,9 @@ void TLE_load_invalid_index_from_file(void **state) {
   tle_array_t tle_array = **(tle_array_t **)state;
 
   assert_non_null(tle_array.tles);
-  assert_int_equal(tle_array.number_of_elements, 45);
+  assert_int_equal(tle_array.number_of_elements, 49);
 
-  tle_t * tle = get_tle_by_index(&tle_array, 46);
+  tle_t * tle = get_tle_by_index(&tle_array, 50);
   assert_null(tle);
 }
 
@@ -80,7 +80,7 @@ void TLE_load_index_from_file(void **state) {
   tle_array_t tle_array = **(tle_array_t **)state;
 
   assert_non_null(tle_array.tles);
-  assert_int_equal(tle_array.number_of_elements, 45);
+  assert_int_equal(tle_array.number_of_elements, 49);
 
   // 9th element, 52745 - AMS
   tle_t * tle = get_tle_by_index(&tle_array, 9);
@@ -113,13 +113,37 @@ void TLE_load_index_from_file(void **state) {
   tle = get_tle_by_index(&tle_array, 0);
   assert_non_null(tle->name);
   assert_string_equal(tle->name, "LEMUR 2 KAREN_B");
+
+  // 45th element, 60955 - 1998-067WV
+  tle = get_tle_by_index(&tle_array, 45);
+  assert_int_equal(tle->orbit.satno, 60955);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "1998-067WV");
+
+  // 46th element, 45727 - 2 PATHFINDER
+  tle = get_tle_by_index(&tle_array, 46);
+  assert_int_equal(tle->orbit.satno, 45727);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "2 PATHFINDER");
+
+  // 47th element, 5485 - SHINSEI (MS-F2)
+  tle = get_tle_by_index(&tle_array, 47);
+  assert_int_equal(tle->orbit.satno, 5485);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "SHINSEI (MS-F2)");
+
+  // 48th element, 07530 - OSCAR 7 (AO-7)
+  tle = get_tle_by_index(&tle_array, 48);
+  assert_int_equal(tle->orbit.satno, 7530);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "OSCAR 7 (AO-7)");
 }
 
 void TLE_load_invalid_catalog_id_from_file(void **state) {
   tle_array_t tle_array = **(tle_array_t **)state;
 
   assert_non_null(tle_array.tles);
-  assert_int_equal(tle_array.number_of_elements, 45);
+  assert_int_equal(tle_array.number_of_elements, 49);
 
   tle_t * tle = get_tle_by_catalog_id(&tle_array, 12000);
   assert_null(tle);
@@ -129,7 +153,7 @@ void TLE_load_catalog_id_from_file(void **state) {
   tle_array_t tle_array = **(tle_array_t **)state;
 
   assert_non_null(tle_array.tles);
-  assert_int_equal(tle_array.number_of_elements, 45);
+  assert_int_equal(tle_array.number_of_elements, 49);
 
   // 13th element, 52749, - ICEYE-X18
   tle_t * tle = get_tle_by_catalog_id(&tle_array, 52749);
@@ -162,6 +186,30 @@ void TLE_load_catalog_id_from_file(void **state) {
   tle = get_tle_by_catalog_id(&tle_array, 52736);
   assert_non_null(tle->name);
   assert_string_equal(tle->name, "LEMUR 2 KAREN_B");
+
+  // 45th element, 60955 - 1998-067WV
+  tle = get_tle_by_catalog_id(&tle_array, 60955);
+  assert_int_equal(tle->orbit.satno, 60955);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "1998-067WV");
+
+  // 46th element, 45727 - 2 PATHFINDER
+  tle = get_tle_by_catalog_id(&tle_array, 45727);
+  assert_int_equal(tle->orbit.satno, 45727);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "2 PATHFINDER");
+
+  // 47th element, 5485 - SHINSEI (MS-F2)
+  tle = get_tle_by_catalog_id(&tle_array, 5485);
+  assert_int_equal(tle->orbit.satno, 5485);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "SHINSEI (MS-F2)");
+
+  // 48th element, 07530 - OSCAR 7 (AO-7)
+  tle = get_tle_by_catalog_id(&tle_array, 7530);
+  assert_int_equal(tle->orbit.satno, 7530);
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "OSCAR 7 (AO-7)");
 }
 
 // Entry point to run all tests
