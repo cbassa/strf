@@ -8,11 +8,12 @@ Install
 ------
 
 * For Ubuntu systems or similar.
-  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev dos2unix`
+  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev dos2unix`
     * On recent systems (starting with Debian 13 Trixie and Ubuntu 24.10 Oracular), you'll need to install `sudo apt install pgplot5-dev`
   * Clone repository: `git clone https://github.com/cbassa/strf.git`
   * Compile: `cd strf; make`
   * Install (in `/usr/local`): `sudo make install`
+  * To build and run the unit tests, also install the cmocka dependencies: `sudo apt install libcmocka-dev libcmocka0` and then run `make tests`
 
 Configure
 ---------
@@ -80,5 +81,17 @@ With I/Q recordings obtained from Gqrx:
     ./rffft -i gqrx_YYYYMMDD_HHMMSS_97400000_2000000_fc.raw -f 97400000 -s 2000000 -F float -T "YYYY-MM-DDTHH:MM:SS"
 
 **Gqrx** records complex samples into `raw` files. The filename contains date, time, center frequency and samplerate separated by underscores. Replace `YYYYMMDD` and `HHMMSS` by your actual time and respectively. Pay attention to insert an uppercase `T` between date and time in the time stamp parameter of the `rffft` command.
+
+Alternatively, with I/Q recordings from GQRX and SatDump, the `-P` option can be used to automatically extract the timestamp, format, frequency and samplerate from the filename:
+
+    ./rffft -P -i gqrx_YYYYMMDD_HHMMSS_97400000_2000000_fc.raw
+
+Reading WAV files:
+
+It is also possible to read WAV files. This is compatible with any WAV file, 16 bit int or 32 bit float for example as well as RF64 (WAV64) files.
+
+    ./rffft -i recording.wav -f 97400000 -s 48000 -F wav -T "YYYY-MM-DDTHH:MM:SS"
+
+For WAV files exported from SatDump and SDR Console the `-P` options will automatically extract the correct parameters from the filename.
 
 The output spectrograms can be viewed and analysed using `rfplot`.
