@@ -194,7 +194,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   }
 
   double z1,z2;
-  zscale(&s, 1000, 0.25,&z1, &z2);
+  zscale(&s, s.nsub, 0.25,&z1, &z2);
   printf("z1 = %f, z2 = %f\n", z1, z2);
   s.zmin = z1;
   s.zmax = z2;
