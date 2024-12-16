@@ -62,7 +62,8 @@ void zsc_fit_line(double *samples, int npix, double krej, int ngrow, int maxiter
     double xscale = 2.0 / (npix - 1);
     double *xnorm = (double *)malloc(npix * sizeof(double));
     int *badpix = (int *)calloc(npix, sizeof(int));
-    
+    int *conv = (int *)calloc(npix, sizeof(int));
+
     for (int i = 0; i < npix; i++) {
         xnorm[i] = i * xscale - 1.0;
     }
@@ -114,16 +115,17 @@ void zsc_fit_line(double *samples, int npix, double krej, int ngrow, int maxiter
                 badpix[i] = BAD_PIXEL;
             }
         }
-
+        // temp = np.convolve(badpix, np.ones(ngrow), mode='same')
+        // fixed convolution computation
         for (int i = 0; i < npix; i++) {
-            if (badpix[i] == BAD_PIXEL) {
-                for (int j = -ngrow; j <= ngrow; j++) {
-                    int idx = i + j;
-                    if (idx >= 0 && idx < npix) {
-                        badpix[idx] = BAD_PIXEL;
-                    }
+            int sum = 0;
+            for (int j = -ngrow/2; j < ngrow/2; j++) {
+                int idx = i + j;
+                if (idx >= 0 && idx < npix) {
+                    sum+= badpix[idx];
                 }
             }
+            conv[i] = sum;
         }
 
         free(fitted);
@@ -132,7 +134,8 @@ void zsc_fit_line(double *samples, int npix, double krej, int ngrow, int maxiter
         last_ngoodpix = ngoodpix;
         ngoodpix = 0;
         for (int i = 0; i < npix; i++) {
-            if (badpix[i] == GOOD_PIXEL) {
+            badpix[i] = conv[i];
+            if (conv[i] == GOOD_PIXEL) {
                 ngoodpix++;
             }
         }
@@ -140,9 +143,10 @@ void zsc_fit_line(double *samples, int npix, double krej, int ngrow, int maxiter
 
     *zstart = intercept - slope;
     *zslope = slope * xscale;
-
+    *ngoodpix_out = ngoodpix; 
     free(xnorm);
     free(badpix);
+    free(conv);
 }
 
 int compare_doubles(const void *a, const void *b) {
@@ -161,11 +165,11 @@ void zscale(struct spectrogram *image, int nsamples, double contrast, double *z1
     double zmin = samples[0];
     double zmax = samples[npix - 1];
     double median;
-
+    int center_pixel = (npix - 1) / 2;
     if (npix % 2 == 1) {
-        median = samples[npix / 2];
+        median = samples[center_pixel];
     } else {
-        median = 0.5 * (samples[npix / 2 - 1] + samples[npix / 2]);
+        median = 0.5 * (samples[center_pixel] + samples[center_pixel + 1]);
     }
 
     int ngoodpix;
@@ -173,13 +177,14 @@ void zscale(struct spectrogram *image, int nsamples, double contrast, double *z1
     zsc_fit_line(samples, npix, KREJ, fmax(1, npix * 0.01), MAX_ITERATIONS,
                  &ngoodpix, &zstart, &zslope);
 
+
     if (ngoodpix < fmax(MIN_NPIXELS, npix * MAX_REJECT)) {
         *z1 = zmin;
         *z2 = zmax;
     } else {
         if (contrast > 0) zslope /= contrast;
-        *z1 = fmax(zmin, median - (npix / 2 - 1) * zslope);
-        *z2 = fmin(zmax, median + (npix - npix / 2) * zslope);
+        *z1 = fmax(zmin, median - (center_pixel - 1) * zslope);
+        *z2 = fmin(zmax, median + (npix - center_pixel) * zslope);
     }
 
     free(samples);
