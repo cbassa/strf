@@ -281,9 +281,9 @@ void identify_trace_graves(char *tlefile,struct trace t,int satno,char *freqlist
     if (rms<1000) {
       if (rms<50.0) {
         if (tle->name) {
-          printf("%05d - %s:\t%s %8.1f Hz (%.1f,%.1f)\n", tle->orbit.satno, tle->name, nfd, rms, modulo(azi+180.0,360.0), alt);
+          printf("%05d %s %8.1f Hz (%.1f,%.1f) | %s\n", tle->orbit.satno, nfd, rms, modulo(azi+180.0,360.0), alt, tle->name);
         } else {
-          printf("%05d:\t%s %8.1f Hz (%.1f,%.1f)\n", tle->orbit.satno, nfd, rms, modulo(azi+180.0,360.0), alt);
+          printf("%05d %s %8.1f Hz (%.1f,%.1f)\n", tle->orbit.satno, nfd, rms, modulo(azi+180.0,360.0), alt);
         }
       }
       //      printf("%05d: %s  %8.3f MHz %8.3f kHz\n",tle->orbit.satno,nfd,1e-6*freq0,1e-3*rms);
@@ -425,9 +425,9 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
 
     if (rms<1000) {
       if (tle->name) {
-        printf("%05d - %s:\t%s  %8.3f MHz %8.3f kHz\n", tle->orbit.satno, tle->name, nfd, 1e-6*freq0, 1e-3*rms);
+        printf("%05d %s  %8.3f MHz %8.3f kHz | %s\n", tle->orbit.satno, nfd, 1e-6*freq0, 1e-3*rms, tle->name);
       } else {
-        printf("%05d:\t%s  %8.3f MHz %8.3f kHz\n", tle->orbit.satno, nfd, 1e-6*freq0, 1e-3*rms);
+        printf("%05d %s  %8.3f MHz %8.3f kHz\n", tle->orbit.satno, nfd, 1e-6*freq0, 1e-3*rms);
       }
       if (flag==0 || rms<rmsmin) {
 	satnomin=tle->orbit.satno;
@@ -444,9 +444,9 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
   if (flag==1) {
     printf("\nBest fitting object:\n");
     if (satnamemin) {
-      printf("%05d - %s: %s  %8.3f MHz %8.3f kHz\n", satnomin, satnamemin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin);
+      printf("%05d %s  %8.3f MHz %8.3f kHz | %s\n", satnomin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin, satnamemin);
     } else {
-      printf("%05d: %s  %8.3f MHz %8.3f kHz\n", satnomin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin);
+      printf("%05d %s  %8.3f MHz %8.3f kHz\n", satnomin, nfdmin, 1e-6*freqmin, 1e-3*rmsmin);
     }
     printf("Store frequency? [y/n]\n");
     status=scanf("%s",text);
