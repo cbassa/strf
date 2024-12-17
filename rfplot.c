@@ -64,6 +64,7 @@ int main(int argc,char *argv[])
   float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
   char c;
   char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128],freqlist[128];
+  char nfd[32];
   int sec,lsec,ssec;
   char stime[16];
   double fmin,fmax,fcen,f;
@@ -278,8 +279,12 @@ int main(int argc,char *argv[])
       fmax-=fcen;
       cpgswin(xmin,xmax,fmin,fmax);
       cpgbox("",0.,0,"BTSN",0.,0);
-
-      sprintf(xlabel,"UT Date: %.10s",s.nfd0);
+      // update UT Date to be consistent with the current view
+      int imin = (int) xmin;
+      if (imin < 0)
+          imin = 0;
+      mjd2nfd(s.mjd[imin], nfd);
+      sprintf(xlabel,"UT Date: %.10s",nfd);
       cpglab(xlabel,ylabel," ");
 
       cpgswin(xmin,xmax,ymin,ymax);
