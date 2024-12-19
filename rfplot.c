@@ -57,7 +57,7 @@ int main(int argc,char *argv[])
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
   int i,j,k,flag=0,sn,maxflag=0;
-  int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0,binaxis=0;
+  int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0,binaxis=0,inside_window;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix,iy,isub=0,nx,ny,jx=-1,jy=-1;
   int i0,j0,i1,j1,jmax;
@@ -352,6 +352,14 @@ int main(int argc,char *argv[])
     // Get cursor
     cpgband(mode,posn,x0,y0,&x,&y,&c);
 
+    // Cursor inside window?
+    i=(int) x;
+    j=(int) y;
+    if (i >= 0 && i < s.nsub && j >= 0 && j < s.nchan)
+      inside_window=1;
+    else
+      inside_window=0;
+
     // Help
     if (c=='h') {
       printf("q        Quit\n");
@@ -587,11 +595,11 @@ int main(int argc,char *argv[])
     }
 
     // Mark single point
-    if (c=='D' || c=='a') {
+    if (c=='D') {
       file=fopen("mark.dat","a");
       i=(int) floor(x);
       j=(int) floor(y);
-      if (i < 0 || i >= s.nsub || j < 0 || j >= s.nchan) {
+      if (inside_window==0) {
         printf("no data under the cursor\n");
         continue;
       }
@@ -628,6 +636,11 @@ int main(int argc,char *argv[])
     
     // Mark
     if (c=='m') {
+      if (inside_window==0) {
+        printf("no data under the cursor\n");
+        continue;
+      }
+
       i0=(int) floor(xmin);
       i1=(int) ceil(xmax);
       j0=(int) floor(ymin);
@@ -1630,7 +1643,7 @@ void bin_axis(int isub,int msub,float xmin,float xmax,float ymin,float ymax)
   char s[16];
 
   // Get tickmark settings
-  imin=(int) floor(xmin/msub);
+  imin=(int) ceil(xmin/msub);
   imax=(int) floor(xmax/msub);
   di=imax-imin;
   istep=(int) floor(di/6);
