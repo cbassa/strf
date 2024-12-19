@@ -36,7 +36,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   if (strstr(header,"NBITS         8")==NULL) {
     status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\n",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&msub);
   } else {
-    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&dummy,&zavg,&zstd);
+    status=sscanf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %f\nRMS          %f",s.nfd0,&s.freq,&s.samp_rate,&length,&nch,&msub,&zavg,&zstd);
     nbits=8;
   }
   s.freq+=foff;
@@ -69,7 +69,9 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
 
   // Number of subints
   s.nsub=nsub/nbin;
-
+  s.msub=msub;
+  s.isub=isub;
+  
   printf("Allocating %.2f MB of memory\n",(4* (float) s.nchan * (float) s.nsub)/(1024 * 1024));
   
   // Allocate
@@ -202,7 +204,7 @@ struct spectrogram read_spectrogram(char *prefix,int isub,int nsub,double f0,dou
   free(z);
   free(cz);
 
- return s;
+  return s;
 }
 
 void write_spectrogram(struct spectrogram s,char *prefix)
