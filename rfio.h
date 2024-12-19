@@ -1,7 +1,7 @@
 #ifndef RFIO_H
 #define RFIO_H
 struct spectrogram {
-  int nsub,nchan;
+  int nsub,nchan,msub,isub;
   double *mjd;
   double freq,samp_rate;
   float *length;

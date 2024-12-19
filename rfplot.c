@@ -24,6 +24,7 @@ struct data {
 
 void dec2sex(double x,char *s,int f,int len);
 void time_axis(double *mjd,int n,float xmin,float xmax,float ymin,float ymax);
+void bin_axis(int isub,int msub,float xmin,float xmax,float ymin,float ymax);
 void usage(void);
 void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax, int show_names);
 struct trace fit_trace(struct spectrogram s,struct select sel,int site_id,int graves);
@@ -56,7 +57,7 @@ int main(int argc,char *argv[])
   float heat_b[] = {0.0, 0.0, 0.0, 0.3, 1.0};
   float xmin,xmax,ymin,ymax,zmin,zmax=1.0;
   int i,j,k,flag=0,sn,maxflag=0;
-  int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0;
+  int redraw=1,mode=0,posn=0,click=0,graves=0,grid=0,binaxis=0;
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix,iy,isub=0,nx,ny,jx=-1,jy=-1;
   int i0,j0,i1,j1,jmax;
@@ -255,8 +256,14 @@ int main(int argc,char *argv[])
       }
 
       // Pixel axis
-      cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
-
+      //cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
+      if (binaxis==0) {
+	cpgbox("CTSM1",0.,0,"CTSM1",0.,0);
+      } else { 
+	cpgbox("C",0.,0,"CTSM1",0.,0);
+	bin_axis(s.isub,s.msub,xmin,xmax,ymin,ymax);
+      }
+      
       // Time axis
       cpgbox("B",0.,0,"",0.,0);
       time_axis(s.mjd,s.nsub,xmin,xmax,ymin,ymax);
@@ -367,6 +374,7 @@ int main(int argc,char *argv[])
       printf("c        Center view\n");
       printf("C        Toggle through color maps\n");
       printf("p/right  Toggle overlays\n");
+      printf("a        Toggle subint/bin file horizontal axis\n");
       printf("n        Toggle display of satellite names in overlay\n");
       printf("+        Zoom\n");
       printf("-/x      Unzoom\n");
@@ -387,6 +395,14 @@ int main(int argc,char *argv[])
     if (c=='q')
       break;
 
+    // Toggle bin axis
+    if (c=='a') {
+      if (binaxis==0)
+	binaxis=1;
+      else
+	binaxis=0;
+      redraw=1;
+    }
     
     // Toggle grid
     if (c=='k') {
@@ -1600,4 +1616,29 @@ float fit_gaussian_point(struct spectrogram s,float x,float y,struct select sel,
   versafit(gd.n,4,a,da,chisq_gaussian,0.0,1e-3,"n");
       
   return a[0];
+}
+
+// Plot horizontal axis in bin file steps
+void bin_axis(int isub,int msub,float xmin,float xmax,float ymin,float ymax)
+{
+  int i,imin,imax,di,istep;
+  float x;
+  char s[16];
+
+  // Get tickmark settings
+  imin=(int) floor(xmin/msub);
+  imax=(int) floor(xmax/msub);
+  di=imax-imin;
+  istep=(int) floor(di/6);
+  if (istep==0)
+    istep=1;
+
+  // Add ticks
+  for (i=imin;i<imax;i+=istep) {
+    x=i*msub;
+    sprintf(s,"%d",isub+i);
+    cpgtick(xmin,ymax,xmax,ymax,(x-xmin)/(xmax-xmin),0.5,0.5,-0.6,0.0,s);
+  }
+ 
+  return;
 }
