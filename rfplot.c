@@ -591,6 +591,10 @@ int main(int argc,char *argv[])
       file=fopen("mark.dat","a");
       i=(int) floor(x);
       j=(int) floor(y);
+      if (i < 0 || i >= s.nsub || j < 0 || j >= s.nchan) {
+        printf("no data under the cursor\n");
+        continue;
+      }
       f=s.freq-0.5*s.samp_rate+(double) j*s.samp_rate/(double) s.nchan;
       if (s.mjd[i]>1.0) {
 	if (graves==0)
