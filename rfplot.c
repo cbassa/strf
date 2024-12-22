@@ -214,8 +214,10 @@ int main(int argc,char *argv[])
   ymin=0.0;
   ymax=(float) s.nchan;
   zmin=0.0;
-  if (maxflag==0)
+  if (maxflag==0) {
+    zmin=s.zmin;
     zmax=s.zmax;
+  }
   
   // Set trace
   tf.n=0;
