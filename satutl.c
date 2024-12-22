@@ -4,7 +4,7 @@
 
 
 #include "sgdp4h.h"
-
+#include "alpha5.h"
 #include <ctype.h>
 
 static char *st_start(char *buf);
@@ -78,6 +78,7 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
   static char search[ST_SIZE];
   static char line1[ST_SIZE];
   static char line2[ST_SIZE];
+  char search_satstr[6];
   char *st1, *st2;
   int found = 0;
   double bm, bx;
@@ -85,6 +86,9 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
   st1 = line1;
   st2 = line2;
 
+  // alpha5 designation to search
+  number_to_alpha5(search_satno, search_satstr);
+  
   do {
     if(fgets(line1, ST_SIZE-1, fp) == NULL) return -1;
     st1 = st_start(line1);
@@ -93,11 +97,14 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
   } while((st1[0] != '1') || (st1[1] != ' '));
 
   if (search_satno != 0) {
-    sprintf(search, "1 %05ld", search_satno);
+    sprintf(search, "1 %5s", search_satstr);
   } else {
     // If no search_satno given, set it to the currently read one
     // so next do/while loop will find it
-    search_satno = atol(st1+2);
+    //search_satno = atol(st1+2);
+    strncpy(search_satstr, st1+2, 5);
+    search_satstr[5]='\0';
+    search_satno=alpha5_to_number(search_satstr);
     strncpy(search, line1, 7);
     search[7] = '\0';
   }

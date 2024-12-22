@@ -74,7 +74,7 @@ void zero_pad(const char *s, char *result)
     }
 }
 
-int main() {
+int oldmain() {
     const char *norad_strings[] = {"00001", "    1", " 1234", "05697", "12345", "A0000", "J2931", "W1928", "E8493", "P4018", "Z9999"};
     const int correct_numbers[] = {1, 1, 1234, 5697, 12345, 100000, 182931, 301928, 148493, 234018, 339999};
     
