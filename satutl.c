@@ -4,12 +4,83 @@
 
 
 #include "sgdp4h.h"
-#include "alpha5.h"
 #include <ctype.h>
 
 static char *st_start(char *buf);
 static long i_read(char *str, int start, int stop);
 static double d_read(char *str, int start, int stop);
+
+// Fixed mapping
+const char mapping[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+// Function to convert alpha5 format to number
+int alpha5_to_number(const char *s)
+{
+    // Split components
+    char first_char = s[0];
+    int digits = 0;
+    sscanf(s + 1, "%4d", &digits);  // Get the last four digits
+    
+    // Decode first character
+    int first_digit = 0;
+    if (first_char == ' ') {
+        first_digit = 0;
+    } else if (isdigit(first_char)) {
+        first_digit = first_char - '0';
+    } else {
+        for (int i = 0; mapping[i] != '\0'; i++) {
+            if (mapping[i] == first_char) {
+                first_digit = i;
+                break;
+            }
+        }
+    }
+
+    // Create and return number
+    return first_digit * 10000 + digits;
+}
+
+// Function to convert number to alpha5 format
+void number_to_alpha5(int number, char *result)
+{
+    // Split components
+    int first_digit = number / 10000;
+    int digits = number % 10000;
+
+    // Get char
+    char first_char = mapping[first_digit];
+
+    // Create string
+    sprintf(result, "%c%04d", first_char, digits);
+
+    return;
+}
+
+// Function to strip leading spaces
+void strip_leading_spaces(const char *s, char *result)
+{
+    while (*s == ' ') {
+        s++;  // Skip leading spaces
+    }
+    strcpy(result, s);  // Copy the remainder of the string
+
+    return;
+}
+
+// Function to zero pad a string
+void zero_pad(const char *s, char *result)
+{
+    char stripped[6];  // Temporarily store the string without leading spaces
+    strip_leading_spaces(s, stripped);
+
+    if (isdigit(stripped[0])) {
+        int value = atoi(stripped);
+        sprintf(result, "%05d", value);
+    } else {
+        strcpy(result, stripped);  // No zero-padding for non-digit strings
+    }
+}
+
 
  /* ====================================================================
    Read a string from key board, remove CR/LF etc.
