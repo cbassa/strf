@@ -11,6 +11,7 @@ static long i_read(char *str, int start, int stop);
 static double d_read(char *str, int start, int stop);
 
 // Fixed mapping
+// Only capital letters and numbers are used in Alpha-5. The letters “I” and “O” are omitted to avoid confusion with the numbers “1” and “0”. 
 const char mapping[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
 // Function to convert alpha5 format to number
