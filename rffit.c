@@ -419,7 +419,7 @@ int main(int argc,char *argv[])
       d.satname = tle->name;
     }
   }
-  printf(">> |%s|\n",orb.desig);
+
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
     fprintf(stderr,"Failed to redirect stderr\n");
 
@@ -555,14 +555,14 @@ int main(int argc,char *argv[])
       if (mjdtca>0) {
 	sprintf(text,"rms: %.3f kHz",rms);
 	cpgtext(0.0,0.7,text);
-	sprintf(text,"TCA: %s",nfdtca);
+	sprintf(text,"T\\dCA\\u: %s",nfdtca);
 	cpgtext(0.0,0.55,text);
       }
       // Print TLE epoch
       if (satno>0) {
 	mjdepoch=doy2mjd(orb.ep_year,orb.ep_day);
 	mjd2nfd(mjdepoch,nfdepoch);
-	sprintf(text,"TEP: %s",nfdepoch);
+	sprintf(text,"T\\dEP\\u: %s",nfdepoch);
 	cpgtext(0.0,0.425,text);
       }
 
@@ -597,7 +597,7 @@ int main(int argc,char *argv[])
 	cpgsls(2);
 	cpgmove(mjdtca-d.mjd0,ymin);
 	cpgdraw(mjdtca-d.mjd0,ymax);
-	cpgtext(mjdtca-d.mjd0,ymin+0.95*(ymax-ymin)," TCA");
+	cpgtext(mjdtca-d.mjd0,ymin+0.95*(ymax-ymin)," T\\dCA\\u");
 	cpgsci(1);
 	cpgsls(1);
       }
@@ -608,7 +608,7 @@ int main(int argc,char *argv[])
 	cpgsls(4);
 	cpgmove(mjdepoch-d.mjd0,ymin);
 	cpgdraw(mjdepoch-d.mjd0,ymax);
-	cpgtext(mjdepoch-d.mjd0,ymin+0.05*(ymax-ymin)," TEP");
+	cpgtext(mjdepoch-d.mjd0,ymin+0.05*(ymax-ymin)," T\\dEP\\u");
 	cpgsci(1);
 	cpgsls(1);
       }
