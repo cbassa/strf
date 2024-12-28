@@ -435,11 +435,8 @@ int main(int argc,char *argv[])
     ymax=20*d.f0/C;
   }
     
-  //  ymin=d.freqmin;
-  //  ymax=d.freqmax;
-
-  day=mjd2doy(d.mjd0,&year);
-  sprintf(xlabel,"MJD - %5.0f (%02d%03.0f)",d.mjd0,year-2000,floor(day));
+  mjd2nfd(d.mjd0,nfd);
+  sprintf(xlabel, "Date (UTC) - %s",nfd);
   sprintf(ylabel,"Frequency - %.0f kHz",d.f0);
 
   // For ever loop
