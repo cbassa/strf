@@ -230,7 +230,8 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
 
   orb->satno = search_satno;
 
-  sscanf(st1+9,"%s",orb->desig);
+  strncpy(orb->desig,st1+9,8);
+  orb->desig[8]='\0';
 
   if (satname != NULL) {
     strncpy(satname, tmp_satname, ST_SIZE);

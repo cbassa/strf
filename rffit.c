@@ -419,7 +419,7 @@ int main(int argc,char *argv[])
       d.satname = tle->name;
     }
   }
-
+  printf(">> |%s|\n",orb.desig);
   if (freopen("/tmp/stderr.txt","w",stderr)==NULL)
     fprintf(stderr,"Failed to redirect stderr\n");
 
@@ -739,9 +739,9 @@ int main(int argc,char *argv[])
 
     // Change
     if (c=='c') {
-      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
+      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Satellite COSPAR  (12) Frequency (MHz)\n\nWhich parameter to change: ");
       status=scanf("%i",&i);
-      if (i>=0 && i<=11) {
+      if (i>=0 && i<=12) {
 	printf("\nNew value: ");
 	if (fgets(string,64,stdin)==NULL)
 	  fprintf(stderr,"Failed to read string\n");
@@ -758,7 +758,9 @@ int main(int argc,char *argv[])
 	if (i==9) orb.satno=atoi(string);
 	if (i==10) 
 	  d.satname=string;
-	if (i==11) {
+	if (i==11) 
+	  strcpy(orb.desig,string);
+	if (i==12) {
 	  d.ffit=atof(string) * 1000;
 	  d.fitfreq=0;
 	}
