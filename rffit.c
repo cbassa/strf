@@ -123,8 +123,8 @@ void format_tle(orbit_t orb,char *line1,char *line2)
   // Print lines
   number_to_alpha5(orb.satno,satstr);
   satstr[5]='\0';
-  sprintf(line1,"1 %05sU          %2d%012.8f  .00000000  00000-0 %8s 0    0",satstr,orb.ep_year-2000,orb.ep_day,sbstar);
-  sprintf(line2,"2 %05s %8.4f %8.4f %07.0f %8.4f %8.4f %11.8f    0",satstr,DEG(orb.eqinc),DEG(orb.ascn),1E7*orb.ecc,DEG(orb.argp),DEG(orb.mnan),orb.rev);
+  sprintf(line1,"1 %5sU          %2d%012.8f  .00000000  00000-0 %8s 0    0",satstr,orb.ep_year-2000,orb.ep_day,sbstar);
+  sprintf(line2,"2 %5s %8.4f %8.4f %07.0f %8.4f %8.4f %11.8f    0",satstr,DEG(orb.eqinc),DEG(orb.ascn),1E7*orb.ecc,DEG(orb.argp),DEG(orb.mnan),orb.rev);
 
   // Compute checksums
   for (i=0,csum=0;i<strlen(line1);i++) {
