@@ -17,13 +17,13 @@ if [[ ! -z "${ST_LOGIN}" ]]; then
     wget --post-data=$ST_LOGIN --cookies=on --keep-session-cookies --save-cookies=/tmp/cookies.txt 'https://www.space-track.org/ajaxauth/login' -o /tmp/stget.log
 
     # Get data
-    wget  --keep-session-cookies --load-cookies=/tmp/cookies.txt 'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/EPOCH/%3Enow-30/format/3le' -O catalog.tle
+    wget --keep-session-cookies --load-cookies=/tmp/cookies.txt 'https://www.space-track.org/basicspacedata/query/class/gp/EPOCH/>now-30/orderby/NORAD_CAT_ID,EPOCH/format/3le' -O catalog.tle
     dos2unix catalog.tle
 
     # Fix missing leading zeros
     sed -i -e "s/^1     /1 0000/g" -e "s/^2     /2 0000/g" -e "s/^1    /1 000/g" -e "s/^2    /2 000/g" -e "s/^1   /1 00/g" -e "s/^2   /2 00/g" -e "s/^1  /1 0/g" -e "s/^2  /2 0/g" catalog.tle
     cp catalog.tle ${DATE}_catalog.txt
-    rm login
+    rm login /tmp/cookies.txt /tmp/stget.log
 fi
 
 # Get classfd
