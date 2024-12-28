@@ -59,7 +59,7 @@ double chisq(double a[]);
 void versafit(int m,int n,double *a,double *da,double (*func)(double *),double dchisq,double tol,char *opt);
 double compute_rms(void);
 void mjd2date(double mjd,int *year,int *month,double *day);
-void print_tle(orbit_t orb,char *filename);
+void print_tle(orbit_t orb,char *filename,char *satname);
 void search(void);
 double fit_curve(orbit_t orb,int *ia);
 double mjd2doy(double mjd,int *yr);
@@ -123,7 +123,7 @@ void format_tle(orbit_t orb,char *line1,char *line2)
   // Print lines
   number_to_alpha5(orb.satno,satstr);
   satstr[5]='\0';
-  sprintf(line1,"1 %5sU          %2d%012.8f  .00000000  00000-0 %8s 0    0",satstr,orb.ep_year-2000,orb.ep_day,sbstar);
+  sprintf(line1,"1 %5sU %-8s %2d%012.8f  .00000000  00000-0 %8s 0    0",satstr,orb.desig,orb.ep_year-2000,orb.ep_day,sbstar);
   sprintf(line2,"2 %5s %8.4f %8.4f %07.0f %8.4f %8.4f %11.8f    0",satstr,DEG(orb.eqinc),DEG(orb.ascn),1E7*orb.ecc,DEG(orb.argp),DEG(orb.mnan),orb.rev);
 
   // Compute checksums
@@ -298,7 +298,7 @@ int main(int argc,char *argv[])
   FILE *fp,*std,*fpres;
   char line0[72],line1[72],line2[72];
   int ia[]={0,0,0,0,0,0,0};
-  float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0};
+  float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0,-0.25};
   int satno=-1,status;
   site_t site,s0,s1;
   int site_number[16],nsite=0,graves=0;
@@ -458,7 +458,8 @@ int main(int argc,char *argv[])
       cpgtext(0.12,-0.3,"Ascending Node");
       cpgtext(0.37,-0.3,"Arg. of Perigee");
       cpgtext(0.62,-0.3,"Mean Motion");
-
+      cpgtext(0.87,-0.3,"Frequency");
+      
       // Toggles
       for (i=0;i<7;i++) {
 	cpgpt1(dx[i],dy[i],19);
@@ -467,6 +468,12 @@ int main(int argc,char *argv[])
 	  cpgpt1(dx[i],dy[i],16);
 	  cpgsci(1);
 	}
+      }
+      cpgpt1(dx[7],dy[7],19);
+      if (d.fitfreq==1) {
+	cpgsci(2);
+	cpgpt1(dx[7],dy[7],16);
+	cpgsci(1);
       }
 
       // Sky plot
@@ -691,18 +698,23 @@ int main(int argc,char *argv[])
       else if (ia[c-49]==1) 
 	ia[c-49]=0;
       redraw=1;
+    } else if (isdigit(c) && c-'0'==8) {
+      if (d.fitfreq==0)
+	d.fitfreq=1;
+      else
+	d.fitfreq=0;
+      redraw=1;
     }
 
     // Change
     if (c=='c') {
-      printf("(1) Inclination,     (2) Ascending Node,   (3) Eccentricity,\n(4) Arg. of Perigee, (5) Mean Anomaly,     (6) Mean Motion,\n(7) B* drag,         (8) Epoch,            (9) Satellite ID\n\nWhich parameter to change: ");
+      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
       status=scanf("%i",&i);
-      if (i>=0 && i<=9) {
+      if (i>=0 && i<=11) {
 	printf("\nNew value: ");
 	if (fgets(string,64,stdin)==NULL)
 	  fprintf(stderr,"Failed to read string\n");
 	status=scanf("%s",string);
-	//	if (i==0) strcpy(d.satname,string);
 	if (i==1) orb.eqinc=RAD(atof(string));
 	if (i==2) orb.ascn=RAD(atof(string));
 	if (i==3) orb.ecc=atof(string);
@@ -715,9 +727,10 @@ int main(int argc,char *argv[])
 	  orb.ep_day=atof(string)-1000*floor(atof(string)/1000.0);
 	}
 	if (i==9) orb.satno=atoi(string);
-	if (i==0) {
-	  printf("%f\n",d.ffit);
-	  d.ffit=atof(string);
+	if (i==10) 
+	  d.satname=string;
+	if (i==11) {
+	  d.ffit=atof(string) * 1000;
 	  d.fitfreq=0;
 	}
 	redraw=1;
@@ -842,7 +855,7 @@ int main(int argc,char *argv[])
     if (c=='w') {
       printf("TLE filename to write: ");
       status=scanf("%s",filename);
-      print_tle(orb,filename);
+      print_tle(orb,filename,d.satname);
       printf("\n================================================================================\n");
     }
 
@@ -1132,6 +1145,8 @@ int main(int argc,char *argv[])
       printf("4   Toggle fitting parameter (Argyment of perigee)\n");
       printf("5   Toggle fitting parameter (Mean anomaly)\n");
       printf("6   Toggle fitting parameter (Mean motion)\n");
+      printf("7   Toggle fitting parameter (B* drag)\n");
+      printf("8   Toggle fitting parameter (Frequency)\n");            
       printf("\n");
       printf("t   Load template TLE\n");
       printf("g   Get TLE from catalog\n");
@@ -1772,7 +1787,7 @@ void mjd2date(double mjd,int *year,int *month,double *day)
 }
 
 // Print TLE
-void print_tle(orbit_t orb,char *filename)
+void print_tle(orbit_t orb,char *filename,char *satname)
 {
   int i,n;
   FILE *file;
@@ -1797,8 +1812,11 @@ void print_tle(orbit_t orb,char *filename)
   // Write TLE
   file=fopen(filename,"w");
   format_tle(orb,line1,line2);
-  fprintf(file,"%s\n%s\n",line1,line2);
-
+  if (satname!=NULL)
+    fprintf(file,"%s\n%s\n%s\n",satname,line1,line2);
+  else
+    fprintf(file,"%s\n%s\n",line1,line2);
+  
   mjd2date(mjdmin,&year,&month,&day);
   fprintf(file,"# %4d%02d%05.2lf-",year,month,day);
   mjd2date(mjdmax,&year,&month,&day);
