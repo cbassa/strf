@@ -298,7 +298,7 @@ int main(int argc,char *argv[])
   FILE *fp,*std,*fpres;
   char line0[72],line1[72],line2[72];
   int ia[]={0,0,0,0,0,0,0};
-  float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85,0.85},dy[]={0.0,-0.25,0.0,-0.25,0.0,-0.25,0.0,-0.25};
+  float dx[]={0.1,0.1,0.35,0.35,0.6,0.6,0.85,0.85},dy[]={-0.05,-0.30,-0.05,-0.30,-0.05,-0.30,-0.05,-0.30};
   int satno=-1,status;
   site_t site,s0,s1;
   int site_number[16],nsite=0,graves=0;
@@ -448,14 +448,14 @@ int main(int argc,char *argv[])
       cpgswin(0.0,1.0,-0.5,0.5);
 
       // Buttons
-      cpgtext(0.12,-0.05,"Inclination");
-      cpgtext(0.372,-0.05,"Eccentricity");
-      cpgtext(0.62,-0.05,"Mean Anomaly");
-      cpgtext(0.87,-0.05,"B\\u*\\d");
-      cpgtext(0.12,-0.3,"Ascending Node");
-      cpgtext(0.37,-0.3,"Arg. of Perigee");
-      cpgtext(0.62,-0.3,"Mean Motion");
-      cpgtext(0.87,-0.3,"Frequency");
+      cpgtext(0.12,-0.10,"Inclination");
+      cpgtext(0.37,-0.10,"Eccentricity");
+      cpgtext(0.62,-0.10,"Mean Anomaly");
+      cpgtext(0.87,-0.10,"B\\u*\\d");
+      cpgtext(0.12,-0.35,"Ascending Node");
+      cpgtext(0.37,-0.35,"Arg. of Perigee");
+      cpgtext(0.62,-0.35,"Mean Motion");
+      cpgtext(0.87,-0.35,"Frequency");
       
       // Toggles
       for (i=0;i<7;i++) {
