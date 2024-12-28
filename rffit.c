@@ -42,6 +42,7 @@ int fgetline(FILE *file,char *s,int lim);
 struct data read_data(char *filename,int graves,float offset);
 double date2mjd(int year,int month,double day);
 void mjd2nfd(double mjd,char *nfd);
+double nfd2mjd(char *date);
 struct point decode_line(char *line);
 double modulo(double,double);
 double gmst(double);
@@ -705,7 +706,7 @@ int main(int argc,char *argv[])
 
     // Change
     if (c=='c') {
-      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch (YYDDD.dd), ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
+      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
       status=scanf("%i",&i);
       if (i>=0 && i<=11) {
 	printf("\nNew value: ");
@@ -719,10 +720,8 @@ int main(int argc,char *argv[])
 	if (i==5) orb.mnan=RAD(atof(string));
 	if (i==6) orb.rev=atof(string);
 	if (i==7) orb.bstar=atof(string);
-	if (i==8) {
-	  orb.ep_year=2000+(int) floor(atof(string)/1000.0);
-	  orb.ep_day=atof(string)-1000*floor(atof(string)/1000.0);
-	}
+	if (i==8) 
+	  orb.ep_day=mjd2doy(nfd2mjd(string),&orb.ep_year);
 	if (i==9) orb.satno=atoi(string);
 	if (i==10) 
 	  d.satname=string;
@@ -1693,6 +1692,20 @@ double compute_rms(void)
     rms=sqrt(rms/(float) n);
 
   return rms;
+}
+
+// nfd2mjd
+double nfd2mjd(char *date)
+{
+  int year,month,day,hour,min;
+  double mjd,dday;
+  float sec;
+
+  sscanf(date,"%04d-%02d-%02dT%02d:%02d:%f",&year,&month,&day,&hour,&min,&sec);
+  dday=day+hour/24.0+min/1440.0+sec/86400.0;
+  mjd=date2mjd(year,month,dday);
+
+  return mjd;
 }
 
 // Compute Date from Julian Day
