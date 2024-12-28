@@ -492,14 +492,13 @@ int main(int argc,char *argv[])
 	} 
 	
 	cpgsci(15);
-	//	for (mjd=d.mjd0,i=0;mjd<d.mjd0+xmax;mjd+=1.0/1440.0,i++) {
 	for (i=0;i<NMAX;i++) {
 	  mjd=xmin+d.mjd0+(xmax-xmin)*(float) i/(float) (NMAX-1);
 	  velocity(orb,mjd,site,&v,&azi,&alt);
 
 	  // Get TCA
 	  if (i>0) {
-	    if (vtca*v<0.0) {
+	    if (vtca*v<0.0 && alt>0 && mjd<d.mjdmax && mjd>d.mjdmin) {
 	      mjdtca=mjd;
 	    }
 	  }
