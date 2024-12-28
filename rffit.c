@@ -592,12 +592,34 @@ int main(int argc,char *argv[])
       //      cpgenv(xmin,xmax,ymin,ymax,0,0);
       cpglab(xlabel,ylabel,"");
 
+      // Plot TCA
+      if (satno>0) {
+	cpgsci(2);
+	cpgsls(2);
+	cpgmove(mjdtca-d.mjd0,ymin);
+	cpgdraw(mjdtca-d.mjd0,ymax);
+	cpgtext(mjdtca-d.mjd0,ymin+0.95*(ymax-ymin)," TCA");
+	cpgsci(1);
+	cpgsls(1);
+      }
+
+      // Plot Epoch
+      if (satno>0) {
+	cpgsci(1);
+	cpgsls(4);
+	cpgmove(mjdepoch-d.mjd0,ymin);
+	cpgdraw(mjdepoch-d.mjd0,ymax);
+	cpgtext(mjdepoch-d.mjd0,ymin+0.05*(ymax-ymin)," TEP");
+	cpgsci(1);
+	cpgsls(1);
+      }
+      
       // Plot orbit
       if (satno>0 && plot_curve==1 && residuals==0) {
 
 	// Plot tle
 	if (d.satname != NULL) {
-		cpgmtxt("T", 3.0, 0.0, 0.0, d.satname);
+	  cpgmtxt("T", 3.0, 0.0, 0.0, d.satname);
 	}
 	format_tle(orb,line1,line2);
 	cpgmtxt("T",2.0,0.0,0.0,line1);
@@ -615,7 +637,7 @@ int main(int argc,char *argv[])
 	  s0 = get_site(site_number[j]);
 	  if (d.p[0].rsite_id != 0) {
 	    s1 = get_site(d.p[0].rsite_id);
-      }
+	  }
 	  color=j+2;
 
 	  for (i=0;i<NMAX;i++) {
