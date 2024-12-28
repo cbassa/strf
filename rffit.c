@@ -290,9 +290,9 @@ int main(int argc,char *argv[])
   float xmin,xmax,ymin,ymax;
   float xminsel,xmaxsel,yminsel,ymaxsel;
   float x0=0.0,y0=0.0,x=0.0,y=0.0;
-  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=56658.0,altmin=0.0,mjdmid;
+  double mjd,v,v1,azi,alt,rms=0.0,day,mjdtca=-1,altmin=0.0,mjdmid,mjdepoch=-1;
   float t,f,vtca,foffset=0.0;
-  char c,nfd[32]="2014-01-01T00:00:00";
+  char c,nfdtca[32]="2014-01-01T00:00:00",nfd[32]="2014-01-01T00:00:00",nfdepoch[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
   char *catalog=NULL,*datafile=NULL,filename[64],string[64],bstar[10]=" 00000-0";
   int arg=0,nobs=0;
@@ -512,7 +512,7 @@ int main(int argc,char *argv[])
 	    cpgdraw(x,y);
 	  vtca=v;
 	}
-	mjd2nfd(mjdtca,nfd);
+	mjd2nfd(mjdtca,nfdtca);
 	cpgsci(1);
 	cpgsls(1);
 
@@ -543,30 +543,42 @@ int main(int argc,char *argv[])
       }
 
       // Diagnostics
-      cpgsvp(0.715,0.95,0.2,0.5);
+      cpgsvp(0.715,0.95,0.2,0.55);
       cpgwnad(0.0,1.0,0.0,1.0);
+
       
       sprintf(text,"Measurements: %d",nobs);
       cpgtext(0.0,1.0,text);
       sprintf(text,"Frequency: %.3f MHz",d.ffit/1000.0);
       cpgtext(0.0,0.85,text);
-      sprintf(text,"rms: %.3f kHz",rms);
-      cpgtext(0.0,0.7,text);
-      sprintf(text,"TCA: %s",nfd);
-      cpgtext(0.0,0.55,text);
-      sprintf(text,"%s (%04d)",site.observer,site.id);
-      cpgtext(0.0,0.4,text);
 
+      // Print/plot TCA
+      if (mjdtca>0) {
+	sprintf(text,"rms: %.3f kHz",rms);
+	cpgtext(0.0,0.7,text);
+	sprintf(text,"TCA: %s",nfdtca);
+	cpgtext(0.0,0.55,text);
+      }
+      // Print TLE epoch
+      if (satno>0) {
+	mjdepoch=doy2mjd(orb.ep_year,orb.ep_day);
+	mjd2nfd(mjdepoch,nfdepoch);
+	sprintf(text,"TEP: %s",nfdepoch);
+	cpgtext(0.0,0.425,text);
+      }
+
+      sprintf(text,"%s (%04d)",site.observer,site.id);
+      cpgtext(0.0,0.3,text);
+
+      
       // Plot site numbers
       for (j=0;j<nsite;j++) {
 	sprintf(text,"%04d",site_number[j]);
 	cpgsci(j+2);
 	if (j<5)
-	  cpgtext(0.25*j,0.25,text);
-	else if (j<10)
-	  cpgtext(0.25*(j-5),0.15,text);
-	else if (j<15)
-	  cpgtext(0.25*(j-10),0.05,text);
+	  cpgtext(0.25*j,0.15,text);
+	else
+	  cpgtext(0.25*(j-5),0.05,text);
       }
       cpgsci(1);
 
@@ -773,8 +785,7 @@ int main(int argc,char *argv[])
 	printf("No points selected!\n");
       } else {
 	rms=fit_curve(orb,ia);
-	//printf("rms: %.3f kHz, cf: %.6f MHz, TCA: %s\n",rms,d.ffit/1000.0,nfd);
-	printf("%05d %.6f %.3f %s %04d %02d%010.6f\n",orb.satno,d.ffit/1000.0,rms,nfd,d.p[0].site_id,orb.ep_year-2000,orb.ep_day);
+	printf("%05d %.6f %.3f %s %04d %02d%010.6f\n",orb.satno,d.ffit/1000.0,rms,nfdtca,d.p[0].site_id,orb.ep_year-2000,orb.ep_day);
 	redraw=1;
       }
     }
@@ -1015,7 +1026,7 @@ int main(int argc,char *argv[])
 
     // Save
     if (c=='S') {
-      printf("%s_%.3f_%04d_%05d.dat\n",nfd,d.ffit/1000.0,d.p[0].site_id,satno);
+      printf("%s_%.3f_%04d_%05d.dat\n",nfdtca,d.ffit/1000.0,d.p[0].site_id,satno);
       printf("Save highlighted points, provide filename: ");
       status=scanf("%s",filename);
       save_data(xmin,ymin,xmax,ymax,filename);
