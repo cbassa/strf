@@ -11,7 +11,7 @@
 #include "rftles.h"
 
 #define LIM 80
-#define NMAX 1024
+#define NMAX 16384
 #define D2R M_PI/180.0
 #define R2D 180.0/M_PI
 #define XKMPER 6378.137 // km
@@ -33,7 +33,7 @@ struct data {
   int n;
   struct point *p;
   int fitfreq;
-  double mjdmin,mjdmax,mjd0;
+  double mjdmin,mjdmax,mjd0,dmjd;
   double freqmin,freqmax,fluxmin,fluxmax,f0,ffit;
   char *satname;
 } d;
@@ -426,8 +426,9 @@ int main(int argc,char *argv[])
   cpgopen("/xs");
   cpgask(0);
 
-  xmin=d.mjdmin-d.mjd0-0.005;
-  xmax=d.mjdmax-d.mjd0+0.005;
+  // Axis limits
+  xmin=d.mjdmin-0.1*d.dmjd-d.mjd0;
+  xmax=d.mjdmax+0.1*d.dmjd-d.mjd0;
   if (graves==0) {
     ymin=-12.0*d.f0/C;
     ymax=12*d.f0/C;
@@ -1146,8 +1147,8 @@ int main(int argc,char *argv[])
     */
     // Unzoom
     if (c=='r') {
-      xmin=d.mjdmin-d.mjd0;
-      xmax=d.mjdmax-d.mjd0;
+      xmin=d.mjdmin-0.1*d.dmjd-d.mjd0;
+      xmax=d.mjdmax+0.1*d.dmjd-d.mjd0;
       if (graves==0) {
 	ymin=-12.0*d.f0/C;
 	ymax=12*d.f0/C;
@@ -1343,15 +1344,7 @@ struct data read_data(char *filename,int graves,float offset)
       if (d.p[i].flux>d.fluxmax) d.fluxmax=d.p[i].flux;
     }
   }
-  c=0.1*(d.mjdmax-d.mjdmin);
-  d.mjdmin-=c;
-  d.mjdmax+=c;
-  c=0.1*(d.freqmax-d.freqmin);
-  d.freqmin-=c;
-  d.freqmax+=c;
-  c=0.02*(d.fluxmax-d.fluxmin);
-  d.fluxmin-=c;
-  d.fluxmax+=c;
+  d.dmjd=d.mjdmax-d.mjdmin;
 
   // Center time and frequency
   d.mjd0=floor(0.5*(d.mjdmax+d.mjdmin));
