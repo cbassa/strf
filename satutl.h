@@ -21,6 +21,7 @@ int alpha5_to_number(const char *s);
 void number_to_alpha5(int number, char *result);
 void zero_pad(const char *s, char *result);
 void strip_leading_spaces(const char *s, char *result);
+void strip_trailing_spaces(char *s);
   
 /** aries.c **/
 double gha_aries(double jd);

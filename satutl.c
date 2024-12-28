@@ -68,6 +68,18 @@ void strip_leading_spaces(const char *s, char *result)
     return;
 }
 
+// Function to remove trailing spaces from a string
+void strip_trailing_spaces(char *s)
+{
+    int i;
+
+    // Loop from the end of the string to find the first non-space character
+    for (i=strlen(s)-1;i>=0;i--) 
+        if (s[i]!=' ') 
+            break; 
+    s[i+1]='\0';
+}
+
 // Function to zero pad a string
 void zero_pad(const char *s, char *result)
 {
@@ -232,7 +244,8 @@ int read_twoline(FILE *fp, long search_satno, orbit_t *orb, char *satname)
 
   strncpy(orb->desig,st1+9,8);
   orb->desig[8]='\0';
-
+  strip_trailing_spaces(orb->desig);
+  
   if (satname != NULL) {
     strncpy(satname, tmp_satname, ST_SIZE);
   }
