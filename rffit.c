@@ -708,7 +708,7 @@ int main(int argc,char *argv[])
 
     // Change
     if (c=='c') {
-      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
+      printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch (YYDDD.dd), ( 9) Satellite ID\n(10) Satellite name   (11) Frequency (MHz)\n\nWhich parameter to change: ");
       status=scanf("%i",&i);
       if (i>=0 && i<=11) {
 	printf("\nNew value: ");
