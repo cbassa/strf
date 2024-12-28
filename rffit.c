@@ -11,7 +11,7 @@
 #include "rftles.h"
 
 #define LIM 80
-#define NMAX 16384
+#define NMAX 1024
 #define D2R M_PI/180.0
 #define R2D 180.0/M_PI
 #define XKMPER 6378.137 // km
@@ -814,6 +814,12 @@ int main(int argc,char *argv[])
       }
     }
 
+    // Set TLE epoch to current TCA
+    if (c=='e') {
+      orb.ep_day=mjd2doy(mjdtca,&orb.ep_year);
+      redraw=1;
+    }
+
     // Get TLE
     if (c=='g') {
       printf("Get TLE from catalog, provide satellite number: ");
@@ -1188,6 +1194,7 @@ int main(int argc,char *argv[])
       printf("i   Identify satellite from catalog based on Doppler curve\n");
       printf("I   Identify satellite from catalog based on visibility\n");
       printf("M   Mirror doppler curve in frequency\n");
+      printf("e   Set TLE epoch to current TCA\n");
       printf("\n");
       printf("Highlighting / Selecting / Deleting points:\n");
       printf("z   Start box to zoom\n");
