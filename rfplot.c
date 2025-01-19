@@ -61,7 +61,7 @@ int main(int argc,char *argv[])
   float dt,zzmax,s1,s2,z,za,sigma,zs,zm;
   int ix,iy,isub=0,nx,ny,jx=-1,jy=-1;
   int i0,j0,i1,j1,jmax;
-  float width=1500;
+  float width,height;
   float x=0.0,y=0.0,x0=0.0,y0=0.0,yfit;
   char c;
   char path[128],xlabel[128],ylabel[64],filename[32],tlefile[128],freqlist[128];
@@ -218,6 +218,12 @@ int main(int argc,char *argv[])
     zmin=s.zmin;
     zmax=s.zmax;
   }
+
+  // Zoom settings
+  width=1500;
+  height=1500;
+  if (s.nchan<height)
+    height=s.nchan;
   
   // Set trace
   tf.n=0;
@@ -694,8 +700,8 @@ int main(int argc,char *argv[])
     if (c=='c') {
       xmin=x-width;
       xmax=x+width;
-      ymin=y-width;
-      ymax=y+width;
+      ymin=y-height;
+      ymax=y+height;
       redraw=1;
       continue;
     }
@@ -734,10 +740,11 @@ int main(int argc,char *argv[])
       if (c=='0')
 	continue;
       width=1000.0/(c-'0');
+      height=1000.0/(c-'0');
       xmin=x-width;
       xmax=x+width;
-      ymin=y-width;
-      ymax=y+width;
+      ymin=y-height;
+      ymax=y+height;
       redraw=1;
       continue;
     }
@@ -745,10 +752,11 @@ int main(int argc,char *argv[])
     // Zoom
     if (c=='+' || c=='=') {
       width/=1.5;
+      height/=1.5;
       xmin=x-width;
       xmax=x+width;
-      ymin=y-width;
-      ymax=y+width;
+      ymin=y-height;
+      ymax=y+height;
       redraw=1;
       continue;
     }
@@ -756,10 +764,11 @@ int main(int argc,char *argv[])
     // Unzoom
     if (c=='x' || c=='-') {
       width*=1.5;
+      height*=1.5;
       xmin=x-width;
       xmax=x+width;
-      ymin=y-width;
-      ymax=y+width;
+      ymin=y-height;
+      ymax=y+height;
       redraw=1;
       continue;
     }
@@ -781,6 +790,9 @@ int main(int argc,char *argv[])
       jx=-1;
       jy=-1;
       width=1500;
+      height=1500;
+      if (s.nchan<height)
+	height=s.nchan;
       redraw=1;
       continue;
     }
@@ -795,7 +807,7 @@ int main(int argc,char *argv[])
     if (c==',' || c=='.' || c=='<' || c=='>' || c=='\t' || c=='\b') {
       // Image width
       nx = (int) ceil(s.nsub / width);
-      ny = (int) ceil(s.nchan / width);
+      ny = (int) ceil(s.nchan / height);
 
       // Pan left
       if (c==',') {
@@ -835,11 +847,11 @@ int main(int argc,char *argv[])
 
       // Set area
       x=width*(ix+0.5);
-      y=width*(iy+0.5);
+      y=height*(iy+0.5);
       xmin=x-0.75*width;
       xmax=x+0.75*width;
-      ymin=y-0.75*width;
-      ymax=y+0.75*width;
+      ymin=y-0.75*height;
+      ymax=y+0.75*height;
 
       redraw=1;
       continue;
