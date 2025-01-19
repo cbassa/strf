@@ -738,6 +738,16 @@ int main(int argc,char *argv[])
       redraw=1;
     }
 
+    // Select points by station
+    if (c=='C') {
+      printf("Provide station ID for data point selection:\n");
+      status=scanf("%d",&j);
+      for (i=0;i<d.n;i++) 
+	if (d.p[i].site_id==j)
+	  d.p[i].flag=2;
+      redraw=1;
+    }
+    
     // Change
     if (c=='c') {
       printf("( 1) Inclination,     ( 2) Ascending Node,   ( 3) Eccentricity,\n( 4) Arg. of Perigee, ( 5) Mean Anomaly,     ( 6) Mean Motion,\n( 7) B* drag,         ( 8) Epoch,            ( 9) Satellite ID\n(10) Satellite name   (11) Satellite COSPAR  (12) Frequency (MHz)\n\nWhich parameter to change: ");
@@ -809,7 +819,7 @@ int main(int argc,char *argv[])
 	printf("No points selected!\n");
       } else {
 	rms=fit_curve(orb,ia);
-	printf("%05d %.6f %.3f %s %04d %02d%010.6f\n",orb.satno,d.ffit/1000.0,rms,nfdtca,d.p[0].site_id,orb.ep_year-2000,orb.ep_day);
+	printf("%05d %.6f %.3f %s %04d %02d%010.6f %d\n",orb.satno,d.ffit/1000.0,rms,nfdtca,site_id,orb.ep_year-2000,orb.ep_day,nobs);
 	redraw=1;
       }
     }
@@ -936,7 +946,7 @@ int main(int argc,char *argv[])
     if (c=='j') {
       fpres=fopen("residuals.dat","w");
       for (i=0;i<d.n;i++) 
-	fprintf(fpres,"%14.8lf %lf %lf\n",d.p[i].mjd,d.p[i].freq,d.p[i].res);
+	fprintf(fpres,"%14.8lf %lf %lf %d\n",d.p[i].mjd,d.p[i].freq,d.p[i].res,d.p[i].site_id);
       fclose(fpres);
       if (residuals==0)
 	residuals=1;
