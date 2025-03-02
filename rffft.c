@@ -28,6 +28,8 @@ void usage(void)
   printf("-T <start time> YYYY-MM-DDTHH:MM:SSS.sss\n");
   printf("-R <fmin,fmax>  Frequency range to store (Hz)\n");
   printf("-S <index>      Starting index [int]\n");
+  printf("-2              Square signal before processing (to detect BPSK signals\n");
+  printf("-4              Square-square signal before processing (to detect QPSK signals\n");  
   printf("-I              Invert frequencies\n");
   printf("-b              Digitize output to bytes [off]\n");
   printf("-q              Quiet mode, no output [off]\n");
@@ -40,7 +42,7 @@ void usage(void)
 int main(int argc,char *argv[])
 {
   int i,j,k,l,nchan,m=0,nint=1,arg=0,nbytes,nsub=60,flag,nuse=1,realtime=1,quiet=0,imin,imax,partial=0,useoutput=0;
-  fftwf_complex *c,*d;
+  fftwf_complex *c,*d,ct;
   fftwf_plan fft;
   FILE *infile,*outfile;
   char infname[128]="",outfname[128]="",path[64]=".",prefix[32]="",output[128]="";
@@ -57,10 +59,11 @@ int main(int argc,char *argv[])
   int sign=1;
   int parse_params_from_filename = 0;
   sox_format_t * wav_reader = NULL;
+  int flag_x2=0,flag_x4=0,fac=1;
 
   // Read arguments
   if (argc>1) {
-    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:IS:P"))!=-1) {
+    while ((arg=getopt(argc,argv,"i:f:s:c:t:p:n:hm:F:T:bqR:o:IS:P24"))!=-1) {
       switch(arg) {
 	
       case 'i':
@@ -117,6 +120,16 @@ int main(int argc,char *argv[])
 
       case 'q':
 	quiet=1;
+	break;
+
+      case '2':
+	flag_x2=1;
+	fac=2;
+	break;
+
+      case '4':
+	flag_x4=1;
+	fac=4;
 	break;
 
       case 'm':
@@ -318,6 +331,26 @@ int main(int argc,char *argv[])
 	  }
 	}
 
+	// Square once
+	if (flag_x2 || flag_x4) {
+	  for (i = 0; i < nchan; i++) {
+	    ct[0] = c[i][0] * c[i][0] - c[i][1] * c[i][1];
+	    ct[1] = 2 * c[i][0] * c[i][1];
+	    c[i][0] = ct[0];
+	    c[i][1] = ct[1];
+	  }
+	}
+
+	// Square twice
+	if (flag_x4) {
+	  for (i = 0; i < nchan; i++) {
+	    ct[0] = c[i][0] * c[i][0] - c[i][1] * c[i][1];
+	    ct[1] = 2 * c[i][0] * c[i][1];
+	    c[i][0] = ct[0];
+	    c[i][1] = ct[1];
+	  }
+	}
+	
 	// Execute
 	fftwf_execute(fft);
 	
@@ -378,14 +411,14 @@ int main(int argc,char *argv[])
       // Header
       if (partial==0) {
 	if (outformat=='f') 
-	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate,length,nchan,nsub);
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,freq,samp_rate/fac,length,nchan,nsub);
 	else if (outformat=='c')
-	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,freq,samp_rate,length,nchan,nsub,zavg,zstd);
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,freq,samp_rate/fac,length,nchan,nsub,zavg,zstd);
       } else if (partial==1) {
 	if (outformat=='f') 
-	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,0.5*(freqmax+freqmin),freqmax-freqmin,length,imax-imin,nsub);
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nEND\n",nfd,0.5*(freqmax+freqmin),(freqmax-freqmin)/fac,length,imax-imin,nsub);
 	else if (outformat=='c')
-	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,0.5*(freqmax+freqmin),freqmax-freqmin,length,imax-imin,nsub,zavg,zstd);
+	  sprintf(header,"HEADER\nUTC_START    %s\nFREQ         %lf Hz\nBW           %lf Hz\nLENGTH       %f s\nNCHAN        %d\nNSUB         %d\nNBITS         8\nMEAN         %e\nRMS          %e\nEND\n",nfd,0.5*(freqmax+freqmin),(freqmax-freqmin)/fac,length,imax-imin,nsub,zavg,zstd);
       }
       // Limit output
       if (!quiet)
