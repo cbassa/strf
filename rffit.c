@@ -584,7 +584,7 @@ int main(int argc,char *argv[])
 
       // Initialize
       cpgsvp(0.1,0.65,0.2,0.9);
-      cpgswin(xmin,xmax,ymin/d.f0*C,ymax/d.f0*C);
+      cpgswin(xmin,xmax,ymin/d.f0*C,ymax/d.f0*C); //this is probably wrong. ymin and ymax have already been processed by/f0*C!!!!!!!!!!!!!!!!!!
       cpgbox("",0.,0,"CTSM",0.,0);
       cpgmtxt("R",2.5,0.5,0.5,"Velocity (km/s)");
       cpgswin(xmin,xmax,ymin,ymax);
