@@ -294,7 +294,7 @@ int main(int argc,char *argv[])
   float t,f,vtca,foffset=0.0;
   char c,nfdtca[32]="2014-01-01T00:00:00",nfd[32]="2014-01-01T00:00:00",nfdepoch[32]="2014-01-01T00:00:00";
   int mode=0,posn=0,click=0;
-  char *catalog=NULL,*datafile=NULL,filename[64],string[64],bstar[10]=" 00000-0";
+  char *catalog=NULL,*datafile=NULL,filename[64],default_filename[64],string[64],bstar[10]=" 00000-0";
   int arg=0,nobs=0;
   FILE *fp,*std,*fpres;
   char line0[72],line1[72],line2[72];
@@ -1066,9 +1066,14 @@ int main(int argc,char *argv[])
 
     // Save
     if (c=='S') {
-      printf("%s_%.3f_%04d_%05d.dat\n",nfdtca,d.ffit/1000.0,d.p[0].site_id,satno);
-      printf("Save highlighted points, provide filename: ");
-      status=scanf("%s",filename);
+      snprintf(default_filename,sizeof(default_filename), "%s_%.3f_%04d_%05d.dat",nfdtca,d.ffit/1000.0,d.p[0].site_id,satno);
+      printf("Save highlighted points, provide filename [type 'default' for %s]: ",default_filename);
+      status = scanf("%s",filename);
+
+      if (strcmp(filename, "default") == 0 ) {
+         strcpy(filename,default_filename);
+      }
+
       save_data(xmin,ymin,xmax,ymax,filename);
       printf("\n================================================================================\n");
     }
