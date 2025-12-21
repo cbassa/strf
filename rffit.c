@@ -188,7 +188,7 @@ int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
     }
     if (rms<rmsmax) {
       if (tle->name) {
-        printf("%05d: %.3f kHz %.6f MHz | %s\n", orb.satno, tle->name, rms, d.ffit/1000.0, tle->name);
+        printf("%05d: %.3f kHz %.6f MHz | %s\n", orb.satno, rms, d.ffit/1000.0, tle->name);
       } else {
         printf("%05d: %.3f kHz %.6f MHz\n", orb.satno, rms, d.ffit/1000.0);
       }
