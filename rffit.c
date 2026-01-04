@@ -1067,15 +1067,19 @@ int main(int argc,char *argv[])
     // Save
     if (c=='S') {
       snprintf(default_filename,sizeof(default_filename), "%s_%.3f_%04d_%05d.dat",nfdtca,d.ffit/1000.0,d.p[0].site_id,satno);
-      printf("Save highlighted points, provide filename [type 'default' for %s]: ",default_filename);
-      status = scanf("%s",filename);
+      printf("Save highlighted points, provide filename [%s]: ", default_filename);
 
-      if (strcmp(filename, "default") == 0 ) {
-         strcpy(filename,default_filename);
+      if (fgets(filename, sizeof(filename), stdin)) {
+        // Strip newline
+        filename[strcspn(filename, "\n")] = '\0';
+
+        if (strlen(filename) == 0) {
+          strcpy(filename,default_filename);
+       }
+
+        save_data(xmin,ymin,xmax,ymax,filename);
+        printf("\n================================================================================\n");
       }
-
-      save_data(xmin,ymin,xmax,ymax,filename);
-      printf("\n================================================================================\n");
     }
 
     // Unselect
