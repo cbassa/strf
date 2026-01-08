@@ -27,7 +27,7 @@ int get_bin_range(char *prefix, int *first_bin, int *last_bin) {
   char *dir_p = dirname(dir);
   char *base_p = strcat(basename(base), "_");
 
-  dp = opendir(dir);
+  dp = opendir(dir_p);
 
   if (dp == NULL) {
     printf("Unable to open %s directory\n", dir_p);
