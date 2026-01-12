@@ -17,13 +17,13 @@ all:
 	make rfedit rfplot rffft rfpng rffit rffind rfdop
 
 rffit: rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o rfsites.o rftles.o
-	gfortran -o rffit rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o rfsites.o rftles.o $(LFLAGS)
+	gfortran -o rffit rffit.o sgdp4.o satutl.o deep.o ferror.o dsmin.o simplex.o versafit.o rfsites.o rftles.o $(LFLAGS) -lcsv
 
 rfpng: rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o
-	gfortran -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o $(LFLAGS)
+	gfortran -o rfpng rfpng.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o $(LFLAGS) -lcsv
 
 rfdop: rfdop.o rftrace.o rfio.o rftime.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o
-	$(CC) -o rfdop rfdop.o rftrace.o rfio.o rftime.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o -lm
+	$(CC) -o rfdop rfdop.o rftrace.o rfio.o rftime.o sgdp4.o satutl.o deep.o ferror.o rftles.o zscale.o -lm -lcsv
 
 rfedit: rfedit.o rfio.o rftime.o zscale.o
 	$(CC) -o rfedit rfedit.o rfio.o rftime.o zscale.o -lm
@@ -35,13 +35,13 @@ rftrack: rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o zs
 	$(CC) -o rftrack rftrack.o rfio.o rftime.o rftrace.o sgdp4.o satutl.o deep.o ferror.o zscale.o -lm
 
 rfplot: rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o rftles.o zscale.o
-	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o rftles.o zscale.o $(LFLAGS)
+	gfortran -o rfplot rfplot.o rftime.o rfio.o rftrace.o sgdp4.o satutl.o deep.o ferror.o versafit.o dsmin.o simplex.o rftles.o zscale.o $(LFLAGS) -lcsv
 
 rffft: rffft.o rffft_internal.o rftime.o
 	$(CC) -o rffft rffft.o rffft_internal.o rftime.o -lfftw3f -lm -lsox
 
 tests/tests: tests/tests.o tests/tests_rffft_internal.o tests/tests_rfio.o tests/tests_rftles.o rffft_internal.o rfio.o rftime.o rftles.o satutl.o ferror.o zscale.o
-	$(CC) -Wall -o $@ $^ -lcmocka -lm
+	$(CC) -Wall -o $@ $^ -lcmocka -lm -lcsv
 
 tests/random:
 	dd if=/dev/random of=tests/random bs=12288000 count=4
