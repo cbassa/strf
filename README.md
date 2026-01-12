@@ -8,7 +8,7 @@ Install
 ------
 
 * For Ubuntu systems or similar.
-  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev dos2unix`
+  * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev libcsv-dev dos2unix`
     * On recent systems (starting with Debian 13 Trixie and Ubuntu 24.10 Oracular), you'll need to install `sudo apt install pgplot5-dev`
   * Clone repository: `git clone https://github.com/cbassa/strf.git`
   * Compile: `cd strf; make`
