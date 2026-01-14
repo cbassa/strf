@@ -18,6 +18,7 @@ typedef struct tle_array {
 } tle_array_t;
 
 tle_array_t *load_tles(char *tlefile);
+tle_array_t *load_tles_from_csv(char *csvfile);
 void free_tles(tle_array_t *tle_array);
 tle_t *get_tle_by_index(tle_array_t *tle_array, long index);
 tle_t *get_tle_by_catalog_id(tle_array_t *tle_array, long satno);
