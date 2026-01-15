@@ -57,6 +57,42 @@ int setup_alpha5(void **state) {
   return 0;
 }
 
+int setup_csv_nonexistent(void **state) {
+  tle_array_t * tle_array = load_tles_from_csv("tests/data/nonexistent.csv");
+
+  if (tle_array == NULL) {
+    return -1;
+  }
+
+  *state = tle_array;
+
+  return 0;
+}
+
+int setup_csv_empty(void **state) {
+  tle_array_t * tle_array = load_tles_from_csv("tests/data/empty.csv");
+
+  if (tle_array == NULL) {
+    return -1;
+  }
+
+  *state = tle_array;
+
+  return 0;
+}
+
+int setup_csv(void **state) {
+  tle_array_t * tle_array = load_tles_from_csv("tests/data/catalog.csv");
+
+  if (tle_array == NULL) {
+    return -1;
+  }
+
+  *state = tle_array;
+
+  return 0;
+}
+
 int teardown(void **state) {
   free_tles(*state);
 
@@ -247,7 +283,45 @@ void TLE_decode_alpha5_designation(void **state) {
 
   assert_string_equal(tle->orbit.desig, "98067A");
   assert_int_equal(tle->orbit.satno, 339999);
+}
 
+void TLE_load_csv_nonexistent_file(void **state) {
+  tle_array_t tle_array = **(tle_array_t **)state;
+
+  assert_null(tle_array.tles);
+  assert_int_equal(tle_array.number_of_elements, 0);
+}
+
+void TLE_load_csv_empty_file(void **state) {
+  tle_array_t tle_array = **(tle_array_t **)state;
+
+  assert_null(tle_array.tles);
+  assert_int_equal(tle_array.number_of_elements, 0);
+}
+
+void TLE_load_csv(void **state) {
+  tle_array_t tle_array = **(tle_array_t **)state;
+
+  assert_non_null(tle_array.tles);
+  assert_int_equal(tle_array.number_of_elements, 2);
+
+  // 1st element, 00005 - VANGUARD 1
+  tle_t * tle = get_tle_by_catalog_id(&tle_array, 5);
+
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "VANGUARD 1");
+
+  assert_string_equal(tle->orbit.desig, "58002B");
+  assert_int_equal(tle->orbit.satno, 5);
+
+  // 2nd element, 00011 - VANGUARD 2
+  tle = get_tle_by_catalog_id(&tle_array, 11);
+
+  assert_non_null(tle->name);
+  assert_string_equal(tle->name, "VANGUARD 2");
+
+  assert_string_equal(tle->orbit.desig, "59001A");
+  assert_int_equal(tle->orbit.satno, 11);
 }
 
 // Entry point to run all tests
@@ -259,7 +333,10 @@ int run_tle_tests() {
     cmocka_unit_test_setup_teardown(TLE_load_index_from_file, setup, teardown),
     cmocka_unit_test_setup_teardown(TLE_load_invalid_catalog_id_from_file, setup, teardown),
     cmocka_unit_test_setup_teardown(TLE_load_catalog_id_from_file, setup, teardown),
-    cmocka_unit_test_setup_teardown(TLE_decode_alpha5_designation, setup_alpha5, teardown),    
+    cmocka_unit_test_setup_teardown(TLE_decode_alpha5_designation, setup_alpha5, teardown),
+    cmocka_unit_test_setup_teardown(TLE_load_csv_nonexistent_file, setup_csv_nonexistent, teardown),
+    cmocka_unit_test_setup_teardown(TLE_load_csv_empty_file, setup_csv_empty, teardown),
+    cmocka_unit_test_setup_teardown(TLE_load_csv, setup_csv, teardown),
   };
 
   return cmocka_run_group_tests_name("TLE", tests, NULL, NULL);
