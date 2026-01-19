@@ -5,7 +5,8 @@ jobs:
   GitHub-Actions:
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt install --no-install-recommends make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev libcmocka-dev libcmocka0
+      - run: sudo apt update -y
+      - run: sudo apt install -y --no-install-recommends make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev libcmocka-dev libcmocka0
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: cd ${{ github.workspace }}
