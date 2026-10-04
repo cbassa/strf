@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <stdlib.h>
+#include <math.h>
 #include <cmocka.h>
 
 #include "../rftles.h"
@@ -250,6 +251,104 @@ void TLE_decode_alpha5_designation(void **state) {
 
 }
 
+// The same four objects in every element set format (tests/data/omm.*):
+// ISS, GOES 18, MERIDIAN 7 and CREW DRAGON 13 (100882, alpha-5 A0882 in
+// the TLE file). The OMM encodings must give identical elements, the TLE
+// file the same elements within TLE precision.
+static const char *omm_files[] = {
+  "tests/data/omm.json", "tests/data/omm.xml", "tests/data/omm.kvn", "tests/data/omm.csv"
+};
+static const long omm_satnos[] = {25544, 51850, 40296, 100882};
+static const char *omm_names[] = {"ISS (ZARYA)", "GOES 18", "MERIDIAN 7", "CREW DRAGON 13"};
+
+static void assert_same_orbit(const orbit_t *a, const orbit_t *b) {
+  assert_int_equal(a->satno, b->satno);
+  assert_int_equal(a->ep_year, b->ep_year);
+  assert_true(a->ep_day == b->ep_day);
+  assert_true(a->rev == b->rev);
+  assert_true(a->bstar == b->bstar);
+  assert_true(a->eqinc == b->eqinc);
+  assert_true(a->ecc == b->ecc);
+  assert_true(a->mnan == b->mnan);
+  assert_true(a->argp == b->argp);
+  assert_true(a->ascn == b->ascn);
+  assert_true(a->ndot2 == b->ndot2);
+  assert_true(a->nddot6 == b->nddot6);
+  assert_int_equal(a->norb, b->norb);
+  assert_string_equal(a->desig, b->desig);
+}
+
+void TLE_load_omm_encodings(void **state) {
+  (void)state;
+  tle_array_t *ref = load_tles((char *)omm_files[0]);
+
+  assert_non_null(ref);
+  assert_int_equal(ref->number_of_elements, 4);
+  for (int i = 0; i < 4; i++) {
+    assert_int_equal(ref->tles[i].orbit.satno, omm_satnos[i]);
+    assert_non_null(ref->tles[i].name);
+    assert_string_equal(ref->tles[i].name, omm_names[i]);
+  }
+
+  // ISS, field by field
+  tle_t *tle = get_tle_by_catalog_id(ref, 25544);
+  assert_non_null(tle);
+  assert_int_equal(tle->orbit.ep_year, 2026);
+  assert_float_equal(tle->orbit.ep_day, 277.07866052, 1e-8);
+  assert_float_equal(tle->orbit.rev, 15.48727366, 1e-12);
+  assert_float_equal(tle->orbit.bstar, 0.71811468e-4, 1e-15);
+  assert_float_equal(tle->orbit.eqinc, 51.6316 * M_PI / 180.0, 1e-12);
+  assert_float_equal(tle->orbit.ecc, 0.0006887, 1e-12);
+  assert_float_equal(tle->orbit.ndot2, 0.00003472, 1e-15);
+  assert_string_equal(tle->orbit.desig, "98067A");
+  assert_int_equal(tle->orbit.norb, 58863);
+
+  for (int f = 1; f < 4; f++) {
+    tle_array_t *other = load_tles((char *)omm_files[f]);
+    assert_non_null(other);
+    assert_int_equal(other->number_of_elements, 4);
+    for (int i = 0; i < 4; i++) {
+      assert_same_orbit(&other->tles[i].orbit, &ref->tles[i].orbit);
+      assert_string_equal(other->tles[i].name, ref->tles[i].name);
+    }
+    free_tles(other);
+  }
+
+  free_tles(ref);
+}
+
+void TLE_load_tle_and_omm(void **state) {
+  (void)state;
+  tle_array_t *omm = load_tles("tests/data/omm.json");
+  tle_array_t *tle = load_tles("tests/data/omm.tle");
+  const double ang = 1e-4 * M_PI / 180.0 * 1.001;
+
+  assert_non_null(omm);
+  assert_non_null(tle);
+  assert_int_equal(tle->number_of_elements, 4);
+
+  for (int i = 0; i < 4; i++) {
+    const orbit_t *o = &omm->tles[i].orbit, *t = &tle->tles[i].orbit;
+
+    assert_int_equal(t->satno, omm_satnos[i]);
+    assert_string_equal(tle->tles[i].name, omm->tles[i].name);
+    assert_string_equal(t->desig, o->desig);
+    assert_int_equal(t->ep_year, o->ep_year);
+    assert_float_equal(t->ep_day, o->ep_day, 1e-8);
+    assert_float_equal(t->rev, o->rev, 1e-8);
+    assert_float_equal(t->ecc, o->ecc, 1e-7);
+    assert_float_equal(t->eqinc, o->eqinc, ang);
+    assert_float_equal(t->ascn, o->ascn, ang);
+    assert_float_equal(t->argp, o->argp, ang);
+    assert_float_equal(t->mnan, o->mnan, ang);
+    assert_float_equal(t->bstar, o->bstar, 1e-4 * fabs(o->bstar) + 1e-14);
+    assert_float_equal(t->ndot2, o->ndot2, 1e-8);
+  }
+
+  free_tles(omm);
+  free_tles(tle);
+}
+
 // Entry point to run all tests
 int run_tle_tests() {
   const struct CMUnitTest tests[] = {
@@ -260,6 +359,8 @@ int run_tle_tests() {
     cmocka_unit_test_setup_teardown(TLE_load_invalid_catalog_id_from_file, setup, teardown),
     cmocka_unit_test_setup_teardown(TLE_load_catalog_id_from_file, setup, teardown),
     cmocka_unit_test_setup_teardown(TLE_decode_alpha5_designation, setup_alpha5, teardown),    
+    cmocka_unit_test(TLE_load_omm_encodings),
+    cmocka_unit_test(TLE_load_tle_and_omm),
   };
 
   return cmocka_run_group_tests_name("TLE", tests, NULL, NULL);

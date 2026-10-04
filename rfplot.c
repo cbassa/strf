@@ -1089,9 +1089,9 @@ void plot_traces(struct trace *t,int nsat,float fcen,float xmin,float xmax, int 
       cpgsci(3);
 
     if (show_names && (t[i].satname[0] != '\0')) {
-      sprintf(text,"%d - %s", t[i].satno, t[i].satname);
+      snprintf(text,sizeof(text),"%d - %s", t[i].satno, t[i].satname);
     } else {
-      sprintf(text,"%d", t[i].satno);
+      snprintf(text,sizeof(text),"%d", t[i].satno);
     }
 
     // Plot label at start of trace

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "sgdp4h.h"
 #include "satutl.h"
+#include "elset.h"
 #include "rftime.h"
 #include "rftrace.h"
 #include <sys/time.h>
@@ -476,9 +477,10 @@ void identify_trace(char *tlefile,struct trace t,int satno,char *freqlist)
 // Is it a classified satellite
 int is_classified(int satno)
 {
-  int flag=0,no;
-  char *env,tlefile[128],line[LIM];
+  int flag=0;
+  char *env,tlefile[128];
   FILE *file;
+  orbit_t orb;
 
   // Get classfd.tle path
   env=getenv("ST_TLEDIR");
@@ -492,14 +494,9 @@ int is_classified(int satno)
     printf("%s not found\n",tlefile);
     flag=0;
   } else {
-    // Loop over TLEs
-    while (fgetline(file,line,LIM)>0) {
-      // Use 1st TLE line
-      if (line[0]=='1') {
-	sscanf(line+2,"%d",&no);
-	if (no==satno) flag=1;
-      }
-    }
+    // Look for the object (TLE with alpha-5 numbers, or OMM)
+    if (satno>0 && read_elset(file,satno,&orb,NULL)==0)
+      flag=1;
     fclose(file);
   }
 
@@ -661,7 +658,9 @@ struct trace *compute_trace(char *tlefile,double *mjd,int n,int site_id,float fr
 
       // Copy sat name into trace
       if (tle->name != NULL) {
-        strncpy(t[j].satname, tle->name, 25);
+        // OMM names can be longer than the 24 characters of a TLE name line
+        strncpy(t[j].satname, tle->name, sizeof(t[j].satname) - 1);
+        t[j].satname[sizeof(t[j].satname) - 1] = '\0';
       }
 
       // Loop over points

@@ -1,0 +1,4 @@
+[submodule "extern/dundee_sgp4"]
+	path = extern/dundee_sgp4
+	url = https://gitlab.com/pierros/dundee_sgp4.git
+	branch = alpha5-omm

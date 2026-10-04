@@ -422,7 +422,7 @@ void plot_traces(struct trace *t,int nsat,float foff,int type,int isci)
 
 
     // Plot label at start of trace
-    sprintf(text," %d",t[i].satno);
+    snprintf(text,sizeof(text)," %d",t[i].satno);
     if (t[i].za[0]<=90.0) {
       cpgslw(5);
       cpgsci(0);

@@ -1,0 +1,2 @@
+# OMM/TLE test data kept byte for byte (CRLF as served by CelesTrak)
+tests/data/omm.* -text

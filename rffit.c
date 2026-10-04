@@ -7,6 +7,7 @@
 #include <getopt.h>
 
 #include "sgdp4h.h"
+#include "elset.h"
 #include "rfsites.h"
 #include "rftles.h"
 
@@ -108,46 +109,16 @@ void diagonal_select(float x0,float y0,float x1,float y1,int flag)
   return;
 }
 
-void format_tle(orbit_t orb,char *line1,char *line2)
+// Elements as rffit writes them: the derivatives and the revolution number
+// are zero, since they do not follow a fit or a change of epoch
+orbit_t fitted_elements(orbit_t orb)
 {
-  int i,csum;
-  char sbstar[]=" 00000-0",bstar[13];
-  char csumstr[2];
-  char satstr[6];
+  orb.ndot2=0.0;
+  orb.nddot6=0.0;
+  orb.norb=0;
 
-  // Format Bstar term
-  if (fabs(orb.bstar)>1e-9) {
-    sprintf(bstar,"%11.4e",10*orb.bstar);
-    sbstar[0] = bstar[0];  sbstar[1] = bstar[1];  sbstar[2] = bstar[3];  sbstar[3] = bstar[4];
-    sbstar[4] = bstar[5];  sbstar[5] = bstar[6];  sbstar[6] = bstar[8];  sbstar[7] = bstar[10];  sbstar[8] = '\0';
-  }
-  // Print lines
-  number_to_alpha5(orb.satno,satstr);
-  satstr[5]='\0';
-  sprintf(line1,"1 %5sU %-8s %2d%012.8f  .00000000  00000-0 %8s 0    0",satstr,orb.desig,orb.ep_year-2000,orb.ep_day,sbstar);
-  sprintf(line2,"2 %5s %8.4f %8.4f %07.0f %8.4f %8.4f %11.8f    0",satstr,DEG(orb.eqinc),DEG(orb.ascn),1E7*orb.ecc,DEG(orb.argp),DEG(orb.mnan),orb.rev);
-
-  // Compute checksums
-  for (i=0,csum=0;i<strlen(line1);i++) {
-    if (isdigit(line1[i]))
-      csum+=line1[i]-'0';
-    else if (line1[i]=='-')
-      csum++;
-  }
-  sprintf(csumstr,"%d",csum%10);
-  strcat(line1,csumstr);
-  for (i=0,csum=0;i<strlen(line2);i++) {
-    if (isdigit(line2[i]))
-      csum+=line2[i]-'0';
-    else if (line2[i]=='-')
-      csum++;
-  }
-  sprintf(csumstr,"%d",csum%10);
-  strcat(line2,csumstr);
-
-  return;
+  return orb;
 }
-
 
 int identify_satellite_from_doppler(tle_array_t *tle_array, double rmsmax)
 {
@@ -330,7 +301,11 @@ int main(int argc,char *argv[])
       break;
 
     case 'i':
-      satno=atoi(optarg);
+      // NORAD number, plain (100000) or alpha-5 (A0000)
+      if (strlen(optarg)==5 && alpha5_to_number(optarg)>=0)
+        satno=alpha5_to_number(optarg);
+      else
+        satno=atoi(optarg);
       break;
 
     case 'F':
@@ -621,9 +596,13 @@ int main(int argc,char *argv[])
 	if (d.satname != NULL) {
 	  cpgmtxt("T", 3.0, 0.0, 0.0, d.satname);
 	}
-	format_tle(orb,line1,line2);
-	cpgmtxt("T",2.0,0.0,0.0,line1);
-	cpgmtxt("T",1.0,0.0,0.0,line2);
+	orbit_t fitted=fitted_elements(orb);
+	if (format_tle(&fitted,line1,line2)==0) {
+	  cpgmtxt("T",2.0,0.0,0.0,line1);
+	  cpgmtxt("T",1.0,0.0,0.0,line2);
+	} else {
+	  cpgmtxt("T",2.0,0.0,0.0,"(elements cannot be shown as a TLE)");
+	}
 
 	// Initialize
 	imode=init_sgdp4(&orb);
@@ -1101,6 +1080,9 @@ int main(int argc,char *argv[])
     if (c=='t') {
       orb.satno=99999;
       strcpy(orb.desig,"13900A");
+      orb.ndot2=0.0;
+      orb.nddot6=0.0;
+      orb.norb=0;
       mjdmid=compute_mean_mjd();
       orb.ep_day=mjd2doy(mjdmid,&orb.ep_year);
       satno=orb.satno;
@@ -1872,14 +1854,26 @@ void print_tle(orbit_t orb,char *filename,char *satname)
     }
   }
 
-  // Write TLE
+  // Write TLE, or OMM when the catalog number does not fit a TLE
   file=fopen(filename,"w");
-  format_tle(orb,line1,line2);
-  if (satname!=NULL)
-    fprintf(file,"%s\n%s\n%s\n",satname,line1,line2);
-  else
-    fprintf(file,"%s\n%s\n",line1,line2);
-  
+  if (file==NULL) {
+    printf("Failed to open %s\n",filename);
+    return;
+  }
+  orb=fitted_elements(orb);
+  if (format_tle(&orb,line1,line2)==0) {
+    if (satname!=NULL)
+      fprintf(file,"%s\n%s\n%s\n",satname,line1,line2);
+    else
+      fprintf(file,"%s\n%s\n",line1,line2);
+  } else if (orb.satno>ALPHA5_MAX) {
+    printf("Catalog number %d does not fit a TLE, writing OMM (KVN) instead\n",orb.satno);
+    if (write_omm_kvn(file,&orb,satname)!=0)
+      printf("Elements of %d could not be written\n",orb.satno);
+  } else {
+    printf("Elements of %d cannot be written as a TLE\n",orb.satno);
+  }
+
   mjd2date(mjdmin,&year,&month,&day);
   fprintf(file,"# %4d%02d%05.2lf-",year,month,day);
   mjd2date(mjdmax,&year,&month,&day);

@@ -1,6 +1,6 @@
 #include "rftles.h"
 
-#include "satutl.h"
+#include "elset.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,54 +40,43 @@ tle_array_t *load_tles(char *tlefile) {
         return tle_array;
     }
 
-    size_t linesize = 256;
-    char * line = malloc(linesize);
-    ssize_t read;
+    // Read element sets in any format read_elset() knows (TLE, 3LE,
+    // OMM as JSON, XML, KVN or CSV), growing the array as needed
+    long capacity = 0;
+    orbit_t orbit;
+    char satname[ST_SIZE];
 
-    // Count number of entries
-    long num_elements = 0;
+    memset(&orbit, 0, sizeof(orbit));
+    while (read_elset(file, 0, &orbit, satname) == 0) {
+        if (tle_array->number_of_elements == capacity) {
+            long new_capacity = (capacity == 0) ? 256 : 2 * capacity;
+            tle_t *tles = (tle_t *)realloc(tle_array->tles, new_capacity * sizeof(tle_t));
 
-    while ((read = getline(&line, &linesize, file)) != -1) {
-        if (read > 0 && strncmp(line, "1 ", 2) == 0) {
-            num_elements++;
+            if (tles == NULL) {
+                fclose(file);
+                free_tles(tle_array);
+
+                return NULL;
+            }
+            tle_array->tles = tles;
+            capacity = new_capacity;
         }
-    }
 
-    // Don't allocate anything if no entry found in file
-    if (num_elements == 0) {
-      fclose(file);
-      free(line);
+        tle_t *tle = &(tle_array->tles[tle_array->number_of_elements]);
 
-      return tle_array;
-    }
-
-    tle_array->tles = (tle_t *)calloc(num_elements, sizeof(tle_t));
-
-    if (tle_array->tles == NULL) {
-      fclose(file);
-      free(line);
-      free(tle_array);
-
-      return NULL;
-    }
-
-    // Rewind and parse file
-    rewind(file);
-
-    char satname[linesize];
-    while (read_twoline(file, 0, &(tle_array->tles[tle_array->number_of_elements].orbit), satname) == 0) {
+        tle->orbit = orbit;
         if (satname[0] != '\0') {
             int satname_len = strlen(satname) + 1;
-            tle_array->tles[tle_array->number_of_elements].name = malloc(satname_len);
-            strncpy(tle_array->tles[tle_array->number_of_elements].name, satname, satname_len);
+            tle->name = malloc(satname_len);
+            strncpy(tle->name, satname, satname_len);
         } else {
-            tle_array->tles[tle_array->number_of_elements].name = NULL;
+            tle->name = NULL;
         }
 
         tle_array->number_of_elements++;
+        memset(&orbit, 0, sizeof(orbit));
     }
 
-    free(line);
     fclose(file);
 
     printf("Loaded %ld orbits\n", tle_array->number_of_elements);

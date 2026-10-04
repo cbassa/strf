@@ -10,7 +10,8 @@ Install
 * For Ubuntu systems or similar.
   * Install dependencies: `sudo apt install git make gcc pgplot5 gfortran libpng-dev libx11-dev libgsl-dev libfftw3-dev libsox-dev dos2unix`
     * On recent systems (starting with Debian 13 Trixie and Ubuntu 24.10 Oracular), you'll need to install `sudo apt install pgplot5-dev`
-  * Clone repository: `git clone https://github.com/cbassa/strf.git`
+  * Clone repository with its submodule: `git clone --recursive https://github.com/cbassa/strf.git`
+    * For an existing clone, fetch the submodule with `git submodule update --init`
   * Compile: `cd strf; make`
   * Install (in `/usr/local`): `sudo make install`
   * To build and run the unit tests, also install the cmocka dependencies: `sudo apt install libcmocka-dev libcmocka0` and then run `make tests`
@@ -24,6 +25,7 @@ Configure
 	* `ST_LOGIN` space-track.org login info (of the form `ST_LOGIN="identity=username&password=password"`)
     * `ST_SITES_TXT` path to sites.txt (optional, default: `$ST_DATADIR/data/sites.txt`)
 * Run `tleupdate` to download latest TLEs.
+* Element sets are read as TLE/3LE (catalogue numbers above 99999 in alpha-5, e.g. `A0000`) or as CCSDS OMM in JSON, XML, KVN or CSV, as served by CelesTrak and Space-Track; the format is detected automatically. The SGP4 propagator and these readers come from the [dundee_sgp4](https://gitlab.com/pierros/dundee_sgp4) submodule in `extern/dundee_sgp4`, shared with [sattools](https://github.com/cbassa/sattools).
 * You should install NTP support on the system and configure time/date to automatically
   synchronize to time servers.
 
